@@ -149,8 +149,8 @@ export const Navbar = ({
         </div>
       </div>
 
-      {/* Global Search Bar */}
-      <div className="navbar-search">
+      {/* Global Search Bar (Desktop only) */}
+      <div className="navbar-search desktop-only">
         <Search size={18} className="search-icon" />
         <input
           type="text"
