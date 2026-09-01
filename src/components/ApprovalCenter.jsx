@@ -391,10 +391,10 @@ export const ApprovalCenter = () => {
                 )}
 
                 {/* Action Buttons Bar */}
-                <div className="request-card-actions flex-between pt-2 border-top">
-                  <div className="flex-center gap-2">
+                <div className="request-card-actions pt-3 border-top">
+                  <div className="action-group-left">
                     <button
-                      className="btn btn-secondary btn-sm"
+                      className="btn btn-secondary btn-sm flex-1"
                       onClick={() =>
                         setPrintSlipReq({
                           ...req,
@@ -405,44 +405,45 @@ export const ApprovalCenter = () => {
                       }
                       title="Print Request Slip"
                     >
-                      <Printer size={16} />
+                      <Printer size={15} />
                       <span>{lang === 'th' ? 'พิมพ์ใบคำขอ / ใบจ่ายของ' : 'Print Slip'}</span>
                     </button>
                     {isAdmin && (
                       <button
-                        className="btn btn-ghost btn-sm text-red"
+                        className="btn btn-ghost btn-sm text-red btn-delete-action"
                         onClick={() => {
                           if (window.confirm(lang === 'th' ? `ต้องการลบคำขอ ${req.refNo} หรือไม่?` : 'Delete request?')) {
                             deleteRequisitionRequest(req.id);
                           }
                         }}
+                        title="Delete Request"
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={16} />
                       </button>
                     )}
                   </div>
 
                   {isPending && !isViewer && (
-                    <div className="flex-center gap-2">
+                    <div className="action-group-right">
                       <button
-                        className="btn btn-danger btn-sm"
+                        className="btn btn-danger btn-sm flex-1"
                         onClick={() => {
                           setRejectModalReq(req);
                           setRejectReason('');
                         }}
                       >
-                        <XCircle size={16} />
+                        <XCircle size={15} />
                         <span>{lang === 'th' ? 'ปฏิเสธคำขอ' : 'Reject'}</span>
                       </button>
                       <button
-                        className="btn btn-success btn-sm font-extrabold"
+                        className="btn btn-success btn-sm font-extrabold flex-1"
                         onClick={() => {
                           setApproveModalReq(req);
                           setApproveNote('');
                         }}
                       >
-                        <CheckCircle2 size={16} />
-                        <span>{lang === 'th' ? 'อนุมัติ & จ่ายของ (-)' : 'Approve & Dispatch'}</span>
+                        <CheckCircle2 size={15} />
+                        <span>{lang === 'th' ? 'อนุมัติ & จ่ายของ' : 'Approve'}</span>
                       </button>
                     </div>
                   )}
@@ -713,45 +714,166 @@ export const ApprovalCenter = () => {
         .audit-approved { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
         .audit-rejected { background: #fef2f2; border: 1px solid #fecdd3; color: #9f1239; }
 
-        /* Slip Styles */
-        .print-document-sheet {
-          background: #ffffff;
-          color: #0f172a;
-          padding: 2rem;
+        .request-card-actions {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
         }
 
-        .slip-logo-box {
-          width: 44px;
-          height: 44px;
-          border-radius: var(--radius-sm);
-          background: var(--primary-gradient);
+        .action-group-left,
+        .action-group-right {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .btn-delete-action {
+          padding: 0.4rem 0.5rem;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
-        .slip-info-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 0.65rem;
-          font-size: 0.88rem;
-        }
-
-        .slip-signatures-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 1.5rem;
-        }
-
-        .signature-line {
-          height: 1px;
-          background: #0f172a;
-          margin-top: 45px;
-        }
-
         @media (max-width: 768px) {
-          .requester-summary-bar, .slip-signatures-grid {
-            grid-template-columns: 1fr;
+          .approval-center-page {
+            padding: 0;
+          }
+
+          .approval-kpi-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 0.5rem !important;
+            margin-bottom: 0.75rem !important;
+          }
+
+          .kpi-pill-card {
+            padding: 0.65rem 0.6rem !important;
+            gap: 0.5rem !important;
+            border-radius: var(--radius-md) !important;
+          }
+
+          .kpi-pill-icon {
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: var(--radius-xs) !important;
+          }
+
+          .kpi-pill-icon svg {
+            width: 18px !important;
+            height: 18px !important;
+          }
+
+          .kpi-pill-value {
+            font-size: 1.15rem !important;
+          }
+
+          .kpi-pill-label {
+            font-size: 0.68rem !important;
+          }
+
+          .toolbar-card {
+            padding: 0.75rem !important;
+            margin-bottom: 0.75rem !important;
+            gap: 0.6rem !important;
+          }
+
+          .status-filter-tabs {
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            padding-bottom: 4px !important;
+            -webkit-overflow-scrolling: touch !important;
+            width: 100% !important;
+          }
+
+          .status-tab-btn {
+            flex-shrink: 0 !important;
+            padding: 0.35rem 0.75rem !important;
+            font-size: 0.75rem !important;
+          }
+
+          .request-card {
+            padding: 0.85rem !important;
+            margin-bottom: 0.85rem !important;
+            border-radius: var(--radius-md) !important;
+          }
+
+          .request-card-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.4rem !important;
+          }
+
+          .ref-number-badge {
+            font-size: 0.82rem !important;
+            padding: 0.2rem 0.5rem !important;
+          }
+
+          .status-pill-badge {
+            font-size: 0.72rem !important;
+            padding: 0.2rem 0.6rem !important;
+          }
+
+          .requester-summary-bar {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 0.6rem !important;
+            padding: 0.65rem 0.75rem !important;
+          }
+
+          .summary-label {
+            font-size: 0.68rem !important;
+          }
+
+          .summary-val {
+            font-size: 0.78rem !important;
+            word-break: break-word !important;
+          }
+
+          .table-responsive {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            margin-left: -0.5rem;
+            margin-right: -0.5rem;
+            padding: 0 0.5rem;
+          }
+
+          .data-table th,
+          .data-table td {
+            padding: 0.5rem 0.4rem !important;
+            font-size: 0.75rem !important;
+          }
+
+          .request-card-actions {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.5rem !important;
+          }
+
+          .action-group-left,
+          .action-group-right {
+            width: 100% !important;
+            display: flex !important;
+            gap: 0.4rem !important;
+          }
+
+          .action-group-left button.btn-secondary {
+            flex: 1 !important;
+            font-size: 0.75rem !important;
+            padding: 0.45rem 0.5rem !important;
+            justify-content: center !important;
+          }
+
+          .action-group-right button {
+            flex: 1 !important;
+            font-size: 0.75rem !important;
+            padding: 0.45rem 0.5rem !important;
+            justify-content: center !important;
+          }
+
+          .btn-delete-action {
+            flex: 0 0 36px !important;
+            width: 36px !important;
+            padding: 0 !important;
           }
         }
       `}</style>
