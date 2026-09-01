@@ -481,8 +481,57 @@ export const StockProvider = ({ children }) => {
             .map(mapRequesterFromDb)
             .filter((r) => !isRemovedCompany(r.company, r.employeeCode, r.id));
           setRequestersList(mappedReqs);
-          const requesterUsers = mappedReqs.map((r, i) => generateRequesterUser(r, i));
-          setUsersList([INITIAL_USERS[0], ...requesterUsers]);
+
+          setUsersList((prevUsers) => {
+            let savedMap = new Map();
+            try {
+              const savedStr = localStorage.getItem(STORAGE_KEYS.USERS_LIST);
+              if (savedStr) {
+                const parsed = JSON.parse(savedStr);
+                if (Array.isArray(parsed)) {
+                  parsed.forEach((u) => {
+                    if (u.id) savedMap.set(u.id, u);
+                    if (u.username) savedMap.set(u.username, u);
+                    if (u.employeeCode) savedMap.set(u.employeeCode, u);
+                  });
+                }
+              }
+            } catch (e) {}
+
+            prevUsers.forEach((u) => {
+              if (u.id && !savedMap.has(u.id)) savedMap.set(u.id, u);
+              if (u.username && !savedMap.has(u.username)) savedMap.set(u.username, u);
+              if (u.employeeCode && !savedMap.has(u.employeeCode)) savedMap.set(u.employeeCode, u);
+            });
+
+            const savedAdmin = savedMap.get('usr-1') || savedMap.get('admin');
+            const adminUser = savedAdmin ? { ...INITIAL_USERS[0], ...savedAdmin } : INITIAL_USERS[0];
+
+            const requesterUsers = mappedReqs.map((r, i) => {
+              const existing =
+                savedMap.get(`usr-req-${r.id || r.employeeCode}`) ||
+                savedMap.get(r.id) ||
+                savedMap.get(r.employeeCode) ||
+                savedMap.get(extractCleanUsername(r.name));
+
+              const generated = generateRequesterUser(r, i);
+              if (existing && existing.password) {
+                return {
+                  ...generated,
+                  ...existing,
+                  password: existing.password,
+                  mustChangePassword: existing.mustChangePassword ?? false,
+                };
+              }
+              return generated;
+            });
+
+            const merged = [adminUser, ...requesterUsers];
+            try {
+              localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(merged));
+            } catch (e) {}
+            return merged;
+          });
         }
         if (txRes.status === 'fulfilled' && txRes.value.data && txRes.value.data.length > 0) {
           setTransactions(txRes.value.data.map(mapTransactionFromDb));
@@ -797,20 +846,40 @@ export const StockProvider = ({ children }) => {
   };
 
   const changeUserPassword = (userId, newPassword) => {
-    setUsersList(prev =>
-      prev.map(u => (u.id === userId ? { ...u, password: newPassword, mustChangePassword: false } : u))
-    );
-    if (user && user.id === userId) {
-      setUser(prev => ({ ...prev, password: newPassword, mustChangePassword: false }));
+    const trimmed = String(newPassword).trim();
+    setUsersList(prev => {
+      const updated = prev.map(u => (u.id === userId || u.username === userId ? { ...u, password: trimmed, mustChangePassword: false } : u));
+      try {
+        localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    if (user && (user.id === userId || user.username === userId)) {
+      const updatedUser = { ...user, password: trimmed, mustChangePassword: false };
+      setUser(updatedUser);
+      try {
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+        localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(updatedUser));
+      } catch (e) {}
     }
   };
 
   const adminResetUserPassword = (userId, newPassword, forceMustChange = true) => {
-    setUsersList(prev =>
-      prev.map(u => (u.id === userId ? { ...u, password: newPassword, mustChangePassword: forceMustChange } : u))
-    );
-    if (user && user.id === userId) {
-      setUser(prev => ({ ...prev, password: newPassword, mustChangePassword: forceMustChange }));
+    const trimmed = String(newPassword).trim();
+    setUsersList(prev => {
+      const updated = prev.map(u => (u.id === userId || u.username === userId ? { ...u, password: trimmed, mustChangePassword: forceMustChange } : u));
+      try {
+        localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    if (user && (user.id === userId || user.username === userId)) {
+      const updatedUser = { ...user, password: trimmed, mustChangePassword: forceMustChange };
+      setUser(updatedUser);
+      try {
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+        localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(updatedUser));
+      } catch (e) {}
     }
   };
 
