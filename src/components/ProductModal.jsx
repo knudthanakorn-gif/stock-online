@@ -182,14 +182,42 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
 
               {/* Image URL */}
               <div className="form-group col-span-2">
-                <label className="form-label">{lang === 'th' ? 'URL รูปภาพอุปกรณ์' : 'Image URL'}</label>
-                <input
-                  type="url"
-                  className="form-control"
-                  placeholder="https://images.unsplash.com/..."
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                />
+                <label className="form-label flex-between">
+                  <span>{lang === 'th' ? 'ลิงก์ / URL รูปภาพอุปกรณ์' : 'Image URL'}</span>
+                  {image && (
+                    <span className="text-xxs text-primary font-bold">
+                      {lang === 'th' ? '✓ มีรูปภาพ' : '✓ Image Preview'}
+                    </span>
+                  )}
+                </label>
+                <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    className="form-control"
+                    style={{ flex: 1 }}
+                    placeholder="เช่น /images/products/... หรือ https://..."
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                  />
+                  {image && (
+                    <img
+                      src={image}
+                      alt="Preview"
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '6px',
+                        objectFit: 'cover',
+                        border: '1px solid var(--border-color)',
+                        flexShrink: 0,
+                        background: '#f8fafc',
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Description */}
