@@ -88,8 +88,31 @@ export const Login = () => {
     } catch (e) {}
   };
 
+  const directoryUsers = useMemo(() => {
+    const list = [...usersList];
+    requestersList.forEach(r => {
+      const exists = list.some(
+        u => (r.employeeCode && u.employeeCode === r.employeeCode) || u.name === r.name
+      );
+      if (!exists) {
+        list.push({
+          id: `usr-req-${r.id}`,
+          name: r.name,
+          username: r.name,
+          employeeCode: r.employeeCode,
+          company: r.company,
+          department: r.department,
+          position: r.position,
+          password: '1234',
+          role: 'user',
+        });
+      }
+    });
+    return list;
+  }, [usersList, requestersList]);
+
   const handleSelectRecentUser = (r) => {
-    const matched = usersList.find(
+    const matched = directoryUsers.find(
       (u) =>
         u.id === r.id ||
         (u.username && r.username && u.username.toLowerCase() === r.username.toLowerCase()) ||
@@ -110,7 +133,7 @@ export const Login = () => {
     const clean = inputName.trim().toLowerCase();
     const normalized = extractCleanUsername(inputName).toLowerCase();
 
-    const matches = usersList.filter((u) => {
+    const matches = directoryUsers.filter((u) => {
       const uName = (u.name || '').toLowerCase();
       const uUsername = (u.username || '').toLowerCase();
       const uNorm = extractCleanUsername(u.name).toLowerCase();
@@ -329,7 +352,7 @@ export const Login = () => {
               onClick={() => setIsDirectoryOpen(true)}
             >
               <Users size={16} color="#4f46e5" />
-              <span>{lang === 'th' ? '🔍 ค้นหารายชื่อพนักงานในระบบ (86 ท่าน)' : '🔍 Search Employee Directory'}</span>
+              <span>{lang === 'th' ? `🔍 ค้นหารายชื่อพนักงานในระบบ (${directoryUsers.filter(u => u.role !== 'admin').length} ท่าน)` : '🔍 Search Employee Directory'}</span>
             </button>
           </div>
         </form>
@@ -419,7 +442,7 @@ export const Login = () => {
               </div>
 
               <div className="directory-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {usersList
+                {directoryUsers
                   .filter((u) => {
                     if (u.role === 'admin') return false;
                     if (!directorySearch.trim()) return true;

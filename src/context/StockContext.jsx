@@ -816,6 +816,11 @@ export const StockProvider = ({ children }) => {
     };
     setUsersList(prev => [newUser, ...prev]);
 
+    // Persist to Supabase users table
+    supabase.from('users').upsert(mapUserToDb(newUser)).then(({ error }) => {
+      if (error) console.error('Supabase createNewUser error:', error);
+    });
+
     if (cleanRole === 'user') {
       const alreadyInReq = requestersList.some(r => r.employeeCode === empCode || r.name === userData.name);
       if (!alreadyInReq) {
@@ -828,6 +833,9 @@ export const StockProvider = ({ children }) => {
           position: userData.position || '',
         };
         setRequestersList(prev => [newReq, ...prev]);
+        supabase.from('requesters').upsert(mapRequesterToDb(newReq)).then(({ error }) => {
+          if (error) console.error('Supabase createNewUser->req error:', error);
+        });
       }
     }
   };
@@ -848,6 +856,12 @@ export const StockProvider = ({ children }) => {
       })
     );
 
+    if (updatedUserObj) {
+      supabase.from('users').upsert(mapUserToDb(updatedUserObj)).then(({ error }) => {
+        if (error) console.error('Supabase updateUser error:', error);
+      });
+    }
+
     if (user && user.id === id) {
       setUser(prev => ({ ...prev, ...updatedFields }));
     }
@@ -856,7 +870,7 @@ export const StockProvider = ({ children }) => {
       setRequestersList(prev =>
         prev.map(r => {
           if (r.employeeCode === updatedUserObj.employeeCode || r.name === updatedUserObj.name) {
-            return {
+            const updatedReq = {
               ...r,
               name: updatedUserObj.name || r.name,
               employeeCode: updatedUserObj.employeeCode || r.employeeCode,
@@ -864,6 +878,10 @@ export const StockProvider = ({ children }) => {
               department: updatedUserObj.department || r.department,
               position: updatedUserObj.position || r.position,
             };
+            supabase.from('requesters').upsert(mapRequesterToDb(updatedReq)).then(({ error }) => {
+              if (error) console.error('Supabase updateUser->req error:', error);
+            });
+            return updatedReq;
           }
           return r;
         })
@@ -878,18 +896,28 @@ export const StockProvider = ({ children }) => {
       return;
     }
     setUsersList(prev => prev.filter(u => u.id !== id));
+    supabase.from('users').delete().eq('id', id).then(({ error }) => {
+      if (error) console.error('Supabase deleteUser error:', error);
+    });
   };
 
   const toggleUserStatus = (id) => {
+    let targetObj = null;
     setUsersList(prev =>
       prev.map(u => {
         if (u.id === id) {
           const nextStatus = u.status === 'active' ? 'suspended' : 'active';
-          return { ...u, status: nextStatus };
+          targetObj = { ...u, status: nextStatus };
+          return targetObj;
         }
         return u;
       })
     );
+    if (targetObj) {
+      supabase.from('users').upsert(mapUserToDb(targetObj)).then(({ error }) => {
+        if (error) console.error('Supabase toggleUserStatus error:', error);
+      });
+    }
   };
 
   const changeUserPassword = (userId, newPassword) => {
@@ -968,7 +996,7 @@ export const StockProvider = ({ children }) => {
     };
     setRequestersList(prev => [newReq, ...prev]);
 
-    // Persist to Supabase
+    // Persist to Supabase requesters table
     supabase.from('requesters').upsert(mapRequesterToDb(newReq)).then(({ error }) => {
       if (error) console.error('Supabase addRequester error:', error);
     });
@@ -977,6 +1005,10 @@ export const StockProvider = ({ children }) => {
     if (!alreadyInUsers) {
       const newUser = generateRequesterUser(newReq, requestersList.length);
       setUsersList(prev => [...prev, newUser]);
+      // Persist newUser to Supabase users table
+      supabase.from('users').upsert(mapUserToDb(newUser)).then(({ error }) => {
+        if (error) console.error('Supabase addRequester->user error:', error);
+      });
     }
   };
 
@@ -1005,7 +1037,7 @@ export const StockProvider = ({ children }) => {
             u.name === updatedReqObj.name
           ) {
             const updatedName = updatedReqObj.name || u.name;
-            return {
+            const updatedUser = {
               ...u,
               name: updatedName,
               username: extractCleanUsername(updatedName) || u.username,
@@ -1014,6 +1046,10 @@ export const StockProvider = ({ children }) => {
               department: updatedReqObj.department || u.department,
               position: updatedReqObj.position || u.position,
             };
+            supabase.from('users').upsert(mapUserToDb(updatedUser)).then(({ error }) => {
+              if (error) console.error('Supabase updateRequester->user error:', error);
+            });
+            return updatedUser;
           }
           return u;
         })
@@ -1029,14 +1065,26 @@ export const StockProvider = ({ children }) => {
       if (error) console.error('Supabase deleteRequester error:', error);
     });
     if (targetReq) {
-      setUsersList(prev =>
-        prev.filter(
+      setUsersList(prev => {
+        const filtered = prev.filter(
           u =>
             u.id !== `usr-req-${id}` &&
             (!targetReq.employeeCode || u.employeeCode !== targetReq.employeeCode) &&
             u.name !== targetReq.name
-        )
+        );
+        return filtered;
+      });
+      const matchingUser = usersList.find(
+        u =>
+          u.id === `usr-req-${id}` ||
+          (targetReq.employeeCode && u.employeeCode === targetReq.employeeCode) ||
+          u.name === targetReq.name
       );
+      if (matchingUser && matchingUser.role === 'user') {
+        supabase.from('users').delete().eq('id', matchingUser.id).then(({ error }) => {
+          if (error) console.error('Supabase deleteRequester->user error:', error);
+        });
+      }
     }
   };
 
