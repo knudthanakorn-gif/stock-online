@@ -46,14 +46,30 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_DEPARTMENT_QUOTAS = {
-  'แผนก IT': 50,
-  'แผนกบุคคล / HR': 30,
-  'แผนกบัญชีและการเงิน': 25,
-  'แผนกคลังสินค้า & สโตร์': 60,
-  'แผนกจัดซื้อ': 30,
-  'ฝ่ายบริหาร': 40,
-  'แผนกการตลาด': 25,
-  'แผนกขาย': 30,
+  'Application Engineer E&I': 0,
+  'Application Engineer SI': 0,
+  'Documentaion Controller': 0,
+  'Electrical-Instrument & System Indicator': 0,
+  'Eltherm Product': 0,
+  'Finance and Accounting': 0,
+  'HR': 0,
+  'IT': 0,
+  'Management': 0,
+  'Marketing': 0,
+  'Procurement & Logistic': 0,
+  'Product Specialist (E&I)': 0,
+  'Pump': 0,
+  'Purchasing & Logistic': 0,
+  'Safety': 0,
+  'Sales Coordinator Admin': 0,
+  'Sales Coordinator E&I': 0,
+  'Sales Coordinator Pump': 0,
+  'Sales E&I': 0,
+  'Sales Engineer': 0,
+  'Sales SI': 0,
+  'Service': 0,
+  'VIP': 0,
+  'Valves & Rotating Pump': 0,
 };
 
 const DEFAULT_NOTIF_SETTINGS = {
