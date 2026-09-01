@@ -689,156 +689,131 @@ export const RequisitionPage = () => {
                   </div>
                 )}
 
-                {/* Table of selected items */}
-                <div className="card mb-3 p-2.5 bg-main" style={{ borderRadius: '12px' }}>
+                {/* Modern Cart Items Card List */}
+                <div className="card mb-3 p-3 bg-main" style={{ borderRadius: '14px', border: '1px solid var(--border-color)' }}>
                   <div className="flex-between mb-2">
-                    <span className="font-bold text-xs">
-                      📦 {lang === 'th' ? `รายการอุปกรณ์ในตะกร้า (${cart.length} รายการ)` : `Cart Items (${cart.length})`}
+                    <span className="font-extrabold text-xs text-slate-800 flex-center gap-1.5">
+                      <span>📦 รายการในตะกร้า</span>
+                      <span className="badge badge-primary font-mono text-xxs">{cart.length}</span>
                     </span>
                     <button
                       type="button"
                       className="btn btn-ghost btn-xs text-red font-bold"
+                      style={{ padding: '0.2rem 0.5rem' }}
                       onClick={() => setCart([])}
                     >
-                      <Trash2 size={13} /> {lang === 'th' ? 'ล้างตะกร้า' : 'Clear'}
+                      <Trash2 size={12} /> {lang === 'th' ? 'ล้างตะกร้า' : 'Clear'}
                     </button>
                   </div>
 
-                  <div className="table-responsive" style={{ margin: 0 }}>
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th style={{ width: '30px' }}>#</th>
-                          <th>{lang === 'th' ? 'อุปกรณ์' : 'Asset'}</th>
-                          <th style={{ width: '130px' }}>{lang === 'th' ? 'จำนวน' : 'Quantity'}</th>
-                          <th style={{ width: '30px' }}></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cart.map(({ product: p, quantity: q }, index) => (
-                          <tr key={p.id}>
-                            <td className="font-bold text-muted text-xxs">{index + 1}</td>
-                            <td>
-                              <div className="font-bold text-xs text-slate-800">{p.name}</div>
-                              <div className="text-xxs text-muted mt-0.5">
-                                <span>คลัง: <strong className="text-green font-bold">{p.quantity}</strong> {p.unit || 'ชิ้น'}</span>
-                              </div>
-                            </td>
-                            <td>
-                              <div className="flex-center gap-1">
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary btn-xs"
-                                  style={{ padding: '0.2rem 0.4rem' }}
-                                  onClick={() => handleUpdateCartQty(p.id, -1)}
-                                >
-                                  -
-                                </button>
-                                <input
-                                  type="number"
-                                  className="form-control text-center font-bold"
-                                  style={{ width: '48px', padding: '0.2rem 0.1rem', fontSize: '0.85rem' }}
-                                  min="1"
-                                  max={p.quantity}
-                                  value={q}
-                                  onChange={(e) => {
-                                    const val = Math.max(1, Math.min(p.quantity, Number(e.target.value) || 1));
-                                    setCart((prev) =>
-                                      prev.map((item) => (item.product.id === p.id ? { ...item, quantity: val } : item))
-                                    );
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary btn-xs"
-                                  style={{ padding: '0.2rem 0.4rem' }}
-                                  onClick={() => handleUpdateCartQty(p.id, 1)}
-                                  disabled={q >= p.quantity}
-                                >
-                                  +
-                                </button>
-                                <span className="text-xxs text-muted">{p.unit || 'ชิ้น'}</span>
-                              </div>
-                            </td>
-                            <td className="text-center">
-                              <button
-                                type="button"
-                                className="btn-icon-sm text-red"
-                                onClick={() => handleRemoveFromCart(p.id)}
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="cart-items-stack" style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                    {cart.map(({ product: p, quantity: q }) => (
+                      <div
+                        key={p.id}
+                        className="cart-item-card"
+                        style={{
+                          background: 'var(--bg-surface)',
+                          borderRadius: '10px',
+                          border: '1px solid var(--border-color)',
+                          padding: '0.65rem 0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.65rem',
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            className="font-bold text-xs text-slate-800"
+                            style={{
+                              lineHeight: 1.3,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title={p.name}
+                          >
+                            {p.name}
+                          </div>
+                          <div className="text-xxs text-muted mt-0.5 font-medium">
+                            คลังคงเหลือ: <strong className="text-green font-bold">{p.quantity}</strong> {p.unit || 'ชิ้น'}
+                          </div>
+                        </div>
+
+                        <div className="flex-center gap-2" style={{ flexShrink: 0 }}>
+                          {/* Stepper */}
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              background: 'var(--bg-main)',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border-color)',
+                              padding: '2px',
+                              gap: '2px',
+                            }}
+                          >
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs"
+                              style={{ width: '26px', height: '26px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}
+                              onClick={() => handleUpdateCartQty(p.id, -1)}
+                            >
+                              -
+                            </button>
+                            <span className="font-mono font-extrabold text-xs" style={{ width: '24px', textAlign: 'center' }}>
+                              {q}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs"
+                              style={{ width: '26px', height: '26px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}
+                              onClick={() => handleUpdateCartQty(p.id, 1)}
+                              disabled={q >= p.quantity}
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs text-red"
+                            style={{ width: '28px', height: '28px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            onClick={() => handleRemoveFromCart(p.id)}
+                            title="ลบรายการนี้"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                {/* Requester Identity Card (Auto-loaded from Authenticated Login Session) */}
-                <div className="card p-3 mb-3" style={{ background: 'var(--bg-main)', border: '1.5px solid var(--border-color)', borderRadius: '14px' }}>
-                  <div className="flex-between mb-2 flex-wrap gap-1">
-                    <div className="font-bold text-xs text-primary flex-center gap-1.5">
-                      <UserCheck size={16} color="#4f46e5" />
-                      <span>{lang === 'th' ? 'ข้อมูลผู้ขอเบิก (ระบบยืนยันตัวตน)' : 'Requester Information'}</span>
-                    </div>
-                    <span className="badge badge-success text-xxs font-bold">
-                      <CheckCircle2 size={11} /> ยืนยันแล้ว
+                {/* Requester Identity Card */}
+                <div className="card p-2.5 mb-3" style={{ background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+                  <div className="flex-between mb-1.5">
+                    <span className="font-extrabold text-xxs text-primary flex-center gap-1">
+                      <UserCheck size={14} color="#4f46e5" />
+                      <span>ข้อมูลผู้ขอเบิก (ระบบยืนยันตัวตน)</span>
+                    </span>
+                    <span className="badge badge-success text-xxs font-bold" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
+                      <CheckCircle2 size={10} /> ยืนยันแล้ว
                     </span>
                   </div>
 
-                  <div className="p-2.5 rounded-lg" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
-                    <div className="flex items-start gap-2.5">
-                      <div
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '8px',
-                          background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-                          color: '#2563eb',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          border: '1px solid #bfdbfe',
-                          marginTop: '2px',
-                        }}
-                      >
-                        <UserCheck size={18} />
+                  <div className="p-2 rounded-lg" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                    <div className="flex-between flex-wrap gap-1">
+                      <div className="font-extrabold text-xs text-primary">
+                        {user?.name || requesterName || 'พนักงาน'}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="flex-center gap-1.5 flex-wrap justify-start">
-                          <span className="font-extrabold text-primary text-sm">
-                            {user?.name || requesterName || 'พนักงาน'}
-                          </span>
-                          {user?.employeeCode && (
-                            <span className="badge badge-primary font-mono text-xxs font-bold">
-                              {user.employeeCode}
-                            </span>
-                          )}
-                          {user?.role && (
-                            <span className="badge badge-info text-xxs font-bold">
-                              {user.role === 'admin' ? 'ผู้ดูแลระบบ' : user.role === 'staff' ? 'เจ้าหน้าที่คลัง' : 'ผู้ขอเบิก'}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xxs text-muted flex items-center gap-1 flex-wrap mt-1">
-                          <span style={{ fontWeight: 700, color: '#1e40af' }}>🏢 {user?.company || 'EXION THAILAND'}</span>
-                          {user?.department && (
-                            <>
-                              <span>•</span>
-                              <span>📁 {user.department}</span>
-                            </>
-                          )}
-                          {user?.position && (
-                            <>
-                              <span>•</span>
-                              <span>💼 {user.position}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                      <span className="badge badge-info text-xxs font-bold" style={{ fontSize: '0.62rem' }}>
+                        {user?.role === 'admin' ? 'ผู้ดูแลระบบ' : user?.role === 'staff' ? 'เจ้าหน้าที่คลัง' : 'ผู้ขอเบิก'}
+                      </span>
+                    </div>
+                    <div className="text-xxs text-muted mt-1">
+                      🏢 <strong>{user?.company || 'EXION THAILAND'}</strong> {user?.department ? `• 📁 ${user.department}` : ''}
                     </div>
                   </div>
 
