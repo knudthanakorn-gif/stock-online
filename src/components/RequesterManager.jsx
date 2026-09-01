@@ -120,12 +120,9 @@ export const RequesterManager = () => {
   };
 
   const DEFAULT_COMPANY_LIST = [
-    'C.S.I. (THAILAND) COMPANY LIMITED',
     'EXION (Thailand) Company Limited',
-    'OSA Valve Services (Thailand) Co.,Ltd',
-    'PD FLOWTECH COMPANY LIMITED',
     'HOUSE OF PROFESSIONALS COMPANY LIMITED',
-    'TRI-GEN SOLUTION COMPANY LIMITED',
+    'PD FLOWTECH COMPANY LIMITED',
   ];
 
   // Get unique companies & departments for filters
