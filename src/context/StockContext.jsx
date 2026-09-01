@@ -454,6 +454,7 @@ export const StockProvider = ({ children }) => {
           supRes,
           prodRes,
           reqsRes,
+          usersRes,
           txRes,
           requestsRes,
           notifRes,
@@ -475,6 +476,13 @@ export const StockProvider = ({ children }) => {
         }
         if (supRes.status === 'fulfilled' && supRes.value.data && supRes.value.data.length > 0) {
           setSuppliers(supRes.value.data.map(mapSupplierFromDb));
+        }
+        if (prodRes.status === 'fulfilled' && prodRes.value.data && prodRes.value.data.length > 0) {
+          const mappedProds = prodRes.value.data.map(mapProductFromDb);
+          setProducts(mappedProds);
+          try {
+            localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(mappedProds));
+          } catch (e) {}
         }
         if (usersRes.status === 'fulfilled' && usersRes.value.data && usersRes.value.data.length > 0) {
           const mappedDbUsers = usersRes.value.data
