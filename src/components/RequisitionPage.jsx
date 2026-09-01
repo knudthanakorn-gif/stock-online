@@ -845,29 +845,38 @@ export const RequisitionPage = () => {
                   </div>
 
                   {/* Department Monthly Quota Status */}
-                  {user?.department && (
-                    <div
-                      className="p-2 rounded-md mt-2"
-                      style={{
-                        background: (getDepartmentUsageThisMonth(user.department) + totalCartCount > (departmentQuotas[user.department] || 50)) ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
-                        border: (getDepartmentUsageThisMonth(user.department) + totalCartCount > (departmentQuotas[user.department] || 50)) ? '1px solid #fca5a5' : '1px solid #86efac',
-                      }}
-                    >
-                      <div className="flex-between text-xxs flex-wrap gap-1">
-                        <span className="font-bold text-primary">
-                          📊 โควตาเบิก ({user.department}):
-                        </span>
-                        <span className="font-mono font-bold" style={{ color: (getDepartmentUsageThisMonth(user.department) + totalCartCount > (departmentQuotas[user.department] || 50)) ? '#ef4444' : '#10b981' }}>
-                          ใช้ไป {getDepartmentUsageThisMonth(user.department)} + ครั้งนี้ {totalCartCount} / {departmentQuotas[user.department] || 50} ชิ้น
-                        </span>
-                      </div>
-                      {(getDepartmentUsageThisMonth(user.department) + totalCartCount > (departmentQuotas[user.department] || 50)) && (
-                        <div className="text-xxs text-red mt-1 font-bold">
-                          ⚠️ คำขอนี้จะเกินโควตาประจำเดือนของแผนก ({getDepartmentUsageThisMonth(user.department) + totalCartCount - (departmentQuotas[user.department] || 50)} ชิ้น) ต้องรอผู้อนุมัติพิจารณาเป็นกรณีพิเศษ
+                  {user?.department && (() => {
+                    const deptQuota = departmentQuotas[user.department] !== undefined ? departmentQuotas[user.department] : 50;
+                    const deptUsage = getDepartmentUsageThisMonth(user.department);
+                    const isUnlimited = deptQuota === 0;
+                    const isOver = !isUnlimited && (deptUsage + totalCartCount > deptQuota);
+
+                    return (
+                      <div
+                        className="p-2 rounded-md mt-2"
+                        style={{
+                          background: isOver ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+                          border: isOver ? '1px solid #fca5a5' : '1px solid #86efac',
+                        }}
+                      >
+                        <div className="flex-between text-xxs flex-wrap gap-1">
+                          <span className="font-bold text-primary">
+                            📊 โควตาเบิก ({user.department}):
+                          </span>
+                          <span className="font-mono font-bold" style={{ color: isOver ? '#ef4444' : '#10b981' }}>
+                            {isUnlimited
+                              ? `เบิกไปแล้ว ${deptUsage} ชิ้น (♾️ ไม่จำกัดโควตา)`
+                              : `ใช้ไป ${deptUsage} + ครั้งนี้ ${totalCartCount} / ${deptQuota} ชิ้น`}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  )}
+                        {isOver && (
+                          <div className="text-xxs text-red mt-1 font-bold">
+                            ⚠️ คำขอนี้จะเกินโควตาประจำเดือนของแผนก ({deptUsage + totalCartCount - deptQuota} ชิ้น) ต้องรอผู้อนุมัติพิจารณาเป็นกรณีพิเศษ
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

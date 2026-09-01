@@ -78,18 +78,19 @@ export const DepartmentQuotaModal = ({ isOpen, onClose }) => {
                 <Info size={16} color="#6366f1" />
                 <span>
                   {lang === 'th'
-                    ? 'ระบบจะตรวจสอบยอดเบิกสะสมในเดือนปัจจุบันอัตโนมัติ หากเบิกเกินโควตาระบบจะแสดงข้อความแจ้งเตือนเตือนสติผู้เบิกและผู้อนุมัติ'
-                    : 'The system automatically checks current month usage and alerts when approaching or exceeding quota.'}
+                    ? 'ระบบจะตรวจสอบยอดเบิกสะสมในเดือนปัจจุบันอัตโนมัติ (หากตั้งค่าโควตาเป็น 0 จะถือว่า "ไม่จำกัดจำนวนการเบิก ♾️")'
+                    : 'System checks monthly usage automatically. (Setting quota to 0 means Unlimited requisition ♾️)'}
                 </span>
               </div>
             </div>
 
             <div className="department-quota-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {departmentsList.map((dept) => {
-                const limit = localQuotas[dept] || 0;
+                const limit = localQuotas[dept] !== undefined ? localQuotas[dept] : 0;
                 const used = getDepartmentUsageThisMonth(dept);
-                const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-                const isOver = used > limit;
+                const isUnlimited = limit === 0;
+                const percent = !isUnlimited && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+                const isOver = !isUnlimited && used > limit;
 
                 return (
                   <div
@@ -116,7 +117,7 @@ export const DepartmentQuotaModal = ({ isOpen, onClose }) => {
                           value={limit}
                           onChange={(e) => handleQuotaChange(dept, e.target.value)}
                         />
-                        <span className="text-xs text-muted">ชิ้น/เดือน</span>
+                        <span className="text-xs text-muted">{isUnlimited ? '(ไม่จำกัด)' : 'ชิ้น/เดือน'}</span>
                       </div>
                     </div>
 
@@ -124,9 +125,11 @@ export const DepartmentQuotaModal = ({ isOpen, onClose }) => {
                     <div>
                       <div className="flex-between text-xxs text-muted mb-1">
                         <span>
-                          เบิกไปแล้ว: <strong className={isOver ? 'text-red font-bold' : 'text-primary'}>{used}</strong> / {limit} ชิ้น ({percent}%)
+                          เบิกไปแล้ว: <strong className={isOver ? 'text-red font-bold' : 'text-primary font-bold'}>{used}</strong> {isUnlimited ? 'ชิ้น (♾️ ไม่จำกัดการเบิก)' : `/ ${limit} ชิ้น (${percent}%)`}
                         </span>
-                        {isOver ? (
+                        {isUnlimited ? (
+                          <span className="badge badge-success text-xxs font-bold">♾️ ไม่จำกัดโควตา</span>
+                        ) : isOver ? (
                           <span className="text-red font-bold flex-center gap-1">
                             <AlertTriangle size={11} /> เกินโควตา {used - limit} ชิ้น
                           </span>
@@ -138,9 +141,11 @@ export const DepartmentQuotaModal = ({ isOpen, onClose }) => {
                       <div style={{ width: '100%', height: '7px', background: 'var(--bg-main)', borderRadius: '9999px', overflow: 'hidden' }}>
                         <div
                           style={{
-                            width: `${percent}%`,
+                            width: isUnlimited ? '100%' : `${percent}%`,
                             height: '100%',
-                            background: isOver
+                            background: isUnlimited
+                              ? 'linear-gradient(90deg, #10b981, #3b82f6)'
+                              : isOver
                               ? '#ef4444'
                               : percent > 80
                               ? '#f59e0b'
