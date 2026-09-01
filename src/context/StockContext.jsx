@@ -460,97 +460,96 @@ export const StockProvider = ({ children }) => {
   }, [user]);
 
   // Sync initial data from Supabase and listen for Realtime events
-  useEffect(() => {
-    let isMounted = true;
+  const refreshDataFromSupabase = async () => {
+    try {
+      const [
+        catRes,
+        supRes,
+        prodRes,
+        reqsRes,
+        usersRes,
+        txRes,
+        requestsRes,
+        notifRes,
+      ] = await Promise.allSettled([
+        supabase.from('categories').select('*'),
+        supabase.from('suppliers').select('*'),
+        supabase.from('products').select('*').order('created_at', { ascending: false }),
+        supabase.from('requesters').select('*'),
+        supabase.from('users').select('*'),
+        supabase.from('transactions').select('*').order('timestamp', { ascending: false }).limit(200),
+        supabase.from('requests').select('*').order('created_at', { ascending: false }),
+        supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50),
+      ]);
 
-    const fetchAllFromSupabase = async () => {
-      try {
-        const [
-          catRes,
-          supRes,
-          prodRes,
-          reqsRes,
-          usersRes,
-          txRes,
-          requestsRes,
-          notifRes,
-        ] = await Promise.allSettled([
-          supabase.from('categories').select('*'),
-          supabase.from('suppliers').select('*'),
-          supabase.from('products').select('*').order('created_at', { ascending: false }),
-          supabase.from('requesters').select('*'),
-          supabase.from('users').select('*'),
-          supabase.from('transactions').select('*').order('timestamp', { ascending: false }).limit(200),
-          supabase.from('requests').select('*').order('created_at', { ascending: false }),
-          supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50),
-        ]);
-
-        if (!isMounted) return;
-
-        if (catRes.status === 'fulfilled' && catRes.value.data && catRes.value.data.length > 0) {
-          setCategories(catRes.value.data.map(mapCategoryFromDb));
-        }
-        if (supRes.status === 'fulfilled' && supRes.value.data && supRes.value.data.length > 0) {
-          setSuppliers(supRes.value.data.map(mapSupplierFromDb));
-        }
-        if (prodRes.status === 'fulfilled' && prodRes.value.data && prodRes.value.data.length > 0) {
-          const mappedProds = prodRes.value.data.map(mapProductFromDb);
-          setProducts(mappedProds);
-          try {
-            localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(mappedProds));
-          } catch (e) {}
-        }
-        if (usersRes.status === 'fulfilled' && usersRes.value.data && usersRes.value.data.length > 0) {
-          const mappedDbUsers = usersRes.value.data
-            .map(mapUserFromDb)
-            .filter((u) => !isRemovedCompany(u.company, u.employeeCode, u.id));
-          setUsersList(mappedDbUsers);
-          try {
-            localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(mappedDbUsers));
-          } catch (e) {}
-
-          // Live-sync active user session with latest role from Supabase DB
-          setUser(prevUser => {
-            if (!prevUser) return null;
-            const liveUser = mappedDbUsers.find(
-              u =>
-                u.id === prevUser.id ||
-                (u.username && prevUser.username && u.username.toLowerCase() === prevUser.username.toLowerCase()) ||
-                (u.employeeCode && prevUser.employeeCode && u.employeeCode.toLowerCase() === prevUser.employeeCode.toLowerCase())
-            );
-            if (liveUser && (liveUser.role !== prevUser.role || liveUser.status !== prevUser.status)) {
-              const updated = { ...prevUser, ...liveUser };
-              try {
-                localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
-                localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(updated));
-              } catch (e) {}
-              return updated;
-            }
-            return prevUser;
-          });
-        }
-
-        if (reqsRes.status === 'fulfilled' && reqsRes.value.data && reqsRes.value.data.length > 0) {
-          const mappedReqs = reqsRes.value.data
-            .map(mapRequesterFromDb)
-            .filter((r) => !isRemovedCompany(r.company, r.employeeCode, r.id));
-          setRequestersList(mappedReqs);
-        }
-        if (txRes.status === 'fulfilled' && txRes.value.data && txRes.value.data.length > 0) {
-          setTransactions(txRes.value.data.map(mapTransactionFromDb));
-        }
-        if (requestsRes.status === 'fulfilled' && requestsRes.value.data && requestsRes.value.data.length > 0) {
-          setRequests(requestsRes.value.data.map(mapRequestFromDb));
-        }
-        if (notifRes.status === 'fulfilled' && notifRes.value.data && notifRes.value.data.length > 0) {
-          setNotifications(notifRes.value.data.map(mapNotificationFromDb));
-        }
-      } catch (err) {
-        console.warn('Supabase initial fetch fallback to local:', err);
+      if (catRes.status === 'fulfilled' && catRes.value.data && catRes.value.data.length > 0) {
+        setCategories(catRes.value.data.map(mapCategoryFromDb));
       }
-    };
+      if (supRes.status === 'fulfilled' && supRes.value.data && supRes.value.data.length > 0) {
+        setSuppliers(supRes.value.data.map(mapSupplierFromDb));
+      }
+      if (prodRes.status === 'fulfilled' && prodRes.value.data && prodRes.value.data.length > 0) {
+        const mappedProds = prodRes.value.data.map(mapProductFromDb);
+        setProducts(mappedProds);
+        try {
+          localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(mappedProds));
+        } catch (e) {}
+      }
+      if (usersRes.status === 'fulfilled' && usersRes.value.data && usersRes.value.data.length > 0) {
+        const mappedDbUsers = usersRes.value.data
+          .map(mapUserFromDb)
+          .filter((u) => !isRemovedCompany(u.company, u.employeeCode, u.id));
+        setUsersList(mappedDbUsers);
+        try {
+          localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(mappedDbUsers));
+        } catch (e) {}
 
-    fetchAllFromSupabase();
+        // Live-sync active user session with latest role from Supabase DB
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          const liveUser = mappedDbUsers.find(
+            u =>
+              u.id === prevUser.id ||
+              (u.username && prevUser.username && u.username.toLowerCase() === prevUser.username.toLowerCase()) ||
+              (u.employeeCode && prevUser.employeeCode && u.employeeCode.toLowerCase() === prevUser.employeeCode.toLowerCase())
+          );
+          if (liveUser && (liveUser.role !== prevUser.role || liveUser.status !== prevUser.status)) {
+            const updated = { ...prevUser, ...liveUser };
+            try {
+              localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
+              localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(updated));
+            } catch (e) {}
+            return updated;
+          }
+          return prevUser;
+        });
+      }
+
+      if (reqsRes.status === 'fulfilled' && reqsRes.value.data && reqsRes.value.data.length > 0) {
+        const mappedReqs = reqsRes.value.data
+          .map(mapRequesterFromDb)
+          .filter((r) => !isRemovedCompany(r.company, r.employeeCode, r.id));
+        setRequestersList(mappedReqs);
+        try {
+          localStorage.setItem(STORAGE_KEYS.REQUESTERS_LIST, JSON.stringify(mappedReqs));
+        } catch (e) {}
+      }
+      if (txRes.status === 'fulfilled' && txRes.value.data && txRes.value.data.length > 0) {
+        setTransactions(txRes.value.data.map(mapTransactionFromDb));
+      }
+      if (requestsRes.status === 'fulfilled' && requestsRes.value.data && requestsRes.value.data.length > 0) {
+        setRequests(requestsRes.value.data.map(mapRequestFromDb));
+      }
+      if (notifRes.status === 'fulfilled' && notifRes.value.data && notifRes.value.data.length > 0) {
+        setNotifications(notifRes.value.data.map(mapNotificationFromDb));
+      }
+    } catch (err) {
+      console.warn('refreshDataFromSupabase error:', err);
+    }
+  };
+
+  useEffect(() => {
+    refreshDataFromSupabase();
 
     // Realtime Postgres Changes Subscription
     const channel = supabase
@@ -1820,6 +1819,7 @@ export const StockProvider = ({ children }) => {
         user,
         login,
         logout,
+        refreshDataFromSupabase,
         usersList,
         createNewUser,
         updateUser,

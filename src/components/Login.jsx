@@ -26,7 +26,31 @@ import {
 const RECENT_LOGINS_KEY = 'stock_online_recent_logins_v1';
 
 export const Login = () => {
-  const { login, lang, toggleLang, theme, toggleTheme, requestersList = [], usersList = [] } = useStock();
+  const {
+    login,
+    lang,
+    toggleLang,
+    theme,
+    toggleTheme,
+    requestersList = [],
+    usersList = [],
+    refreshDataFromSupabase,
+  } = useStock();
+
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    refreshDataFromSupabase?.();
+  }, []);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await refreshDataFromSupabase?.();
+    } finally {
+      setTimeout(() => setIsSyncing(false), 500);
+    }
+  };
 
   const [username, setUsername] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
@@ -349,7 +373,10 @@ export const Login = () => {
               type="button"
               className="btn btn-secondary btn-sm w-full flex-center gap-2"
               style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', fontWeight: 600, borderRadius: '8px' }}
-              onClick={() => setIsDirectoryOpen(true)}
+              onClick={() => {
+                setIsDirectoryOpen(true);
+                handleManualSync();
+              }}
             >
               <Users size={16} color="#4f46e5" />
               <span>{lang === 'th' ? `🔍 ค้นหารายชื่อพนักงานในระบบ (${directoryUsers.filter(u => u.username !== 'admin').length} ท่าน)` : '🔍 Search Employee Directory'}</span>
@@ -424,9 +451,20 @@ export const Login = () => {
                   </div>
                 </div>
               </div>
-              <button className="close-btn" onClick={() => setIsDirectoryOpen(false)}>
-                <X size={20} />
-              </button>
+              <div className="flex-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs text-muted flex-center gap-1"
+                  onClick={handleManualSync}
+                  title="ซิงค์ข้อมูลจากฐานข้อมูล Supabase"
+                >
+                  <RefreshCw size={14} className={isSyncing ? 'spin-anim' : ''} />
+                  <span style={{ fontSize: '0.75rem' }}>{isSyncing ? 'กำลังซิงค์...' : 'ซิงค์'}</span>
+                </button>
+                <button className="close-btn" onClick={() => setIsDirectoryOpen(false)}>
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '1rem' }}>
@@ -447,13 +485,21 @@ export const Login = () => {
                     if (u.username === 'admin' && u.id === 'usr-1') return false;
                     if (!directorySearch.trim()) return true;
                     const q = directorySearch.toLowerCase().trim();
+                    const noSpaceQ = q.replace(/[\s\-_]/g, '');
+                    const uName = (u.name || '').toLowerCase();
+                    const uUsername = (u.username || '').toLowerCase();
+                    const uCode = (u.employeeCode || '').toLowerCase();
+                    const uDept = (u.department || '').toLowerCase();
+                    const uPos = (u.position || '').toLowerCase();
+                    const uComp = (u.company || '').toLowerCase();
                     return (
-                      (u.name && u.name.toLowerCase().includes(q)) ||
-                      (u.username && u.username.toLowerCase().includes(q)) ||
-                      (u.employeeCode && u.employeeCode.toLowerCase().includes(q)) ||
-                      (u.department && u.department.toLowerCase().includes(q)) ||
-                      (u.position && u.position.toLowerCase().includes(q)) ||
-                      (u.company && u.company.toLowerCase().includes(q))
+                      uName.includes(q) ||
+                      uUsername.includes(q) ||
+                      uCode.includes(q) ||
+                      uCode.replace(/[\s\-_]/g, '').includes(noSpaceQ) ||
+                      uDept.includes(q) ||
+                      uPos.includes(q) ||
+                      uComp.includes(q)
                     );
                   })
                   .map((u) => (
