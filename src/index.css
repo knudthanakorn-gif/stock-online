@@ -2119,3 +2119,133 @@ input[type="file"].hidden,
   box-shadow: 0 2px 5px rgba(79, 70, 229, 0.35) !important;
 }
 
+/* ==========================================================================
+   📱 ULTRA-POLISHED MOBILE RESPONSIVE DESIGN (SMARTPHONES & TABLETS)
+   ========================================================================== */
+@media (max-width: 640px) {
+  /* 2-Column Clean Modern Grid for Requisition Items */
+  .exact-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem !important;
+  }
+
+  .exact-asset-card {
+    border-radius: var(--radius-sm) !important;
+  }
+
+  .card-image-wrap {
+    height: 125px !important;
+  }
+
+  .card-img {
+    max-height: 80% !important;
+    max-width: 80% !important;
+  }
+
+  .yellow-stock-pill {
+    top: 0.4rem !important;
+    right: 0.4rem !important;
+    font-size: 0.68rem !important;
+    padding: 0.15rem 0.45rem !important;
+  }
+
+  .card-content-body {
+    padding: 0.65rem !important;
+  }
+
+  .cat-chip-badge {
+    font-size: 0.62rem !important;
+    padding: 0.12rem 0.45rem !important;
+    margin-bottom: 0.35rem !important;
+  }
+
+  .exact-prod-title {
+    font-size: 0.8rem !important;
+    line-height: 1.25 !important;
+    min-height: 2.5em !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+
+  .exact-asset-sku {
+    font-size: 0.65rem !important;
+    margin-top: 0.2rem !important;
+  }
+
+  .btn-exact-req {
+    padding: 0.45rem 0.4rem !important;
+    font-size: 0.78rem !important;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  .card-in-cart-counter {
+    gap: 0.35rem !important;
+    padding: 0.25rem !important;
+  }
+
+  .btn-counter-sub, .btn-counter-add {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .cart-counter-val {
+    font-size: 0.72rem !important;
+  }
+
+  /* Toolbar & Filter Pills */
+  .shopee-toolbar {
+    padding: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .category-pills-row {
+    display: flex !important;
+    gap: 0.4rem !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 0.3rem !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .cat-pill {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-size: 0.75rem !important;
+    padding: 0.35rem 0.7rem !important;
+  }
+
+  /* Tables in Mobile */
+  .table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  /* Modals in Mobile */
+  .modal-content {
+    max-width: 95vw !important;
+    margin: 0.5rem auto !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  .modal-header {
+    padding: 0.85rem 1rem !important;
+  }
+
+  .modal-body {
+    padding: 1rem 0.85rem !important;
+  }
+
+  .modal-footer {
+    padding: 0.75rem 1rem !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+
+  .modal-footer .btn {
+    width: 100% !important;
+  }
+}
+

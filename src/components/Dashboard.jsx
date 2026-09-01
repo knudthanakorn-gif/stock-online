@@ -576,9 +576,9 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
                 </div>
               </div>
 
-              <div style={{ width: '100%', height: 290 }} className="mt-2">
-                <ResponsiveContainer>
-                  <AreaChart data={frequencyTrendData} margin={{ top: 15, right: 20, left: -20, bottom: 0 }}>
+              <div style={{ width: '100%', height: 270 }} className="mt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={frequencyTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorOutMain" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#2563eb" stopOpacity={0.35} />
@@ -594,8 +594,8 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.6} />
-                    <XAxis dataKey="shortDay" stroke="var(--text-muted)" fontSize={12} tickLine={false} />
-                    <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} />
+                    <XAxis dataKey="shortDay" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
+                    <YAxis stroke="var(--text-muted)" width={36} fontSize={11} tickLine={false} />
                     <Tooltip
                       formatter={(val, name) => [
                         name === 'ความถี่ในการเบิก' || name === 'Frequency'
@@ -1966,6 +1966,58 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
         @media (max-width: 1024px) {
           .charts-grid, .dashboard-bottom-grid {
             grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .chart-card {
+            padding: 1.1rem 0.85rem;
+            border-radius: var(--radius-md);
+          }
+          .chart-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+          }
+          .chart-title {
+            font-size: 0.95rem;
+          }
+          .kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.6rem !important;
+          }
+          .kpi-card {
+            padding: 0.85rem 0.75rem !important;
+            gap: 0.6rem !important;
+          }
+          .kpi-icon-container {
+            width: 38px !important;
+            height: 38px !important;
+          }
+          .kpi-icon-container svg {
+            width: 20px !important;
+            height: 20px !important;
+          }
+          .kpi-label {
+            font-size: 0.72rem !important;
+            line-height: 1.2 !important;
+          }
+          .kpi-number {
+            font-size: 1.15rem !important;
+          }
+          .company-pills-bar {
+            display: flex !important;
+            gap: 0.5rem !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding-bottom: 0.35rem !important;
+            flex-wrap: nowrap !important;
+          }
+          .company-pill-btn {
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.78rem !important;
           }
         }
       `}</style>
