@@ -841,8 +841,8 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
               </div>
             </div>
 
-            {/* Compact Scroll Container with Fixed Sticky Header */}
-            <div className="freq-table-scroll-container">
+            {/* Compact Scroll Container with Fixed Sticky Header (Desktop) */}
+            <div className="desktop-freq-table freq-table-scroll-container">
               <table className="data-table freq-table">
                 <thead>
                   <tr>
@@ -951,6 +951,66 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
               </table>
             </div>
 
+            {/* Mobile Card List View for Item Frequency */}
+            <div className="mobile-freq-list">
+              {productFrequencyList.list.length === 0 ? (
+                <div className="text-center py-6 text-muted text-xs">
+                  {lang === 'th' ? 'ไม่พบข้อมูลความถี่การเบิกอุปกรณ์' : 'No requisition records found'}
+                </div>
+              ) : (
+                paginatedItems.map((item, idx) => {
+                  const absoluteRank = startIndex + idx + 1;
+                  const freqPercent = Math.min(
+                    100,
+                    Math.max(8, (item.frequency / (productFrequencyList.maxFrequency || 1)) * 100)
+                  );
+
+                  return (
+                    <div key={item.id} className="mobile-freq-card">
+                      <div className="flex-between mb-1">
+                        <div className="flex-center gap-1.5" style={{ minWidth: 0, flex: 1 }}>
+                          <span className={`rank-pill ${absoluteRank === 1 ? 'rank-gold' : absoluteRank === 2 ? 'rank-silver' : absoluteRank === 3 ? 'rank-bronze' : 'rank-normal'}`}>
+                            #{absoluteRank}
+                          </span>
+                          <span className="font-bold text-xs text-slate-800 text-truncate" title={item.name}>
+                            {item.name}
+                          </span>
+                        </div>
+                        <span className={`badge ${item.currentStock === 0 ? 'badge-danger' : item.currentStock <= 5 ? 'badge-warning' : 'badge-success'} font-mono text-xxs`}>
+                          เหลือ {item.currentStock} {item.unit}
+                        </span>
+                      </div>
+
+                      <div className="flex-between text-xxs text-muted mb-1 font-mono">
+                        <span>Tag: {item.sku} • <strong className="text-primary">{item.categoryName}</strong></span>
+                        <span className="text-emerald font-bold">{formatCurrency(item.totalValue)}</span>
+                      </div>
+
+                      {/* Progress Track */}
+                      <div className="freq-progress-track mb-1.5">
+                        <div
+                          className="freq-progress-bar"
+                          style={{
+                            width: `${freqPercent}%`,
+                            background: absoluteRank === 1
+                              ? 'linear-gradient(90deg, #f59e0b, #ef4444)'
+                              : absoluteRank <= 3
+                              ? 'linear-gradient(90deg, #3b82f6, #8b5cf6)'
+                              : '#64748b',
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex-between text-xxs text-muted font-mono">
+                        <span className="text-rose font-bold">⚡ เบิก {item.frequency} ครั้ง ({item.totalQty} {item.unit})</span>
+                        <span className="text-truncate text-primary font-bold" style={{ maxWidth: '130px' }}>🏢 {item.topCompany}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
             {/* Smart Compact Pagination & Rows Per Page Toolbar */}
             <div className="freq-pagination-bar flex-between flex-wrap gap-2 mt-3 pt-2 border-top">
               <div className="text-xs text-muted font-medium">
@@ -1032,7 +1092,8 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
                 )}
               </div>
 
-              <div className="table-responsive">
+              {/* Desktop Table View */}
+              <div className="desktop-urgent-table table-responsive">
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -1077,6 +1138,40 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile Card List View */}
+              <div className="mobile-urgent-list">
+                {lowStockItems.length === 0 && outOfStockItems.length === 0 ? (
+                  <div className="text-center py-4 text-muted text-xs">
+                    🎉 {lang === 'th' ? 'คลังอุปกรณ์มีความพร้อมใช้งานทุกรายการ' : 'All items well stocked!'}
+                  </div>
+                ) : (
+                  [...outOfStockItems, ...lowStockItems].slice(0, 5).map((prod) => (
+                    <div key={prod.id} className="mobile-urgent-item">
+                      <div className="urgent-item-left">
+                        <div className="urgent-item-name">{prod.name}</div>
+                        <div className="urgent-item-sku">Tag: <span className="font-mono">{prod.sku}</span></div>
+                      </div>
+                      <div className="urgent-item-right">
+                        <span className={`badge ${prod.quantity === 0 ? 'badge-danger' : 'badge-warning'}`}>
+                          {prod.quantity === 0 ? (lang === 'th' ? 'หมด' : 'Out') : `${prod.quantity} ${prod.unit}`}
+                        </span>
+                        {!isViewer && (
+                          <button
+                            className="btn btn-xs btn-success font-bold"
+                            onClick={() => {
+                              setSelectedProductId(prod.id);
+                              onOpenStockIn();
+                            }}
+                          >
+                            <PlusCircle size={13} /> + เติม
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -1963,6 +2058,64 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
           transition: width 0.4s ease;
         }
 
+        .mobile-freq-list {
+          display: none;
+          flex-direction: column;
+          gap: 0.6rem;
+        }
+
+        .mobile-freq-card {
+          padding: 0.75rem 0.85rem;
+          border-radius: var(--radius-sm);
+          background: var(--bg-main);
+          border: 1px solid var(--border-color);
+          transition: all 0.15s ease;
+        }
+
+        .mobile-urgent-list {
+          display: none;
+          flex-direction: column;
+          gap: 0.55rem;
+        }
+
+        .mobile-urgent-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.65rem 0.85rem;
+          border-radius: var(--radius-sm);
+          background: var(--bg-main);
+          border: 1px solid var(--border-color);
+          gap: 0.75rem;
+        }
+
+        .urgent-item-left {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .urgent-item-name {
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .urgent-item-sku {
+          font-size: 0.68rem;
+          color: var(--text-muted);
+          margin-top: 0.15rem;
+        }
+
+        .urgent-item-right {
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          flex-shrink: 0;
+        }
+
         @media (max-width: 1024px) {
           .charts-grid, .dashboard-bottom-grid {
             grid-template-columns: 1fr;
@@ -1970,6 +2123,18 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
         }
 
         @media (max-width: 768px) {
+          .desktop-freq-table {
+            display: none !important;
+          }
+          .mobile-freq-list {
+            display: flex !important;
+          }
+          .desktop-urgent-table {
+            display: none !important;
+          }
+          .mobile-urgent-list {
+            display: flex !important;
+          }
           .chart-card {
             padding: 1.1rem 0.85rem;
             border-radius: var(--radius-md);
