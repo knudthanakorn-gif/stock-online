@@ -260,52 +260,40 @@ export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
             </table>
           </div>
 
-          {/* Signatures Section (3 Columns) */}
+          {/* Signatures Section (2 Columns: Requester & Warehouse Issuer) */}
           <div
             className="slip-signatures-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: '1rem',
-              marginTop: '1.75rem',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '2rem',
+              maxWidth: '680px',
+              margin: '1.75rem auto 0 auto',
               paddingTop: '0.5rem',
             }}
           >
             {/* 1. Requester */}
-            <div style={{ textAlign: 'center', border: '1px dashed #cbd5e1', padding: '0.75rem 0.5rem', borderRadius: '6px' }}>
-              <div style={{ height: '36px' }}></div>
-              <div style={{ borderBottom: '1px solid #64748b', margin: '0 0.75rem 6px 0.75rem' }}></div>
-              <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#0f172a' }}>
+            <div style={{ textAlign: 'center', border: '1px dashed #cbd5e1', padding: '0.85rem 1rem', borderRadius: '6px' }}>
+              <div style={{ height: '40px' }}></div>
+              <div style={{ borderBottom: '1px solid #64748b', margin: '0 1rem 6px 1rem' }}></div>
+              <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0f172a' }}>
                 ( {request.requesterName} )
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>ผู้ขอเบิกพัสดุ</div>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>ผู้ขอเบิกพัสดุ</div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
                 วันที่: ......./......./...........
               </div>
             </div>
 
             {/* 2. Warehouse Storekeeper / Issuer */}
-            <div style={{ textAlign: 'center', border: '1px dashed #cbd5e1', padding: '0.75rem 0.5rem', borderRadius: '6px' }}>
-              <div style={{ height: '36px' }}></div>
-              <div style={{ borderBottom: '1px solid #64748b', margin: '0 0.75rem 6px 0.75rem' }}></div>
-              <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#0f172a' }}>
+            <div style={{ textAlign: 'center', border: '1px dashed #cbd5e1', padding: '0.85rem 1rem', borderRadius: '6px' }}>
+              <div style={{ height: '40px' }}></div>
+              <div style={{ borderBottom: '1px solid #64748b', margin: '0 1rem 6px 1rem' }}></div>
+              <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0f172a' }}>
                 ( .................................................... )
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>ผู้จ่ายพัสดุ / เจ้าหน้าที่คลัง</div>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
-                วันที่: ......./......./...........
-              </div>
-            </div>
-
-            {/* 3. Approver */}
-            <div style={{ textAlign: 'center', border: '1px dashed #cbd5e1', padding: '0.75rem 0.5rem', borderRadius: '6px' }}>
-              <div style={{ height: '36px' }}></div>
-              <div style={{ borderBottom: '1px solid #64748b', margin: '0 0.75rem 6px 0.75rem' }}></div>
-              <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#0f172a' }}>
-                ( {request.approvedBy || '....................................................'} )
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>ผู้อนุมัติ / หัวหน้างาน</div>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>ผู้จ่ายพัสดุ / เจ้าหน้าที่คลัง</div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
                 วันที่: ......./......./...........
               </div>
             </div>
