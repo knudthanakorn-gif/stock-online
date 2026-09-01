@@ -551,9 +551,9 @@ export const StockProvider = ({ children }) => {
   useEffect(() => {
     refreshDataFromSupabase();
 
-    // Realtime Postgres Changes Subscription
+    // Comprehensive Realtime Postgres Changes Subscription for ALL tables
     const channel = supabase
-      .channel('public-realtime-stock')
+      .channel('public-realtime-stock-complete')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'users' },
@@ -581,12 +581,63 @@ export const StockProvider = ({ children }) => {
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const item = mapProductFromDb(payload.new);
-            setProducts(prev => (prev.some(p => p.id === item.id) ? prev : [item, ...prev]));
+            setProducts((prev) => (prev.some((p) => p.id === item.id) ? prev : [item, ...prev]));
           } else if (payload.eventType === 'UPDATE') {
             const item = mapProductFromDb(payload.new);
-            setProducts(prev => prev.map(p => (p.id === item.id ? item : p)));
+            setProducts((prev) => prev.map((p) => (p.id === item.id ? item : p)));
           } else if (payload.eventType === 'DELETE') {
-            setProducts(prev => prev.filter(p => p.id !== payload.old.id));
+            setProducts((prev) => prev.filter((p) => p.id !== payload.old.id));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'categories' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const item = mapCategoryFromDb(payload.new);
+            setCategories((prev) => (prev.some((c) => c.id === item.id) ? prev : [...prev, item]));
+          } else if (payload.eventType === 'UPDATE') {
+            const item = mapCategoryFromDb(payload.new);
+            setCategories((prev) => prev.map((c) => (c.id === item.id ? item : c)));
+          } else if (payload.eventType === 'DELETE') {
+            setCategories((prev) => prev.filter((c) => c.id !== payload.old.id));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'suppliers' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const item = mapSupplierFromDb(payload.new);
+            setSuppliers((prev) => (prev.some((s) => s.id === item.id) ? prev : [...prev, item]));
+          } else if (payload.eventType === 'UPDATE') {
+            const item = mapSupplierFromDb(payload.new);
+            setSuppliers((prev) => prev.map((s) => (s.id === item.id ? item : s)));
+          } else if (payload.eventType === 'DELETE') {
+            setSuppliers((prev) => prev.filter((s) => s.id !== payload.old.id));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'requesters' },
+        (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const item = mapRequesterFromDb(payload.new);
+            setRequestersList((prev) => {
+              const updated = prev.map((r) => (r.id === item.id || r.employeeCode === item.employeeCode ? item : r));
+              if (!prev.some((r) => r.id === item.id || r.employeeCode === item.employeeCode)) {
+                updated.push(item);
+              }
+              try {
+                localStorage.setItem(STORAGE_KEYS.REQUESTERS_LIST, JSON.stringify(updated));
+              } catch (e) {}
+              return updated;
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setRequestersList((prev) => prev.filter((r) => r.id !== payload.old.id));
           }
         }
       )
@@ -596,12 +647,12 @@ export const StockProvider = ({ children }) => {
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const item = mapRequestFromDb(payload.new);
-            setRequests(prev => (prev.some(r => r.id === item.id) ? prev : [item, ...prev]));
+            setRequests((prev) => (prev.some((r) => r.id === item.id) ? prev : [item, ...prev]));
           } else if (payload.eventType === 'UPDATE') {
             const item = mapRequestFromDb(payload.new);
-            setRequests(prev => prev.map(r => (r.id === item.id ? item : r)));
+            setRequests((prev) => prev.map((r) => (r.id === item.id ? item : r)));
           } else if (payload.eventType === 'DELETE') {
-            setRequests(prev => prev.filter(r => r.id !== payload.old.id));
+            setRequests((prev) => prev.filter((r) => r.id !== payload.old.id));
           }
         }
       )
@@ -611,7 +662,12 @@ export const StockProvider = ({ children }) => {
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const item = mapTransactionFromDb(payload.new);
-            setTransactions(prev => (prev.some(t => t.id === item.id) ? prev : [item, ...prev]));
+            setTransactions((prev) => (prev.some((t) => t.id === item.id) ? prev : [item, ...prev]));
+          } else if (payload.eventType === 'UPDATE') {
+            const item = mapTransactionFromDb(payload.new);
+            setTransactions((prev) => prev.map((t) => (t.id === item.id ? item : t)));
+          } else if (payload.eventType === 'DELETE') {
+            setTransactions((prev) => prev.filter((t) => t.id !== payload.old.id));
           }
         }
       )
@@ -621,17 +677,34 @@ export const StockProvider = ({ children }) => {
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const item = mapNotificationFromDb(payload.new);
-            setNotifications(prev => (prev.some(n => n.id === item.id) ? prev : [item, ...prev]));
+            setNotifications((prev) => (prev.some((n) => n.id === item.id) ? prev : [item, ...prev]));
           } else if (payload.eventType === 'UPDATE') {
             const item = mapNotificationFromDb(payload.new);
-            setNotifications(prev => prev.map(n => (n.id === item.id ? item : n)));
+            setNotifications((prev) => prev.map((n) => (n.id === item.id ? item : n)));
+          } else if (payload.eventType === 'DELETE') {
+            setNotifications((prev) => prev.filter((n) => n.id !== payload.old.id));
           }
         }
       )
       .subscribe();
 
+    // Heartbeat Auto-Sync every 8 seconds to ensure 100% real-time consistency
+    const syncInterval = setInterval(() => {
+      refreshDataFromSupabase();
+    }, 8000);
+
+    // Instant Sync when user switches back to tab or reconnects online
+    const handleFocus = () => refreshDataFromSupabase();
+    const handleOnline = () => refreshDataFromSupabase();
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', handleOnline);
+
     return () => {
       isMounted = false;
+      clearInterval(syncInterval);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleOnline);
       supabase.removeChannel(channel);
     };
   }, []);
