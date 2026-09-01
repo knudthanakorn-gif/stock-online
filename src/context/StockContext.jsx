@@ -476,76 +476,21 @@ export const StockProvider = ({ children }) => {
         if (supRes.status === 'fulfilled' && supRes.value.data && supRes.value.data.length > 0) {
           setSuppliers(supRes.value.data.map(mapSupplierFromDb));
         }
-        if (prodRes.status === 'fulfilled' && prodRes.value.data && prodRes.value.data.length > 0) {
-          setProducts(prodRes.value.data.map(mapProductFromDb));
+        if (usersRes.status === 'fulfilled' && usersRes.value.data && usersRes.value.data.length > 0) {
+          const mappedDbUsers = usersRes.value.data
+            .map(mapUserFromDb)
+            .filter((u) => !isRemovedCompany(u.company, u.employeeCode, u.id));
+          setUsersList(mappedDbUsers);
+          try {
+            localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(mappedDbUsers));
+          } catch (e) {}
         }
+
         if (reqsRes.status === 'fulfilled' && reqsRes.value.data && reqsRes.value.data.length > 0) {
           const mappedReqs = reqsRes.value.data
             .map(mapRequesterFromDb)
             .filter((r) => !isRemovedCompany(r.company, r.employeeCode, r.id));
           setRequestersList(mappedReqs);
-
-          // Check if Supabase users table has data
-          if (usersRes.status === 'fulfilled' && usersRes.value.data && usersRes.value.data.length > 0) {
-            const mappedDbUsers = usersRes.value.data
-              .map(mapUserFromDb)
-              .filter((u) => !isRemovedCompany(u.company, u.employeeCode, u.id));
-            setUsersList(mappedDbUsers);
-            try {
-              localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(mappedDbUsers));
-            } catch (e) {}
-          } else {
-            setUsersList((prevUsers) => {
-              let savedMap = new Map();
-              try {
-                const savedStr = localStorage.getItem(STORAGE_KEYS.USERS_LIST);
-                if (savedStr) {
-                  const parsed = JSON.parse(savedStr);
-                  if (Array.isArray(parsed)) {
-                    parsed.forEach((u) => {
-                      if (u.id) savedMap.set(u.id, u);
-                      if (u.username) savedMap.set(u.username, u);
-                      if (u.employeeCode) savedMap.set(u.employeeCode, u);
-                    });
-                  }
-                }
-              } catch (e) {}
-
-              prevUsers.forEach((u) => {
-                if (u.id && !savedMap.has(u.id)) savedMap.set(u.id, u);
-                if (u.username && !savedMap.has(u.username)) savedMap.set(u.username, u);
-                if (u.employeeCode && !savedMap.has(u.employeeCode)) savedMap.set(u.employeeCode, u);
-              });
-
-              const savedAdmin = savedMap.get('usr-1') || savedMap.get('admin');
-              const adminUser = savedAdmin ? { ...INITIAL_USERS[0], ...savedAdmin } : INITIAL_USERS[0];
-
-              const requesterUsers = mappedReqs.map((r, i) => {
-                const existing =
-                  savedMap.get(`usr-req-${r.id || r.employeeCode}`) ||
-                  savedMap.get(r.id) ||
-                  savedMap.get(r.employeeCode) ||
-                  savedMap.get(extractCleanUsername(r.name));
-
-                const generated = generateRequesterUser(r, i);
-                if (existing && existing.password) {
-                  return {
-                    ...generated,
-                    ...existing,
-                    password: existing.password,
-                    mustChangePassword: existing.mustChangePassword ?? false,
-                  };
-                }
-                return generated;
-              });
-
-              const merged = [adminUser, ...requesterUsers];
-              try {
-                localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(merged));
-              } catch (e) {}
-              return merged;
-            });
-          }
         }
         if (txRes.status === 'fulfilled' && txRes.value.data && txRes.value.data.length > 0) {
           setTransactions(txRes.value.data.map(mapTransactionFromDb));
@@ -721,7 +666,7 @@ export const StockProvider = ({ children }) => {
   };
 
   // Auth Functions
-  const login = (username, password, targetUserId = null) => {
+  const login = async (username, password, targetUserId = null) => {
     const rawInput = (username || '').trim();
     const normalizedInput = rawInput.toLowerCase();
     const cleanInput = extractCleanUsername(rawInput).toLowerCase();
@@ -759,59 +704,48 @@ export const StockProvider = ({ children }) => {
       });
     }
 
-    // Secondary Check: If default passwords match
+    // 2. Query Live Supabase if not matched in state yet
     if (!matchedUser) {
-      matchedUser = usersList.find(u => {
-        const uUsername = (u.username || '').trim().toLowerCase();
-        const uEmpCode = (u.employeeCode || '').trim().toLowerCase();
-        const uEmpNoSpace = uEmpCode.replace(/[\s\-_]/g, '');
-        const uName = (u.name || '').trim().toLowerCase();
-        const uCleanName = extractCleanUsername(u.name).toLowerCase();
+      try {
+        const { data: dbUsers } = await supabase.from('users').select('*');
+        if (dbUsers && dbUsers.length > 0) {
+          const mapped = dbUsers.map(mapUserFromDb).filter(u => !isRemovedCompany(u.company, u.employeeCode, u.id));
+          setUsersList(mapped);
+          try {
+            localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(mapped));
+          } catch (e) {}
 
-        const isMatch = (
-          uUsername === normalizedInput ||
-          uUsername === cleanInput ||
-          uName === normalizedInput ||
-          (normalizedInput.length >= 3 && uName.includes(normalizedInput)) ||
-          (cleanInput.length >= 3 && uName.includes(cleanInput)) ||
-          uCleanName === cleanInput ||
-          uCleanName === normalizedInput ||
-          uEmpCode === normalizedInput ||
-          uEmpNoSpace === noSpaceInput
-        );
+          if (targetUserId) {
+            matchedUser = mapped.find(u => u.id === targetUserId && String(u.password).trim() === trimmedPassword);
+          }
+          if (!matchedUser) {
+            matchedUser = mapped.find(u => {
+              const uUsername = (u.username || '').trim().toLowerCase();
+              const uEmpCode = (u.employeeCode || '').trim().toLowerCase();
+              const uEmpNoSpace = uEmpCode.replace(/[\s\-_]/g, '');
+              const uEmail = (u.email || '').trim().toLowerCase();
+              const uName = (u.name || '').trim().toLowerCase();
+              const uCleanName = extractCleanUsername(u.name).toLowerCase();
 
-        if (!isMatch) return false;
+              const isMatch = (
+                uUsername === normalizedInput ||
+                uUsername === cleanInput ||
+                uName === normalizedInput ||
+                (normalizedInput.length >= 3 && uName.includes(normalizedInput)) ||
+                (cleanInput.length >= 3 && uName.includes(cleanInput)) ||
+                uCleanName === cleanInput ||
+                uCleanName === normalizedInput ||
+                uEmpCode === normalizedInput ||
+                uEmpNoSpace === noSpaceInput ||
+                uEmail === normalizedInput
+              );
 
-        if (u.role === 'admin' && (trimmedPassword === '123' || trimmedPassword === String(u.password).trim())) {
-          return true;
+              return isMatch && String(u.password).trim() === trimmedPassword;
+            });
+          }
         }
-        if (trimmedPassword === '1234' || trimmedPassword === '123' || trimmedPassword === String(u.password).trim()) {
-          return true;
-        }
-        return false;
-      });
-    }
-
-    // Tertiary Check: Search directly in requestersList
-    if (!matchedUser && (trimmedPassword === '123' || trimmedPassword === '1234')) {
-      const matchedReq = requestersList.find(r => {
-        const rName = (r.name || '').trim().toLowerCase();
-        const rCleanName = extractCleanUsername(r.name).toLowerCase();
-        const rEmpCode = (r.employeeCode || '').trim().toLowerCase();
-        const rEmpNoSpace = rEmpCode.replace(/[\s\-_]/g, '');
-        return (
-          rName === normalizedInput ||
-          (normalizedInput.length >= 3 && rName.includes(normalizedInput)) ||
-          rCleanName === cleanInput ||
-          rCleanName === normalizedInput ||
-          rEmpCode === normalizedInput ||
-          rEmpNoSpace === noSpaceInput
-        );
-      });
-
-      if (matchedReq) {
-        matchedUser = generateRequesterUser(matchedReq);
-        setUsersList(prev => [...prev, matchedUser]);
+      } catch (err) {
+        console.warn('Supabase live auth query error:', err);
       }
     }
 
@@ -825,7 +759,6 @@ export const StockProvider = ({ children }) => {
         localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(matchedUser));
       } catch (e) {}
 
-      // Clean query string from browser address bar
       if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
@@ -833,7 +766,7 @@ export const StockProvider = ({ children }) => {
       return matchedUser;
     }
 
-    throw new Error(lang === 'th' ? 'ชื่อผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง (ลองตรวจสอบชื่อหรือรหัสผ่านอีกครั้ง)' : 'Invalid username or password');
+    throw new Error(lang === 'th' ? 'ชื่อผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง (กรุณาตรวจสอบรหัสผ่านอีกครั้ง)' : 'Invalid username or password');
   };
 
   const logout = () => {

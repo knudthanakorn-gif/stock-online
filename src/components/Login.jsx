@@ -160,7 +160,7 @@ export const Login = () => {
     }, 150);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -175,7 +175,7 @@ export const Login = () => {
 
     try {
       const targetUserId = selectedUser ? selectedUser.id : null;
-      const loggedInUser = login(username, password, targetUserId);
+      const loggedInUser = await login(username, password, targetUserId);
       if (loggedInUser && loggedInUser.isDuplicate) {
         setDuplicateUsers(loggedInUser.duplicates);
         return;
