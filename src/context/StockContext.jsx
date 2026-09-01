@@ -181,9 +181,14 @@ export const StockProvider = ({ children }) => {
     return localStorage.getItem(STORAGE_KEYS.LANG) || 'th';
   });
 
-  // Current active user
+  // Current active user (defaults to null so Login page is shown by default)
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.USER);
+    if (typeof window !== 'undefined' && window.location.search.includes('action=login')) {
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+      return null;
+    }
+    const saved = localStorage.getItem(STORAGE_KEYS.USER) || localStorage.getItem(STORAGE_KEYS.AUTH_USER);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -193,17 +198,19 @@ export const StockProvider = ({ children }) => {
             parsed.role === 'director' ||
             (parsed.name && parsed.name.includes('สมเกียรติ')))
         ) {
-          return INITIAL_USERS[0];
+          return null;
         }
-        return {
-          ...parsed,
-          company: sanitizeCompany(parsed.company),
-        };
+        if (parsed && parsed.id && parsed.name) {
+          return {
+            ...parsed,
+            company: sanitizeCompany(parsed.company),
+          };
+        }
       } catch (e) {
-        return INITIAL_USERS[0];
+        return null;
       }
     }
-    return INITIAL_USERS[0];
+    return null;
   });
 
   // Requesters Directory List

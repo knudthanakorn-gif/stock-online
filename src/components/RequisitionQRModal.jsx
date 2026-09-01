@@ -10,7 +10,7 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   // Generate URL for Opening Main Portal / Login Page
-  const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://stock-online-mauve.vercel.app/';
+  const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/?action=login` : 'https://stock-online-mauve.vercel.app/?action=login';
   const qrSvgHtml = renderQRCodeSVG(portalUrl, 220);
 
   const handlePrint = () => {
