@@ -119,17 +119,18 @@ export const RequesterManager = () => {
     });
   };
 
-  const DEFAULT_COMPANY_LIST = [
-    'EXION (Thailand) Company Limited',
-    'HOUSE OF PROFESSIONALS COMPANY LIMITED',
-    'PD FLOWTECH COMPANY LIMITED',
-  ];
+  const REMOVED_COMPANIES = ['c.s.i', 'csi', 'osa', 'tri-gen', 'trigen'];
 
   // Get unique companies & departments for filters
   const companies = Array.from(
     new Set([
-      ...DEFAULT_COMPANY_LIST,
-      ...requestersList.map((r) => r.company).filter(Boolean),
+      'EXION (Thailand) Company Limited',
+      'HOUSE OF PROFESSIONALS COMPANY LIMITED',
+      'PD FLOWTECH COMPANY LIMITED',
+      ...requestersList
+        .map((r) => r.company)
+        .filter(Boolean)
+        .filter((comp) => !REMOVED_COMPANIES.some((removed) => comp.toLowerCase().includes(removed))),
     ])
   );
   const departments = Array.from(new Set(requestersList.map((r) => r.department).filter(Boolean)));

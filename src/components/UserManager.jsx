@@ -245,7 +245,18 @@ export const UserManager = () => {
   };
 
   // Get unique companies & departments for filters
-  const companies = Array.from(new Set(usersList.map((u) => u.company).filter(Boolean)));
+  const REMOVED_COMPANIES = ['c.s.i', 'csi', 'osa', 'tri-gen', 'trigen'];
+  const companies = Array.from(
+    new Set([
+      'EXION (Thailand) Company Limited',
+      'HOUSE OF PROFESSIONALS COMPANY LIMITED',
+      'PD FLOWTECH COMPANY LIMITED',
+      ...usersList
+        .map((u) => u.company)
+        .filter(Boolean)
+        .filter((comp) => !REMOVED_COMPANIES.some((removed) => comp.toLowerCase().includes(removed))),
+    ])
+  );
   const departments = Array.from(new Set(usersList.map((u) => u.department).filter(Boolean)));
 
   // Filtered users

@@ -118,30 +118,34 @@ export const extractCleanUsername = (fullName) => {
   return parts[0] || clean;
 };
 
+export const REMOVED_COMPANIES = ['c.s.i', 'csi', 'osa', 'tri-gen', 'trigen'];
+
+export const isRemovedCompany = (comp = '', code = '', id = '') => {
+  const c = String(comp || '').toLowerCase();
+  const cd = String(code || id || '').toUpperCase();
+  return (
+    REMOVED_COMPANIES.some((removed) => c.includes(removed)) ||
+    cd.startsWith('CSI') ||
+    cd.startsWith('OSA') ||
+    cd.startsWith('TRI')
+  );
+};
+
 // Helper to sanitize company name
 export const sanitizeCompany = (comp) => {
-  if (!comp) return 'EXION (THAILAND) COMPANY LIMITED';
+  if (!comp) return 'EXION (Thailand) Company Limited';
   const trimmed = comp.trim();
   if (trimmed === 'บริษัท Hop' || trimmed === 'Company Hop' || trimmed === 'Hop') {
     return 'HOUSE OF PROFESSIONALS COMPANY LIMITED';
   }
-  if (/^c\.s\.i/i.test(trimmed)) {
-    return 'C.S.I. (THAILAND) COMPANY LIMITED';
-  }
-  if (/^osa\s*valve/i.test(trimmed)) {
-    return 'OSA Valve Services (Thailand) Co.,Ltd';
-  }
   if (/^pd\s*flow/i.test(trimmed)) {
     return 'PD FLOWTECH COMPANY LIMITED';
-  }
-  if (/^tri-gen/i.test(trimmed)) {
-    return 'TRI-GEN SOLUTION COMPANY LIMITED';
   }
   if (/^house\s*of/i.test(trimmed)) {
     return 'HOUSE OF PROFESSIONALS COMPANY LIMITED';
   }
   if (/^exion/i.test(trimmed)) {
-    return 'EXION (THAILAND) COMPANY LIMITED';
+    return 'EXION (Thailand) Company Limited';
   }
   return trimmed;
 };
@@ -211,7 +215,10 @@ export const StockProvider = ({ children }) => {
         if (Array.isArray(rawParsed) && rawParsed.length > 0) {
           return rawParsed
             .filter(
-              r => r.name !== 'ดร.สมเกียรติ ยิ่งเจริญ' && !(r.name && r.name.includes('สมเกียรติ'))
+              r =>
+                r.name !== 'ดร.สมเกียรติ ยิ่งเจริญ' &&
+                !(r.name && r.name.includes('สมเกียรติ')) &&
+                !isRemovedCompany(r.company, r.employeeCode, r.id)
             )
             .map(r => ({
               ...r,
@@ -222,7 +229,11 @@ export const StockProvider = ({ children }) => {
         console.error('Failed to parse saved requestersList:', e);
       }
     }
-    return INITIAL_REQUESTERS.filter(r => !(r.name && r.name.includes('สมเกียรติ'))).map(r => ({
+    return INITIAL_REQUESTERS.filter(
+      r =>
+        !(r.name && r.name.includes('สมเกียรติ')) &&
+        !isRemovedCompany(r.company, r.employeeCode, r.id)
+    ).map(r => ({
       ...r,
       company: sanitizeCompany(r.company),
     }));
@@ -459,7 +470,9 @@ export const StockProvider = ({ children }) => {
           setProducts(prodRes.value.data.map(mapProductFromDb));
         }
         if (reqsRes.status === 'fulfilled' && reqsRes.value.data && reqsRes.value.data.length > 0) {
-          const mappedReqs = reqsRes.value.data.map(mapRequesterFromDb);
+          const mappedReqs = reqsRes.value.data
+            .map(mapRequesterFromDb)
+            .filter((r) => !isRemovedCompany(r.company, r.employeeCode, r.id));
           setRequestersList(mappedReqs);
           const requesterUsers = mappedReqs.map((r, i) => generateRequesterUser(r, i));
           setUsersList([INITIAL_USERS[0], ...requesterUsers]);
