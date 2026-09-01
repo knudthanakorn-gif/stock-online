@@ -26,6 +26,8 @@ export const ApprovalCenter = () => {
   const {
     requests = [],
     products = [],
+    usersList = [],
+    requestersList = [],
     approveRequisitionRequest,
     rejectRequisitionRequest,
     deleteRequisitionRequest,
@@ -253,6 +255,32 @@ export const ApprovalCenter = () => {
                   minute: '2-digit',
                 });
 
+            const matchedUser =
+              (usersList || []).find(
+                (u) =>
+                  (u.name && req.requesterName && u.name.trim().toLowerCase() === req.requesterName.trim().toLowerCase()) ||
+                  (u.username && req.requesterName && u.username.trim().toLowerCase() === req.requesterName.trim().toLowerCase())
+              ) ||
+              (requestersList || []).find(
+                (r) =>
+                  r.name && req.requesterName && r.name.trim().toLowerCase() === req.requesterName.trim().toLowerCase()
+              );
+
+            const resolvedDept =
+              req.requesterDept && req.requesterDept !== '-' && req.requesterDept.trim() !== ''
+                ? req.requesterDept
+                : matchedUser?.department || req.department || '';
+
+            const resolvedCompany =
+              req.requesterCompany && req.requesterCompany !== '-' && req.requesterCompany.trim() !== ''
+                ? req.requesterCompany
+                : matchedUser?.company || 'EXION (THAILAND) COMPANY LIMITED';
+
+            const resolvedPosition =
+              req.requesterPosition && req.requesterPosition !== '-' && req.requesterPosition.trim() !== ''
+                ? req.requesterPosition
+                : matchedUser?.position || '';
+
             return (
               <div key={req.id} className={`card request-card mb-4 ${isPending ? 'border-amber-glow' : ''}`}>
                 {/* Header Row */}
@@ -277,7 +305,7 @@ export const ApprovalCenter = () => {
                 <div className="requester-summary-bar my-3">
                   <div className="summary-item">
                     <span className="summary-label">{lang === 'th' ? 'บริษัท:' : 'Company:'}</span>
-                    <span className="summary-val font-bold text-primary">{req.requesterCompany}</span>
+                    <span className="summary-val font-bold text-primary">{resolvedCompany}</span>
                   </div>
                   <div className="summary-item">
                     <span className="summary-label">{lang === 'th' ? 'ผู้ขอเบิก:' : 'Requester:'}</span>
@@ -285,11 +313,11 @@ export const ApprovalCenter = () => {
                   </div>
                   <div className="summary-item">
                     <span className="summary-label">{lang === 'th' ? 'แผนก/ฝ่าย:' : 'Department:'}</span>
-                    <span className="summary-val">{req.requesterDept || '-'}</span>
+                    <span className="summary-val">{resolvedDept || '-'}</span>
                   </div>
                   <div className="summary-item">
                     <span className="summary-label">{lang === 'th' ? 'ตำแหน่ง:' : 'Position:'}</span>
-                    <span className="summary-val">{req.requesterPosition || '-'}</span>
+                    <span className="summary-val">{resolvedPosition || '-'}</span>
                   </div>
                 </div>
 
@@ -367,7 +395,14 @@ export const ApprovalCenter = () => {
                   <div className="flex-center gap-2">
                     <button
                       className="btn btn-secondary btn-sm"
-                      onClick={() => setPrintSlipReq(req)}
+                      onClick={() =>
+                        setPrintSlipReq({
+                          ...req,
+                          requesterDept: resolvedDept,
+                          requesterCompany: resolvedCompany,
+                          requesterPosition: resolvedPosition,
+                        })
+                      }
                       title="Print Request Slip"
                     >
                       <Printer size={16} />
