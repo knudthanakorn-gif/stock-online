@@ -303,17 +303,18 @@ export const AdminHome = ({
       <div className="admin-bottom-grid">
         {/* Low stock alerts */}
         <div className="card urgent-card">
-          <div className="card-header">
-            <div className="card-title">
+          <div className="card-header flex-between mb-3">
+            <div className="card-title flex-center gap-2">
               <AlertTriangle color="#f59e0b" size={20} />
-              <span>{lang === 'th' ? 'รายการอุปกรณ์ต้องเติมคลังด่วน' : 'Urgent Asset Restock Needed'}</span>
+              <span className="font-extrabold text-sm">{lang === 'th' ? 'รายการอุปกรณ์ต้องเติมคลังด่วน' : 'Urgent Asset Restock Needed'}</span>
             </div>
-            <button className="btn btn-sm btn-outline" onClick={() => setActiveTab('inventory')}>
-              {lang === 'th' ? 'ดูอุปกรณ์ทั้งหมด' : 'View All'}
+            <button className="btn btn-xs btn-outline font-bold" onClick={() => setActiveTab('inventory')}>
+              {lang === 'th' ? 'ดูทั้งหมด' : 'View All'}
             </button>
           </div>
 
-          <div className="table-responsive">
+          {/* Desktop Table View */}
+          <div className="desktop-urgent-table table-responsive">
             <table className="data-table">
               <thead>
                 <tr>
@@ -345,7 +346,7 @@ export const AdminHome = ({
                           className="btn btn-sm btn-success"
                           onClick={onOpenStockIn}
                         >
-                          <PlusCircle size={14} /> +
+                          <PlusCircle size={14} /> + เติม
                         </button>
                       </td>
                     </tr>
@@ -353,6 +354,37 @@ export const AdminHome = ({
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card List View (Clean & Touch-friendly) */}
+          <div className="mobile-urgent-list">
+            {[...outOfStockItems, ...lowStockItems].length === 0 ? (
+              <div className="text-center py-4 text-muted text-xs">
+                🎉 {lang === 'th' ? 'ไม่มีรายการอุปกรณ์สต็อกต่ำ' : 'All items well stocked!'}
+              </div>
+            ) : (
+              [...outOfStockItems, ...lowStockItems].slice(0, 5).map((prod) => (
+                <div key={prod.id} className="mobile-urgent-item">
+                  <div className="urgent-item-left">
+                    <div className="urgent-item-name">{prod.name}</div>
+                    <div className="urgent-item-sku">
+                      Tag: <span className="font-mono">{prod.sku}</span>
+                    </div>
+                  </div>
+                  <div className="urgent-item-right">
+                    <span className={`badge ${prod.quantity === 0 ? 'badge-danger' : 'badge-warning'}`}>
+                      {prod.quantity} {prod.unit}
+                    </span>
+                    <button
+                      className="btn btn-xs btn-success font-bold"
+                      onClick={onOpenStockIn}
+                    >
+                      <PlusCircle size={13} /> + เติม
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -601,8 +633,118 @@ export const AdminHome = ({
         .mt-4 { margin-top: 1rem; }
         .font-mono { font-family: monospace; }
 
+        .mobile-urgent-list {
+          display: none;
+          flex-direction: column;
+          gap: 0.55rem;
+        }
+
+        .mobile-urgent-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.65rem 0.85rem;
+          border-radius: var(--radius-sm);
+          background: var(--bg-main);
+          border: 1px solid var(--border-color);
+          gap: 0.75rem;
+        }
+
+        .urgent-item-left {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .urgent-item-name {
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .urgent-item-sku {
+          font-size: 0.68rem;
+          color: var(--text-muted);
+          margin-top: 0.15rem;
+        }
+
+        .urgent-item-right {
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          flex-shrink: 0;
+        }
+
         @media (max-width: 900px) {
           .admin-bottom-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+          .admin-welcome-banner {
+            padding: 1.15rem 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: 16px;
+            gap: 1rem;
+          }
+          .banner-title {
+            font-size: 1.3rem;
+          }
+          .banner-subtitle {
+            font-size: 0.78rem;
+          }
+          .banner-stats {
+            width: 100%;
+            display: flex;
+            gap: 0.5rem;
+          }
+          .stat-pill {
+            flex: 1;
+            padding: 0.6rem 0.75rem;
+            border-radius: 12px;
+          }
+          .stat-label {
+            font-size: 0.68rem;
+          }
+          .stat-val {
+            font-size: 1.05rem;
+          }
+          .admin-shortcuts-grid {
+            grid-template-columns: 1fr;
+            gap: 0.65rem;
+            margin-bottom: 1rem;
+          }
+          .shortcut-card {
+            padding: 0.85rem 1rem;
+            border-radius: 14px;
+            gap: 0.85rem;
+          }
+          .shortcut-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+          }
+          .shortcut-icon svg {
+            width: 22px;
+            height: 22px;
+          }
+          .shortcut-info h3 {
+            font-size: 0.88rem;
+          }
+          .shortcut-info p {
+            font-size: 0.72rem;
+          }
+          .desktop-urgent-table {
+            display: none !important;
+          }
+          .mobile-urgent-list {
+            display: flex !important;
+          }
+          .urgent-card {
+            padding: 1rem 0.85rem;
+            border-radius: 16px;
+          }
         }
       `}</style>
     </div>
