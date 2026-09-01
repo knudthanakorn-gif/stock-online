@@ -47,6 +47,10 @@ export const Login = () => {
   // Duplicate Name Disambiguation State
   const [duplicateUsers, setDuplicateUsers] = useState(null);
 
+  // Employee Directory Quick Search Modal State
+  const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
+  const [directorySearch, setDirectorySearch] = useState('');
+
   const passwordInputRef = useRef(null);
 
   // Helper to save recent login on this device
@@ -315,6 +319,29 @@ export const Login = () => {
             <span>{lang === 'th' ? 'เข้าสู่ระบบ' : 'Sign In'}</span>
             <ArrowRight size={18} />
           </button>
+
+          {/* Quick Shortcuts: Directory Search & Admin Login */}
+          <div className="quick-action-shortcuts mt-3 pt-3 border-top" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm w-full flex-center gap-2"
+              style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', fontWeight: 600, borderRadius: '8px' }}
+              onClick={() => setIsDirectoryOpen(true)}
+            >
+              <Users size={16} color="#4f46e5" />
+              <span>{lang === 'th' ? '🔍 ค้นหารายชื่อพนักงานในระบบ (86 ท่าน)' : '🔍 Search Employee Directory'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs text-muted flex-center gap-1.5"
+              style={{ justifyContent: 'center', padding: '4px' }}
+              onClick={() => handleSelectSystemUser('admin', '123')}
+            >
+              <Shield size={13} color="#2563eb" />
+              <span>{lang === 'th' ? '🛡️ เข้าสู่ระบบผู้ดูแล (Admin Login: admin / 123)' : 'Admin Login'}</span>
+            </button>
+          </div>
         </form>
 
         {/* Recent Accounts on this Device */}
@@ -367,6 +394,104 @@ export const Login = () => {
           <span>EXION Office Asset Management &copy; 2026</span>
         </div>
       </div>
+
+      {/* SEARCHABLE EMPLOYEE DIRECTORY MODAL */}
+      {isDirectoryOpen && (
+        <div className="modal-overlay" onClick={() => setIsDirectoryOpen(false)}>
+          <div className="modal-content modal-md" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-header">
+              <div className="modal-header-title">
+                <Users size={22} color="#4f46e5" />
+                <div>
+                  <h2 className="font-extrabold text-base">
+                    {lang === 'th' ? 'สมุดรายชื่อพนักงาน (Employee Directory)' : 'Employee Directory'}
+                  </h2>
+                  <div className="text-xs text-muted">
+                    {lang === 'th' ? 'แตะที่ชื่อของคุณเพื่อนำเข้าสู่หน้า Log in ทันที' : 'Tap your name to select and login'}
+                  </div>
+                </div>
+              </div>
+              <button className="close-btn" onClick={() => setIsDirectoryOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '1rem' }}>
+              <div className="search-bar mb-3">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder={lang === 'th' ? '🔍 พิมพ์ค้นหาชื่อ, รหัสพนักงาน, แผนก, หรือบริษัท...' : 'Search by name, code, dept...'}
+                  value={directorySearch}
+                  onChange={(e) => setDirectorySearch(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="directory-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {usersList
+                  .filter((u) => {
+                    if (u.role === 'admin') return false;
+                    if (!directorySearch.trim()) return true;
+                    const q = directorySearch.toLowerCase().trim();
+                    return (
+                      (u.name && u.name.toLowerCase().includes(q)) ||
+                      (u.employeeCode && u.employeeCode.toLowerCase().includes(q)) ||
+                      (u.department && u.department.toLowerCase().includes(q)) ||
+                      (u.company && u.company.toLowerCase().includes(q))
+                    );
+                  })
+                  .map((u) => (
+                    <div
+                      key={u.id}
+                      className="card p-2.5"
+                      style={{
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        transition: 'all 0.15s ease',
+                        border: '1px solid var(--border-color)',
+                      }}
+                      onClick={() => {
+                        setSelectedUser(u);
+                        setUsername(u.name);
+                        setPassword(u.password || '1234');
+                        setIsDirectoryOpen(false);
+                        setErrorMsg('');
+                        setTimeout(() => {
+                          passwordInputRef.current?.focus();
+                        }, 120);
+                      }}
+                    >
+                      <div>
+                        <div className="font-extrabold text-sm flex-center gap-1.5 justify-start">
+                          <span>{u.name}</span>
+                          {u.employeeCode && (
+                            <span className="badge badge-info text-xxs font-mono">{u.employeeCode}</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted mt-0.5">
+                          🏢 {u.department || 'ทั่วไป'} • {u.company || 'EXION'}
+                        </div>
+                      </div>
+                      <div className="btn btn-primary btn-xs flex-center gap-1">
+                        <span>เลือก</span>
+                        <ChevronRight size={14} />
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn btn-secondary btn-sm" onClick={() => setIsDirectoryOpen(false)}>
+                {lang === 'th' ? 'ปิด' : 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* DISAMBIGUATION MODAL: CHOOSE EMPLOYEE & DEPARTMENT BEFORE ENTERING PASSWORD */}
       {duplicateUsers && (
