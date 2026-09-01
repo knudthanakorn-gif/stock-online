@@ -281,11 +281,6 @@ export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
               </div>
             </div>
           </div>
-
-          {/* Footer Note */}
-          <div style={{ textAlign: 'center', fontSize: '0.68rem', color: '#94a3b8', marginTop: '1.25rem' }}>
-            เอกสารนี้สร้างจากระบบ Stock Online Enterprise เมื่อ {new Date().toLocaleString('th-TH')} • ใช้เป็นหลักฐานแนบการเบิกจ่ายพัสดุสำนักงาน
-          </div>
         </div>
       </div>
     </div>
