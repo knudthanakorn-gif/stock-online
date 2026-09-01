@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
-  const { lang } = useStock();
+  const { lang, usersList = [], requestersList = [] } = useStock();
   const printContentRef = useRef(null);
 
   useEffect(() => {
@@ -30,6 +30,33 @@ export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
   }, [isOpen]);
 
   if (!isOpen || !request) return null;
+
+  // Auto-resolve requester profile from usersList or requestersList if department is missing
+  const matchedUser =
+    (usersList || []).find(
+      (u) =>
+        (u.name && request.requesterName && u.name.trim().toLowerCase() === request.requesterName.trim().toLowerCase()) ||
+        (u.username && request.requesterName && u.username.trim().toLowerCase() === request.requesterName.trim().toLowerCase())
+    ) ||
+    (requestersList || []).find(
+      (r) =>
+        r.name && request.requesterName && r.name.trim().toLowerCase() === request.requesterName.trim().toLowerCase()
+    );
+
+  const displayDept =
+    request.requesterDept && request.requesterDept !== '-' && request.requesterDept.trim() !== ''
+      ? request.requesterDept
+      : matchedUser?.department || request.department || '';
+
+  const displayCompany =
+    request.requesterCompany && request.requesterCompany !== '-' && request.requesterCompany.trim() !== ''
+      ? request.requesterCompany
+      : matchedUser?.company || 'EXION (THAILAND) COMPANY LIMITED';
+
+  const displayPosition =
+    request.requesterPosition && request.requesterPosition !== '-' && request.requesterPosition.trim() !== ''
+      ? request.requesterPosition
+      : matchedUser?.position || '';
 
   const handlePrint = () => {
     window.print();
@@ -66,6 +93,14 @@ export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
   });
 
   const totalQuantity = (request.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+
+  const getPurposeText = (p) => {
+    if (p === 'DAILY') return 'เบิกใช้งานประจำวัน';
+    if (p === 'PROJECT') return 'ใช้งานโครงการ/กิจกรรม';
+    if (p === 'URGENT') return 'เบิกด่วนฉุกเฉิน';
+    if (p === 'OTHER' || !p) return 'อื่นๆ';
+    return p;
+  };
 
   return (
     <div className="modal-overlay requisition-slip-overlay" onClick={onClose}>
@@ -110,7 +145,7 @@ export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
                 />
                 <div>
                   <h1 style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0f172a', margin: 0, letterSpacing: '-0.3px' }}>
-                    {request.requesterCompany || 'บริษัท เอ็กซิออน (ประเทศไทย) จำกัด / EXION (THAILAND) CO., LTD.'}
+                    {displayCompany}
                   </h1>
                   <p style={{ fontSize: '0.72rem', color: '#64748b', margin: 0 }}>
                     ระบบจัดการคลังพัสดุและเบิกจ่ายอุปกรณ์สำนักงาน (Stock Management System)
@@ -149,13 +184,10 @@ export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
               <div className="text-xs font-bold text-slate-500 mb-0.5">ข้อมูลผู้ขอเบิก (Requester Information):</div>
               <div className="font-bold text-sm text-slate-900">{request.requesterName}</div>
               <div className="text-xs text-slate-700 mt-0.5">
-                <strong>รหัสพนักงาน:</strong> <span className="font-mono font-bold">{request.employeeCode || '-'}</span>
+                <strong>บริษัท/สังกัด:</strong> {displayCompany}
               </div>
               <div className="text-xs text-slate-700 mt-0.5">
-                <strong>บริษัท/สังกัด:</strong> {request.requesterCompany || 'EXION (THAILAND) COMPANY LIMITED'}
-              </div>
-              <div className="text-xs text-slate-700 mt-0.5">
-                <strong>แผนก / ฝ่าย:</strong> {request.requesterDept || '-'} • {request.requesterPosition || '-'}
+                <strong>แผนก / ฝ่าย:</strong> {displayDept || 'ทั่วไป'} {displayPosition ? `• ${displayPosition}` : ''}
               </div>
             </div>
 
@@ -165,10 +197,7 @@ export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
                 <strong>วันที่ทำรายการ:</strong> {formattedDate}
               </div>
               <div className="text-xs text-slate-700 mt-0.5">
-                <strong>วัตถุประสงค์:</strong>{' '}
-                <span className="badge badge-info text-xxs font-bold">
-                  {request.purpose === 'DAILY' ? 'เบิกใช้งานประจำวัน' : request.purpose === 'PROJECT' ? 'ใช้งานโครงการ/กิจกรรม' : request.purpose === 'URGENT' ? 'เบิกด่วนฉุกเฉิน' : 'อื่นๆ'}
-                </span>
+                <strong>วัตถุประสงค์:</strong> {getPurposeText(request.purpose)}
               </div>
               {request.approvedBy && (
                 <div className="text-xs text-slate-700 mt-0.5">
