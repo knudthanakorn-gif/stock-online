@@ -9,6 +9,8 @@ import {
   mapCategoryToDb,
   mapRequesterFromDb,
   mapRequesterToDb,
+  mapUserFromDb,
+  mapUserToDb,
   mapTransactionFromDb,
   mapTransactionToDb,
   mapRequestFromDb,
@@ -460,6 +462,7 @@ export const StockProvider = ({ children }) => {
           supabase.from('suppliers').select('*'),
           supabase.from('products').select('*').order('created_at', { ascending: false }),
           supabase.from('requesters').select('*'),
+          supabase.from('users').select('*'),
           supabase.from('transactions').select('*').order('timestamp', { ascending: false }).limit(200),
           supabase.from('requests').select('*').order('created_at', { ascending: false }),
           supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50),
@@ -482,56 +485,67 @@ export const StockProvider = ({ children }) => {
             .filter((r) => !isRemovedCompany(r.company, r.employeeCode, r.id));
           setRequestersList(mappedReqs);
 
-          setUsersList((prevUsers) => {
-            let savedMap = new Map();
+          // Check if Supabase users table has data
+          if (usersRes.status === 'fulfilled' && usersRes.value.data && usersRes.value.data.length > 0) {
+            const mappedDbUsers = usersRes.value.data
+              .map(mapUserFromDb)
+              .filter((u) => !isRemovedCompany(u.company, u.employeeCode, u.id));
+            setUsersList(mappedDbUsers);
             try {
-              const savedStr = localStorage.getItem(STORAGE_KEYS.USERS_LIST);
-              if (savedStr) {
-                const parsed = JSON.parse(savedStr);
-                if (Array.isArray(parsed)) {
-                  parsed.forEach((u) => {
-                    if (u.id) savedMap.set(u.id, u);
-                    if (u.username) savedMap.set(u.username, u);
-                    if (u.employeeCode) savedMap.set(u.employeeCode, u);
-                  });
+              localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(mappedDbUsers));
+            } catch (e) {}
+          } else {
+            setUsersList((prevUsers) => {
+              let savedMap = new Map();
+              try {
+                const savedStr = localStorage.getItem(STORAGE_KEYS.USERS_LIST);
+                if (savedStr) {
+                  const parsed = JSON.parse(savedStr);
+                  if (Array.isArray(parsed)) {
+                    parsed.forEach((u) => {
+                      if (u.id) savedMap.set(u.id, u);
+                      if (u.username) savedMap.set(u.username, u);
+                      if (u.employeeCode) savedMap.set(u.employeeCode, u);
+                    });
+                  }
                 }
-              }
-            } catch (e) {}
+              } catch (e) {}
 
-            prevUsers.forEach((u) => {
-              if (u.id && !savedMap.has(u.id)) savedMap.set(u.id, u);
-              if (u.username && !savedMap.has(u.username)) savedMap.set(u.username, u);
-              if (u.employeeCode && !savedMap.has(u.employeeCode)) savedMap.set(u.employeeCode, u);
+              prevUsers.forEach((u) => {
+                if (u.id && !savedMap.has(u.id)) savedMap.set(u.id, u);
+                if (u.username && !savedMap.has(u.username)) savedMap.set(u.username, u);
+                if (u.employeeCode && !savedMap.has(u.employeeCode)) savedMap.set(u.employeeCode, u);
+              });
+
+              const savedAdmin = savedMap.get('usr-1') || savedMap.get('admin');
+              const adminUser = savedAdmin ? { ...INITIAL_USERS[0], ...savedAdmin } : INITIAL_USERS[0];
+
+              const requesterUsers = mappedReqs.map((r, i) => {
+                const existing =
+                  savedMap.get(`usr-req-${r.id || r.employeeCode}`) ||
+                  savedMap.get(r.id) ||
+                  savedMap.get(r.employeeCode) ||
+                  savedMap.get(extractCleanUsername(r.name));
+
+                const generated = generateRequesterUser(r, i);
+                if (existing && existing.password) {
+                  return {
+                    ...generated,
+                    ...existing,
+                    password: existing.password,
+                    mustChangePassword: existing.mustChangePassword ?? false,
+                  };
+                }
+                return generated;
+              });
+
+              const merged = [adminUser, ...requesterUsers];
+              try {
+                localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(merged));
+              } catch (e) {}
+              return merged;
             });
-
-            const savedAdmin = savedMap.get('usr-1') || savedMap.get('admin');
-            const adminUser = savedAdmin ? { ...INITIAL_USERS[0], ...savedAdmin } : INITIAL_USERS[0];
-
-            const requesterUsers = mappedReqs.map((r, i) => {
-              const existing =
-                savedMap.get(`usr-req-${r.id || r.employeeCode}`) ||
-                savedMap.get(r.id) ||
-                savedMap.get(r.employeeCode) ||
-                savedMap.get(extractCleanUsername(r.name));
-
-              const generated = generateRequesterUser(r, i);
-              if (existing && existing.password) {
-                return {
-                  ...generated,
-                  ...existing,
-                  password: existing.password,
-                  mustChangePassword: existing.mustChangePassword ?? false,
-                };
-              }
-              return generated;
-            });
-
-            const merged = [adminUser, ...requesterUsers];
-            try {
-              localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(merged));
-            } catch (e) {}
-            return merged;
-          });
+          }
         }
         if (txRes.status === 'fulfilled' && txRes.value.data && txRes.value.data.length > 0) {
           setTransactions(txRes.value.data.map(mapTransactionFromDb));
@@ -552,6 +566,27 @@ export const StockProvider = ({ children }) => {
     // Realtime Postgres Changes Subscription
     const channel = supabase
       .channel('public-realtime-stock')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'users' },
+        (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const item = mapUserFromDb(payload.new);
+            setUsersList((prev) => {
+              const updated = prev.map((u) => (u.id === item.id || u.username === item.username ? item : u));
+              if (!prev.some((u) => u.id === item.id || u.username === item.username)) {
+                updated.push(item);
+              }
+              try {
+                localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(updated));
+              } catch (e) {}
+              return updated;
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setUsersList((prev) => prev.filter((u) => u.id !== payload.old.id));
+          }
+        }
+      )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'products' },
@@ -847,13 +882,27 @@ export const StockProvider = ({ children }) => {
 
   const changeUserPassword = (userId, newPassword) => {
     const trimmed = String(newPassword).trim();
+    let updatedUserObj = null;
     setUsersList(prev => {
-      const updated = prev.map(u => (u.id === userId || u.username === userId ? { ...u, password: trimmed, mustChangePassword: false } : u));
+      const updated = prev.map(u => {
+        if (u.id === userId || u.username === userId) {
+          updatedUserObj = { ...u, password: trimmed, mustChangePassword: false };
+          return updatedUserObj;
+        }
+        return u;
+      });
       try {
         localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(updated));
       } catch (e) {}
       return updated;
     });
+
+    if (updatedUserObj) {
+      supabase.from('users').upsert(mapUserToDb(updatedUserObj)).then(({ error }) => {
+        if (error) console.error('Supabase update password error:', error);
+      });
+    }
+
     if (user && (user.id === userId || user.username === userId)) {
       const updatedUser = { ...user, password: trimmed, mustChangePassword: false };
       setUser(updatedUser);
@@ -866,13 +915,27 @@ export const StockProvider = ({ children }) => {
 
   const adminResetUserPassword = (userId, newPassword, forceMustChange = true) => {
     const trimmed = String(newPassword).trim();
+    let updatedUserObj = null;
     setUsersList(prev => {
-      const updated = prev.map(u => (u.id === userId || u.username === userId ? { ...u, password: trimmed, mustChangePassword: forceMustChange } : u));
+      const updated = prev.map(u => {
+        if (u.id === userId || u.username === userId) {
+          updatedUserObj = { ...u, password: trimmed, mustChangePassword: forceMustChange };
+          return updatedUserObj;
+        }
+        return u;
+      });
       try {
         localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(updated));
       } catch (e) {}
       return updated;
     });
+
+    if (updatedUserObj) {
+      supabase.from('users').upsert(mapUserToDb(updatedUserObj)).then(({ error }) => {
+        if (error) console.error('Supabase admin reset password error:', error);
+      });
+    }
+
     if (user && (user.id === userId || user.username === userId)) {
       const updatedUser = { ...user, password: trimmed, mustChangePassword: forceMustChange };
       setUser(updatedUser);

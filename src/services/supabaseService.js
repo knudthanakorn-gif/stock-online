@@ -78,6 +78,42 @@ export const mapCategoryToDb = (c) => ({
   icon: c.icon || '',
 });
 
+export const mapUserFromDb = (row) => ({
+  id: row.id,
+  username: row.username,
+  password: row.password,
+  name: row.name,
+  role: row.role || 'user',
+  company: row.company || '',
+  department: row.department || '',
+  position: row.position || '',
+  employeeCode: row.employee_code || row.employeeCode || '',
+  email: row.email || '',
+  phone: row.phone || '',
+  avatar: row.avatar || null,
+  status: row.status || 'active',
+  mustChangePassword: row.must_change_password ?? false,
+  createdAt: row.created_at,
+});
+
+export const mapUserToDb = (u) => ({
+  id: u.id,
+  username: u.username,
+  password: u.password,
+  name: u.name,
+  role: u.role || 'user',
+  company: u.company || '',
+  department: u.department || '',
+  position: u.position || '',
+  employee_code: u.employeeCode || u.employee_code || '',
+  email: u.email || '',
+  phone: u.phone || '',
+  avatar: u.avatar || null,
+  status: u.status || 'active',
+  must_change_password: u.mustChangePassword ?? false,
+  updated_at: new Date().toISOString(),
+});
+
 export const mapRequesterFromDb = (row) => ({
   id: row.id,
   employeeCode: row.employee_code || row.employeeCode || '',
