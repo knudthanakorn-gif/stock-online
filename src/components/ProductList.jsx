@@ -331,12 +331,12 @@ export const ProductList = ({
               <div key={prod.id} className="card product-card">
                 <div className="card-image-wrap">
                   <img
-                    src={prod.image || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80'}
+                    src={prod.image || 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=400&q=80'}
                     alt={prod.name}
                     className="card-img"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80';
+                      e.target.src = 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=400&q=80';
                     }}
                   />
                   <span className={`badge card-badge ${isOut ? 'badge-danger' : isLow ? 'badge-warning' : 'badge-success'}`}>
