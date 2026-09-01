@@ -73,6 +73,8 @@ export const DepartmentQuotaModal = ({ isOpen, onClose }) => {
   const [localQuotas, setLocalQuotas] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isAddingDept, setIsAddingDept] = useState(false);
+  const [newDeptInput, setNewDeptInput] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -166,7 +168,7 @@ export const DepartmentQuotaModal = ({ isOpen, onClose }) => {
 
             {/* Quick Actions & Search Bar */}
             <div className="flex-between gap-2 mb-3 flex-wrap">
-              <div className="search-input-wrap flex-1" style={{ minWidth: '200px' }}>
+              <div className="search-input-wrap flex-1" style={{ minWidth: '180px' }}>
                 <Search size={15} className="search-icon" />
                 <input
                   type="text"
@@ -178,27 +180,88 @@ export const DepartmentQuotaModal = ({ isOpen, onClose }) => {
                 />
               </div>
 
-              <div className="flex-center gap-1.5">
+              <div className="flex-center gap-1.5 flex-wrap">
                 <button
                   type="button"
                   className="btn btn-secondary btn-xs font-bold"
-                  style={{ height: '36px', padding: '0 0.65rem' }}
+                  style={{ height: '36px', padding: '0 0.6rem' }}
                   onClick={() => handleSetAll(0)}
                   title="ตั้งค่าทุกแผนกเป็นไม่จำกัดโควตา (0)"
                 >
-                  <Infinity size={14} color="#10b981" /> ทุกแผนก = ไม่จำกัด (0)
+                  <Infinity size={14} color="#10b981" /> ทุกแผนก = 0 (ไม่จำกัด)
                 </button>
                 <button
                   type="button"
                   className="btn btn-secondary btn-xs font-bold"
-                  style={{ height: '36px', padding: '0 0.65rem' }}
+                  style={{ height: '36px', padding: '0 0.6rem' }}
                   onClick={() => handleSetAll(50)}
                   title="ตั้งค่าทุกแผนกเป็น 50 ชิ้น"
                 >
-                  ⚡ ทุกแผนก = 50 ชิ้น
+                  ⚡ ทุกแผนก = 50
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-xs font-bold"
+                  style={{ height: '36px', padding: '0 0.75rem' }}
+                  onClick={() => setIsAddingDept(!isAddingDept)}
+                >
+                  ➕ เพิ่มแผนกใหม่
                 </button>
               </div>
             </div>
+
+            {/* Inline Add New Department Box */}
+            {isAddingDept && (
+              <div className="card p-3 mb-3 bg-main" style={{ border: '1.5px dashed #6366f1', borderRadius: '12px' }}>
+                <div className="font-bold text-xs text-primary mb-2 flex-center gap-1.5">
+                  <Building size={15} />
+                  <span>เพิ่มชื่อแผนกใหม่เข้าสู่ระบบโควตา:</span>
+                </div>
+                <div className="flex-center gap-2">
+                  <input
+                    type="text"
+                    className="form-control text-xs flex-1"
+                    placeholder="พิมพ์ชื่อแผนกใหม่ เช่น Engineering, Operations..."
+                    value={newDeptInput}
+                    onChange={(e) => setNewDeptInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newDeptInput.trim()) {
+                          const name = newDeptInput.trim();
+                          setLocalQuotas(prev => ({ ...prev, [name]: 0 }));
+                          setNewDeptInput('');
+                          setIsAddingDept(false);
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-xs font-bold"
+                    style={{ height: '34px', padding: '0 1rem' }}
+                    onClick={() => {
+                      if (newDeptInput.trim()) {
+                        const name = newDeptInput.trim();
+                        setLocalQuotas(prev => ({ ...prev, [name]: 0 }));
+                        setNewDeptInput('');
+                        setIsAddingDept(false);
+                      }
+                    }}
+                  >
+                    เพิ่มแผนก
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-xs"
+                    style={{ height: '34px' }}
+                    onClick={() => setIsAddingDept(false)}
+                  >
+                    ยกเลิก
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="department-quota-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {filteredDepartments.length === 0 ? (
