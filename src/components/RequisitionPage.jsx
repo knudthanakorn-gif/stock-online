@@ -220,13 +220,21 @@ export const RequisitionPage = () => {
       !searchQuery ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.sku.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchCat = selectedCat === 'ALL' || p.category === selectedCat;
+
+    const matchCat =
+      selectedCat === 'ALL' ||
+      p.category === selectedCat ||
+      p.category === safeCategories.find((c) => c.id === selectedCat)?.name ||
+      p.category === safeCategories.find((c) => c.id === selectedCat)?.nameTh;
+
     return matchSearch && matchCat;
   });
 
   const getCatName = (catId) => {
-    const found = safeCategories.find((c) => c.id === catId);
-    return found ? (lang === 'th' ? found.nameTh || found.name : found.name) : 'อุปกรณ์สำนักงาน';
+    const found = safeCategories.find(
+      (c) => c.id === catId || c.name === catId || c.nameTh === catId
+    );
+    return found ? (lang === 'th' ? found.nameTh || found.name : found.name) : catId || (lang === 'th' ? 'อุปกรณ์สำนักงาน' : 'Office Supplies');
   };
 
   let portalQrSvg = '';
@@ -336,7 +344,12 @@ export const RequisitionPage = () => {
                 📦 {lang === 'th' ? 'อุปกรณ์ทั้งหมด' : 'All Items'} ({safeProducts.length})
               </button>
               {safeCategories.map((cat) => {
-                const count = safeProducts.filter((p) => p.category === cat.id).length;
+                const count = safeProducts.filter(
+                  (p) =>
+                    p.category === cat.id ||
+                    p.category === cat.name ||
+                    p.category === cat.nameTh
+                ).length;
                 return (
                   <button
                     key={cat.id}

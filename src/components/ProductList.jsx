@@ -61,7 +61,11 @@ export const ProductList = ({
       prod.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (prod.barcode && prod.barcode.includes(searchQuery));
 
-    const matchCategory = selectedCategory === 'ALL' || prod.category === selectedCategory;
+    const matchCategory =
+      selectedCategory === 'ALL' ||
+      prod.category === selectedCategory ||
+      prod.category === categories.find((c) => c.id === selectedCategory)?.name ||
+      prod.category === categories.find((c) => c.id === selectedCategory)?.nameTh;
 
     let matchStatus = true;
     if (stockStatusFilter === 'LOW') {
@@ -90,8 +94,8 @@ export const ProductList = ({
     : sortedProducts.slice((currentPage - 1) * Number(pageSize), currentPage * Number(pageSize));
 
   const getCategoryName = (catId) => {
-    const cat = categories.find((c) => c.id === catId);
-    if (!cat) return lang === 'th' ? 'ทั่วไป' : 'General';
+    const cat = categories.find((c) => c.id === catId || c.name === catId || c.nameTh === catId);
+    if (!cat) return catId || (lang === 'th' ? 'ทั่วไป' : 'General');
     return lang === 'th' ? cat.nameTh || cat.name : cat.name;
   };
 
