@@ -27,6 +27,66 @@ import { DepartmentQuotaModal } from './components/DepartmentQuotaModal';
 import { NotificationSettingsModal } from './components/NotificationSettingsModal';
 import { BackupRestoreModal } from './components/BackupRestoreModal';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Stock Online App Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem',
+          textAlign: 'center',
+          backgroundColor: '#0f172a',
+          color: '#ffffff',
+          fontFamily: 'sans-serif'
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+            เกิดข้อผิดพลาดในการแสดงผล
+          </h2>
+          <p style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '400px', marginBottom: '1.5rem' }}>
+            {this.state.error?.message || 'ระบบกำลังโหลดข้อมูล กรุณากดปุ่มรีโหลดเพื่อเริ่มต้นใหม่'}
+          </p>
+          <button
+            onClick={() => {
+              localStorage.clear();
+              window.location.href = window.location.origin;
+            }}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#4f46e5',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            🔄 รีโหลดระบบใหม่ (Clear & Refresh)
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const MainLayout = () => {
   const { user } = useStock();
 
@@ -51,7 +111,7 @@ const MainLayout = () => {
         }
       }
     }
-  }, [user, activeTab]);
+  }, [user, user?.role]);
 
   // Clean document title during printing to prevent browser printing "stock-online"
   useEffect(() => {
@@ -91,6 +151,9 @@ const MainLayout = () => {
   const [isNotificationSettingsModalOpen, setIsNotificationSettingsModalOpen] = useState(false);
   const [isBackupRestoreModalOpen, setIsBackupRestoreModalOpen] = useState(false);
 
+  // Mobile Responsive Sidebar Drawer State
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   // If user is not logged in, render Login page
   if (!user) {
     return <Login />;
@@ -123,9 +186,6 @@ const MainLayout = () => {
     setBarcodeProduct(product);
     setIsBarcodeModalOpen(true);
   };
-
-  // Mobile Responsive Sidebar Drawer State
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   return (
     <div className="app-layout">
@@ -188,7 +248,7 @@ const MainLayout = () => {
 
           {activeTab === 'requesters' && user.role === 'admin' && <RequesterManager />}
 
-          {activeTab === 'dashboard' && (
+          {(activeTab === 'dashboard' || (user.role !== 'user' && !['admin-home', 'users', 'requesters', 'request-qr', 'approvals', 'audit', 'inventory', 'history', 'categories', 'suppliers', 'reports'].includes(activeTab))) && (
             <Dashboard
               onOpenStockIn={() => handleOpenStockIn()}
               setSelectedProductId={setSelectedProductId}
@@ -196,7 +256,7 @@ const MainLayout = () => {
             />
           )}
 
-          {activeTab === 'request-qr' && (
+          {(activeTab === 'request-qr' || (user.role === 'user' && !['request-qr'].includes(activeTab))) && (
             <RequisitionPage />
           )}
 
@@ -291,8 +351,10 @@ const MainLayout = () => {
 
 export default function App() {
   return (
-    <StockProvider>
-      <MainLayout />
-    </StockProvider>
+    <ErrorBoundary>
+      <StockProvider>
+        <MainLayout />
+      </StockProvider>
+    </ErrorBoundary>
   );
 }
