@@ -1653,7 +1653,7 @@ tr.print-table-top-spacer {
     border: none !important;
   }
 
-  /* When a Modal is Open (ISO Forms, Slips, Barcodes) -> HIDE BACKGROUND REPORT TABLES & WRAPPERS */
+  /* When a Modal is Open (ISO Forms, Slips, Barcodes) -> HIDE ALL BACKGROUND SCREEN ELEMENTS */
   body.modal-open-print .sidebar,
   body.modal-open-print .navbar,
   body.modal-open-print .page-header,
@@ -1666,9 +1666,19 @@ tr.print-table-top-spacer {
   body.modal-open-print .qr-grid-layout,
   body.modal-open-print .dashboard-page,
   body.modal-open-print .approval-page,
+  body.modal-open-print .approval-center-page,
+  body.modal-open-print .approval-kpi-grid,
+  body.modal-open-print .request-card-item,
+  body.modal-open-print .search-bar,
+  body.modal-open-print .search-box-card,
   body.modal-open-print .audit-page,
   body.modal-open-print .product-list-page,
-  body.modal-open-print .transaction-history-page {
+  body.modal-open-print .transaction-history-page,
+  body.modal-open-print .user-manager-page,
+  body.modal-open-print .requester-manager-page,
+  body.modal-open-print .category-manager-page,
+  body.modal-open-print .supplier-manager-page,
+  body.modal-open-print .requisition-page {
     display: none !important;
     visibility: hidden !important;
     height: 0 !important;
