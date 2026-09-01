@@ -124,12 +124,25 @@ const MainLayout = () => {
     setIsBarcodeModalOpen(true);
   };
 
+  // Mobile Responsive Sidebar Drawer State
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   return (
     <div className="app-layout">
+      {/* Mobile Drawer Backdrop Overlay */}
+      {isMobileSidebarOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
         onOpenStockIn={() => handleOpenStockIn()}
         onOpenStockOut={() => handleOpenStockOut()}
         onOpenScanner={() => setIsScannerModalOpen(true)}
@@ -153,6 +166,8 @@ const MainLayout = () => {
           onOpenRequisitionQR={() => setIsRequisitionQRModalOpen(true)}
           setActiveTab={setActiveTab}
           onOpenNotificationSettings={() => setIsNotificationSettingsModalOpen(true)}
+          isMobileSidebarOpen={isMobileSidebarOpen}
+          onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
         />
 
         <main className="page-container">

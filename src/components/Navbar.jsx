@@ -24,6 +24,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Check,
+  Menu,
 } from 'lucide-react';
 
 export const Navbar = ({
@@ -32,6 +33,8 @@ export const Navbar = ({
   onOpenRequisitionQR,
   setActiveTab,
   onOpenNotificationSettings,
+  isMobileSidebarOpen = false,
+  onToggleMobileSidebar,
 }) => {
   const {
     user,
@@ -116,25 +119,32 @@ export const Navbar = ({
 
   return (
     <header className="navbar">
-      {/* Brand Logo & System Title */}
-      <div className="navbar-brand flex-center gap-2">
-        <img
-          src="/logo.png"
-          alt="EXION THAILAND"
-          style={{
-            height: '90px',
-            width: 'auto',
-            maxHeight: '92px',
-            objectFit: 'contain',
-            display: 'block',
-          }}
-        />
-        <div className="brand-text" style={{ borderLeft: '1.5px solid rgba(148, 163, 184, 0.35)', paddingLeft: '8px' }}>
-          <div className="brand-sub" style={{ fontSize: '0.74rem', fontWeight: '800', color: '#334155', lineHeight: 1.15 }}>
-            Stock Online
-          </div>
-          <div style={{ fontSize: '0.63rem', color: '#64748b' }}>
-            Asset Management
+      {/* Brand Logo & Mobile Menu Hamburger */}
+      <div className="navbar-left flex-center gap-2">
+        {onToggleMobileSidebar && (
+          <button
+            type="button"
+            className="mobile-hamburger-btn"
+            onClick={onToggleMobileSidebar}
+            aria-label="Toggle navigation drawer"
+          >
+            <Menu size={22} />
+          </button>
+        )}
+
+        <div className="navbar-brand flex-center gap-2">
+          <img
+            src="/logo.png"
+            alt="EXION THAILAND"
+            className="brand-logo-img"
+          />
+          <div className="brand-text" style={{ borderLeft: '1.5px solid rgba(148, 163, 184, 0.35)', paddingLeft: '8px' }}>
+            <div className="brand-sub" style={{ fontSize: '0.74rem', fontWeight: '800', color: '#334155', lineHeight: 1.15 }}>
+              Stock Online
+            </div>
+            <div style={{ fontSize: '0.63rem', color: '#64748b' }}>
+              Asset Management
+            </div>
           </div>
         </div>
       </div>
@@ -365,6 +375,63 @@ export const Navbar = ({
           top: 0;
           z-index: 100;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        }
+
+        .navbar-left {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .mobile-hamburger-btn {
+          display: none;
+          background: var(--bg-surface);
+          border: 1.5px solid var(--border-color);
+          border-radius: var(--radius-sm);
+          width: 38px;
+          height: 38px;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-primary);
+          cursor: pointer;
+          box-shadow: var(--shadow-xs);
+          flex-shrink: 0;
+        }
+
+        .brand-logo-img {
+          height: 70px;
+          width: auto;
+          max-height: 72px;
+          object-fit: contain;
+          display: block;
+        }
+
+        @media (max-width: 992px) {
+          .navbar {
+            padding: 0.5rem 0.85rem;
+            height: 60px;
+            gap: 0.75rem;
+          }
+          .mobile-hamburger-btn {
+            display: flex;
+          }
+          .brand-logo-img {
+            height: 38px;
+            max-height: 40px;
+          }
+          .navbar-search {
+            display: none;
+          }
+          .user-name {
+            display: none;
+          }
+          .navbar-actions {
+            gap: 0.4rem;
+          }
+          .action-icon-btn {
+            width: 34px;
+            height: 34px;
+          }
         }
 
         .navbar-brand {

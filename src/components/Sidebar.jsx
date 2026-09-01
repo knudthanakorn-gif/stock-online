@@ -23,11 +23,14 @@ import {
   Database,
   PieChart,
   Bell,
+  X,
 } from 'lucide-react';
 
 export const Sidebar = ({
   activeTab,
   setActiveTab,
+  isOpen = false,
+  onClose,
   onOpenStockIn,
   onOpenStockOut,
   onOpenScanner,
@@ -44,6 +47,11 @@ export const Sidebar = ({
   const isStaff = user?.role === 'staff';
   const isUser = user?.role === 'user';
   const isViewer = user?.role === 'viewer';
+
+  const handleTabClick = (tabId) => {
+    setActiveTab(tabId);
+    if (onClose) onClose();
+  };
 
   // Section 1: Main Admin
   const adminNavItems = [
@@ -84,12 +92,25 @@ export const Sidebar = ({
   const visibleMasters = filterItems(masterNavItems);
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+      {/* Mobile Drawer Close Header */}
+      <div className="sidebar-mobile-header">
+        <div className="flex-center gap-2">
+          <Building size={18} color="#6366f1" />
+          <span className="font-extrabold text-sm text-white">STOCK ONLINE</span>
+        </div>
+        {onClose && (
+          <button className="sidebar-close-btn" onClick={onClose} aria-label="Close menu">
+            <X size={18} />
+          </button>
+        )}
+      </div>
+
       {/* Role / User Mode Status Banner */}
       {isViewer ? (
         <div className="quick-actions-panel">
           <div className="panel-label">{lang === 'th' ? 'รายการด่วนผู้เข้าชม' : 'Quick Actions'}</div>
-          <button className="quick-btn btn-out" onClick={() => setActiveTab('request-qr')}>
+          <button className="quick-btn btn-out" onClick={() => handleTabClick('request-qr')}>
             <MinusCircle size={17} />
             <span>{lang === 'th' ? '🔴 ขอเบิกอุปกรณ์ (-)' : 'Requisition Asset (-)'}</span>
           </button>
@@ -107,11 +128,11 @@ export const Sidebar = ({
       ) : (
         <div className="quick-actions-panel">
           <div className="panel-label">{lang === 'th' ? 'รายการด่วนสำนักงาน' : 'Quick Actions'}</div>
-          <button className="quick-btn btn-out" onClick={() => setActiveTab('request-qr')}>
+          <button className="quick-btn btn-out" onClick={() => handleTabClick('request-qr')}>
             <MinusCircle size={17} />
             <span>{lang === 'th' ? '🔴 ขอเบิกอุปกรณ์ (-)' : 'Requisition Asset (-)'}</span>
           </button>
-          <button className="quick-btn btn-in" onClick={onOpenStockIn}>
+          <button className="quick-btn btn-in" onClick={() => { onOpenStockIn(); if (onClose) onClose(); }}>
             <PlusCircle size={17} />
             <span>{lang === 'th' ? '🟢 รับเข้าอุปกรณ์ใหม่ (+)' : 'Receive Asset (+)'}</span>
           </button>
@@ -133,7 +154,7 @@ export const Sidebar = ({
                 <button
                   key={item.id}
                   className={`nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => handleTabClick(item.id)}
                 >
                   <Icon size={18} className="nav-icon" />
                   <span className="nav-text">{lang === 'th' ? item.labelTh : item.labelEn}</span>
@@ -155,7 +176,7 @@ export const Sidebar = ({
                 <button
                   key={item.id}
                   className={`nav-item ${isActive ? 'active' : ''} ${item.isHighlight ? 'is-portal-item' : ''}`}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => handleTabClick(item.id)}
                 >
                   <Icon size={18} className="nav-icon" />
                   <span className="nav-text">{lang === 'th' ? item.labelTh : item.labelEn}</span>
@@ -177,7 +198,7 @@ export const Sidebar = ({
                 <button
                   key={item.id}
                   className={`nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => handleTabClick(item.id)}
                 >
                   <Icon size={18} className="nav-icon" />
                   <span className="nav-text">{lang === 'th' ? item.labelTh : item.labelEn}</span>
@@ -198,7 +219,7 @@ export const Sidebar = ({
                 type="button"
                 className="btn btn-ghost btn-xs flex-center gap-1.5 justify-start text-xs font-bold"
                 style={{ padding: '4px 8px', width: '100%', justifyContent: 'flex-start' }}
-                onClick={onOpenDepartmentQuota}
+                onClick={() => { onOpenDepartmentQuota(); if (onClose) onClose(); }}
               >
                 <PieChart size={13} color="#6366f1" />
                 <span>โควตาเบิกตามแผนก</span>
@@ -209,7 +230,7 @@ export const Sidebar = ({
                 type="button"
                 className="btn btn-ghost btn-xs flex-center gap-1.5 justify-start text-xs font-bold"
                 style={{ padding: '4px 8px', width: '100%', justifyContent: 'flex-start' }}
-                onClick={onOpenBackupRestore}
+                onClick={() => { onOpenBackupRestore(); if (onClose) onClose(); }}
               >
                 <Database size={13} color="#10b981" />
                 <span>สำรอง & กู้คืนข้อมูล</span>
@@ -239,6 +260,51 @@ export const Sidebar = ({
           border-right: 1px solid rgba(255, 255, 255, 0.06);
           flex-shrink: 0;
           box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .sidebar-mobile-header {
+          display: none;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+          padding-bottom: 0.75rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .sidebar-close-btn {
+          background: rgba(255, 255, 255, 0.1);
+          border: none;
+          color: #ffffff;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        @media (max-width: 992px) {
+          .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 1000;
+            width: 280px;
+            max-width: 85vw;
+            transform: translateX(-100%);
+            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 30px rgba(0, 0, 0, 0.5);
+          }
+
+          .sidebar.open {
+            transform: translateX(0);
+          }
+
+          .sidebar-mobile-header {
+            display: flex;
+          }
         }
 
         .quick-actions-panel {
@@ -350,14 +416,14 @@ export const Sidebar = ({
           font-size: 0.88rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: all 0.15s ease;
           margin-bottom: 0.25rem;
           text-align: left;
         }
 
         .nav-item:hover {
           background: var(--sidebar-hover);
-          color: #ffffff;
+          color: var(--text-primary);
           transform: translateX(3px);
         }
 
@@ -368,8 +434,20 @@ export const Sidebar = ({
           box-shadow: 0 4px 16px rgba(79, 70, 229, 0.4);
         }
 
+        .nav-item.is-portal-item {
+          background: rgba(244, 63, 94, 0.12);
+          border: 1px solid rgba(244, 63, 94, 0.3);
+          color: #fb7185;
+        }
+
+        .nav-item.is-portal-item:hover {
+          background: var(--req-gradient);
+          color: #ffffff;
+        }
+
         .nav-item.is-portal-item.active {
           background: var(--req-gradient);
+          color: #ffffff;
           box-shadow: var(--req-glow);
         }
 
