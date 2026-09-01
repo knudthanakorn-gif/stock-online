@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useStock, extractCleanUsername } from '../context/StockContext';
 import {
   Boxes,
