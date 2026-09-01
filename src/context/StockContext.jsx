@@ -333,7 +333,7 @@ export const StockProvider = ({ children }) => {
                 name: initU.name,
                 employeeCode: initU.employeeCode || existing.employeeCode,
                 company: sanitizeCompany(existing.company || initU.company),
-                role: isAdmin ? 'admin' : 'user',
+                role: isAdmin ? 'admin' : (sanitizeRole(existing.role) || sanitizeRole(initU.role) || 'user'),
                 password: currentPwd,
                 mustChangePassword: isAdmin ? false : (currentPwd === '1234' ? true : (existing.mustChangePassword ?? false)),
               };
@@ -508,6 +508,26 @@ export const StockProvider = ({ children }) => {
           try {
             localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(mappedDbUsers));
           } catch (e) {}
+
+          // Live-sync active user session with latest role from Supabase DB
+          setUser(prevUser => {
+            if (!prevUser) return null;
+            const liveUser = mappedDbUsers.find(
+              u =>
+                u.id === prevUser.id ||
+                (u.username && prevUser.username && u.username.toLowerCase() === prevUser.username.toLowerCase()) ||
+                (u.employeeCode && prevUser.employeeCode && u.employeeCode.toLowerCase() === prevUser.employeeCode.toLowerCase())
+            );
+            if (liveUser && (liveUser.role !== prevUser.role || liveUser.status !== prevUser.status)) {
+              const updated = { ...prevUser, ...liveUser };
+              try {
+                localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
+                localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(updated));
+              } catch (e) {}
+              return updated;
+            }
+            return prevUser;
+          });
         }
 
         if (reqsRes.status === 'fulfilled' && reqsRes.value.data && reqsRes.value.data.length > 0) {
