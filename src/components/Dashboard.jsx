@@ -981,9 +981,9 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
                         </span>
                       </div>
 
-                      <div className="flex-between text-xxs text-muted mb-1 font-mono">
-                        <span>Tag: {item.sku} • <strong className="text-primary">{item.categoryName}</strong></span>
-                        <span className="text-emerald font-bold">{formatCurrency(item.totalValue)}</span>
+                      <div className="flex-between text-xxs text-muted mb-1">
+                        <span><strong className="text-primary">{item.categoryName}</strong></span>
+                        <span className="text-emerald font-bold font-mono">{formatCurrency(item.totalValue)}</span>
                       </div>
 
                       {/* Progress Track */}
@@ -1151,7 +1151,7 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
                     <div key={prod.id} className="mobile-urgent-item">
                       <div className="urgent-item-left">
                         <div className="urgent-item-name">{prod.name}</div>
-                        <div className="urgent-item-sku">Tag: <span className="font-mono">{prod.sku}</span></div>
+                        <div className="urgent-item-sku desktop-only">Tag: <span className="font-mono">{prod.sku}</span></div>
                       </div>
                       <div className="urgent-item-right">
                         <span className={`badge ${prod.quantity === 0 ? 'badge-danger' : 'badge-warning'}`}>

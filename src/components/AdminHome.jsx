@@ -367,7 +367,7 @@ export const AdminHome = ({
                 <div key={prod.id} className="mobile-urgent-item">
                   <div className="urgent-item-left">
                     <div className="urgent-item-name">{prod.name}</div>
-                    <div className="urgent-item-sku">
+                    <div className="urgent-item-sku desktop-only">
                       Tag: <span className="font-mono">{prod.sku}</span>
                     </div>
                   </div>

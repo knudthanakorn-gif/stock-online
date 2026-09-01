@@ -445,8 +445,8 @@ export const RequisitionPage = () => {
                       {/* Product Title */}
                       <h3 className="exact-prod-title" title={prod.name}>{prod.name}</h3>
 
-                      {/* Asset Tag SKU / QR */}
-                      <div className="exact-asset-sku">
+                      {/* Asset Tag SKU / QR (Desktop only) */}
+                      <div className="exact-asset-sku desktop-only">
                         Asset Tag: <span className="font-mono">{prod.sku}</span>
                       </div>
 
@@ -720,8 +720,8 @@ export const RequisitionPage = () => {
                             <td className="font-bold text-muted text-xxs">{index + 1}</td>
                             <td>
                               <div className="font-bold text-xs text-slate-800">{p.name}</div>
-                              <div className="text-xxs text-muted font-mono mt-0.5">
-                                Tag: {p.sku} | คลัง: <strong className="text-green">{p.quantity}</strong> {p.unit || 'ชิ้น'}
+                              <div className="text-xxs text-muted mt-0.5">
+                                <span>คลัง: <strong className="text-green font-bold">{p.quantity}</strong> {p.unit || 'ชิ้น'}</span>
                               </div>
                             </td>
                             <td>
