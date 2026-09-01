@@ -104,8 +104,9 @@ export const ApprovalCenter = () => {
 
   return (
     <div className="approval-center-page">
-      {/* Page Header */}
-      <div className="page-header">
+      <div className="no-print">
+        {/* Page Header */}
+        <div className="page-header">
         <div>
           <h1 className="page-title">
             <ClipboardList color="#4f46e5" />
@@ -415,6 +416,7 @@ export const ApprovalCenter = () => {
             );
           })
         )}
+      </div>
       </div>
 
       {/* MODAL 1: APPROVAL CONFIRMATION */}

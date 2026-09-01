@@ -239,8 +239,9 @@ export const RequisitionPage = () => {
 
   return (
     <div className="exact-requisition-page">
-      {/* 1. Modern Compact Hero Header Banner */}
-      <div className="shopee-banner card mb-3">
+      <div className="no-print">
+        {/* 1. Modern Compact Hero Header Banner */}
+        <div className="shopee-banner card mb-3">
         <div className="banner-left">
           <div className="shopee-tag">
             <ShoppingBag size={14} />
@@ -895,6 +896,7 @@ export const RequisitionPage = () => {
           </div>
         </div>
       )}
+      </div>
 
       {/* PRINT SLIP MODAL */}
       <RequisitionSlipModal
