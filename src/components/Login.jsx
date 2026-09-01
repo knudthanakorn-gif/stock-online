@@ -352,7 +352,7 @@ export const Login = () => {
               onClick={() => setIsDirectoryOpen(true)}
             >
               <Users size={16} color="#4f46e5" />
-              <span>{lang === 'th' ? `🔍 ค้นหารายชื่อพนักงานในระบบ (${directoryUsers.filter(u => u.role !== 'admin').length} ท่าน)` : '🔍 Search Employee Directory'}</span>
+              <span>{lang === 'th' ? `🔍 ค้นหารายชื่อพนักงานในระบบ (${directoryUsers.filter(u => u.username !== 'admin').length} ท่าน)` : '🔍 Search Employee Directory'}</span>
             </button>
           </div>
         </form>
@@ -434,7 +434,7 @@ export const Login = () => {
                 <input
                   type="text"
                   className="form-control"
-                  placeholder={lang === 'th' ? '🔍 พิมพ์ค้นหาชื่อ, รหัสพนักงาน, แผนก, หรือบริษัท...' : 'Search by name, code, dept...'}
+                  placeholder={lang === 'th' ? '🔍 พิมพ์ค้นหาชื่อ, รหัสพนักงาน, แผนก, หรือตำแหน่ง...' : 'Search by name, code, dept...'}
                   value={directorySearch}
                   onChange={(e) => setDirectorySearch(e.target.value)}
                   autoFocus
@@ -444,13 +444,15 @@ export const Login = () => {
               <div className="directory-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {directoryUsers
                   .filter((u) => {
-                    if (u.role === 'admin') return false;
+                    if (u.username === 'admin' && u.id === 'usr-1') return false;
                     if (!directorySearch.trim()) return true;
                     const q = directorySearch.toLowerCase().trim();
                     return (
                       (u.name && u.name.toLowerCase().includes(q)) ||
+                      (u.username && u.username.toLowerCase().includes(q)) ||
                       (u.employeeCode && u.employeeCode.toLowerCase().includes(q)) ||
                       (u.department && u.department.toLowerCase().includes(q)) ||
+                      (u.position && u.position.toLowerCase().includes(q)) ||
                       (u.company && u.company.toLowerCase().includes(q))
                     );
                   })
@@ -483,9 +485,15 @@ export const Login = () => {
                           {u.employeeCode && (
                             <span className="badge badge-info text-xxs font-mono">{u.employeeCode}</span>
                           )}
+                          {u.role === 'admin' && (
+                            <span className="badge badge-success text-xxs font-bold">Admin</span>
+                          )}
+                          {u.role === 'staff' && (
+                            <span className="badge badge-info text-xxs font-bold">Staff</span>
+                          )}
                         </div>
                         <div className="text-xs text-muted mt-0.5">
-                          🏢 {u.department || 'ทั่วไป'} • {u.company || 'EXION'}
+                          🏢 {u.department || 'ทั่วไป'} {u.position ? `• ${u.position}` : ''} • {u.company || 'EXION'}
                         </div>
                       </div>
                       <div className="btn btn-primary btn-xs flex-center gap-1">
