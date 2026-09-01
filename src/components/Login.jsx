@@ -299,7 +299,7 @@ export const Login = () => {
                 ref={passwordInputRef}
                 type={showPassword ? 'text' : 'password'}
                 className="form-control with-icon"
-                placeholder={lang === 'th' ? 'รหัสเริ่มต้น: 1234 หรือ 123' : 'Password...'}
+                placeholder={lang === 'th' ? 'กรอกรหัสผ่าน (Password)...' : 'Password...'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -320,8 +320,8 @@ export const Login = () => {
             <ArrowRight size={18} />
           </button>
 
-          {/* Quick Shortcuts: Directory Search & Admin Login */}
-          <div className="quick-action-shortcuts mt-3 pt-3 border-top" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {/* Quick Shortcuts: Directory Search */}
+          <div className="quick-action-shortcuts mt-3 pt-3 border-top">
             <button
               type="button"
               className="btn btn-secondary btn-sm w-full flex-center gap-2"
@@ -330,16 +330,6 @@ export const Login = () => {
             >
               <Users size={16} color="#4f46e5" />
               <span>{lang === 'th' ? '🔍 ค้นหารายชื่อพนักงานในระบบ (86 ท่าน)' : '🔍 Search Employee Directory'}</span>
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs text-muted flex-center gap-1.5"
-              style={{ justifyContent: 'center', padding: '4px' }}
-              onClick={() => handleSelectSystemUser('admin', '123')}
-            >
-              <Shield size={13} color="#2563eb" />
-              <span>{lang === 'th' ? '🛡️ เข้าสู่ระบบผู้ดูแล (Admin Login: admin / 123)' : 'Admin Login'}</span>
             </button>
           </div>
         </form>
