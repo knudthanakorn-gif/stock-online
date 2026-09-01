@@ -1,0 +1,886 @@
+import React, { useState } from 'react';
+import { useStock } from '../context/StockContext';
+import {
+  ShoppingBag,
+  Search,
+  Package,
+  MinusCircle,
+  Plus,
+  Minus,
+  UserCheck,
+  CheckCircle2,
+  AlertCircle,
+  Printer,
+  X,
+  ShoppingCart,
+  Trash2,
+  Check,
+  FileText,
+  Clock,
+  Send,
+  XCircle,
+} from 'lucide-react';
+import { renderQRCodeSVG } from '../utils/qrGenerator';
+import { RequisitionSlipModal } from './RequisitionSlipModal';
+
+const DEPARTMENT_PRESETS = [
+  'แผนก IT / เทคโนโลยีสารสนเทศ',
+  'แผนกบัญชีและการเงิน',
+  'ฝ่ายขายและการตลาด',
+  'ฝ่ายทรัพยากรบุคคล (HR)',
+  'ฝ่ายผลิตและปฏิบัติการ',
+  'ฝ่ายจัดซื้อและคลังสินค้า',
+  'ฝ่ายบริหารและจัดการ',
+];
+
+export const RequisitionPage = () => {
+  const {
+    products = [],
+    categories = [],
+    requestersList = [],
+    requests = [],
+    createRequisitionRequest,
+    cancelRequisitionRequest,
+    departmentQuotas = {},
+    getDepartmentUsageThisMonth,
+    lang,
+    user,
+  } = useStock();
+
+  const isViewer = user?.role === 'viewer';
+
+  // Defensive array checks
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const safeRequesters = Array.isArray(requestersList) ? requestersList : [];
+  const safeRequests = Array.isArray(requests) ? requests : [];
+
+  // Filter requests to show ONLY the current logged-in user's personal requests
+  const myRequests = safeRequests.filter((req) => {
+    if (!user) return false;
+    
+    // Match by explicit userId
+    if (req.userId && user.id && req.userId === user.id) return true;
+    
+    // Match by employeeCode
+    if (req.employeeCode && user.employeeCode && req.employeeCode === user.employeeCode) return true;
+    
+    // Match by normalized clean Thai names
+    const clean = (s) => (s || '').trim().toLowerCase().replace(/^(คุณ|นาย|นางสาว|นาง|น\.ส\.)\s*/, '').replace(/\s+/g, ' ');
+    const reqName = clean(req.requesterName);
+    const userName = clean(user.name);
+    const userUsername = clean(user.username);
+    
+    if (reqName && (reqName === userName || reqName === userUsername)) return true;
+    if (req.createdBy && clean(req.createdBy) === userName) return true;
+    
+    return false;
+  });
+
+  // Tab: 'catalog' | 'my-requests'
+  const [activeTab, setActiveTab] = useState('catalog');
+
+  // Search & Category Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCat, setSelectedCat] = useState('ALL');
+
+  // MULTI-ITEM REQUISITION CART STATE
+  const [cart, setCart] = useState([]); // [{ product, quantity }]
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // Form States inside Requisition Modal
+  const [requesterCompany, setRequesterCompany] = useState('EXION (THAILAND) COMPANY LIMITED');
+  const [requesterDept, setRequesterDept] = useState('');
+  const [requesterName, setRequesterName] = useState('');
+  const [requesterPosition, setRequesterPosition] = useState('');
+  const [purpose, setPurpose] = useState('DAILY');
+  const [note, setNote] = useState('');
+
+  const [submittedTicket, setSubmittedTicket] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [viewSlipReq, setViewSlipReq] = useState(null);
+
+  // Dynamic Companies List
+  const availableCompanies = Array.from(
+    new Set([
+      'EXION (THAILAND) COMPANY LIMITED',
+      ...safeRequesters.map((r) => r.company).filter(Boolean),
+    ])
+  );
+
+  // Cascading Filter: Filter departments by company
+  const availableDepts = Array.from(
+    new Set(
+      safeRequesters
+        .filter((r) => !requesterCompany || (r.company || 'EXION (THAILAND) COMPANY LIMITED') === requesterCompany)
+        .map((r) => r.department)
+        .filter(Boolean)
+    )
+  );
+
+  const finalDeptList = Array.from(new Set([...availableDepts, ...DEPARTMENT_PRESETS]));
+
+  // Cascading Filter: Filter names by company & department
+  const availableRequesters = safeRequesters.filter((r) => {
+    const matchCompany = !requesterCompany || (r.company || 'EXION (THAILAND) COMPANY LIMITED') === requesterCompany;
+    const matchDept = !requesterDept || r.department === requesterDept;
+    return matchCompany && matchDept;
+  });
+
+  // Auto fill department & position when selecting an existing registered requester name
+  const handleNameChange = (val) => {
+    setRequesterName(val);
+    const matched = safeRequesters.find((r) => r && r.name && r.name.toLowerCase() === val.toLowerCase());
+    if (matched) {
+      if (matched.company) setRequesterCompany(matched.company);
+      if (matched.department) setRequesterDept(matched.department);
+      if (matched.position) setRequesterPosition(matched.position);
+    }
+  };
+
+  // CART OPERATIONS
+  const handleAddToCart = (prod) => {
+    if (prod.quantity <= 0) return;
+
+    setCart((prevCart) => {
+      const existingIndex = prevCart.findIndex((item) => item.product.id === prod.id);
+      if (existingIndex > -1) {
+        const updated = [...prevCart];
+        const currentQty = updated[existingIndex].quantity;
+        if (currentQty < prod.quantity) {
+          updated[existingIndex].quantity = currentQty + 1;
+        }
+        return updated;
+      } else {
+        return [...prevCart, { product: prod, quantity: 1 }];
+      }
+    });
+  };
+
+  const handleUpdateCartQty = (productId, delta) => {
+    setCart((prevCart) => {
+      return prevCart
+        .map((item) => {
+          if (item.product.id === productId) {
+            const newQty = item.quantity + delta;
+            if (newQty <= 0) return null;
+            if (newQty > item.product.quantity) return item;
+            return { ...item, quantity: newQty };
+          }
+          return item;
+        })
+        .filter(Boolean);
+    });
+  };
+
+  const handleRemoveFromCart = (productId) => {
+    setCart((prevCart) => prevCart.filter((item) => item.product.id !== productId));
+  };
+
+  const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  // SUBMIT MULTI-ITEM REQUISITION REQUEST
+  const handleSubmitMultiRequisition = (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (cart.length === 0) {
+      setErrorMsg(lang === 'th' ? 'กรุณาเลือกอุปกรณ์ใส่ตะกร้าอย่างน้อย 1 รายการ' : 'Please select at least 1 item');
+      return;
+    }
+
+    const finalRequesterName = user?.name || requesterName.trim() || 'พนักงาน EXION';
+    const finalCompany = user?.company || requesterCompany.trim() || 'EXION (THAILAND) COMPANY LIMITED';
+    const finalDept = user?.department || requesterDept.trim() || '';
+    const finalPosition = user?.position || requesterPosition.trim() || '';
+
+    try {
+      const newRequest = createRequisitionRequest({
+        requesterName: finalRequesterName,
+        requesterCompany: finalCompany,
+        requesterDept: finalDept,
+        requesterPosition: finalPosition,
+        purpose,
+        note: note.trim(),
+        items: cart,
+      });
+
+      setSubmittedTicket(newRequest);
+      setCart([]);
+      setIsCartOpen(false);
+      setNote('');
+    } catch (err) {
+      setErrorMsg(err.message);
+    }
+  };
+
+  // Filter products by search and category
+  const filteredProducts = safeProducts.filter((p) => {
+    const matchSearch =
+      !searchQuery ||
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.sku.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchCat = selectedCat === 'ALL' || p.category === selectedCat;
+    return matchSearch && matchCat;
+  });
+
+  const getCatName = (catId) => {
+    const found = safeCategories.find((c) => c.id === catId);
+    return found ? (lang === 'th' ? found.nameTh || found.name : found.name) : 'อุปกรณ์สำนักงาน';
+  };
+
+  let portalQrSvg = '';
+  try {
+    const currentUrl = typeof window !== 'undefined' ? window.location.href : 'http://localhost:5173/';
+    portalQrSvg = renderQRCodeSVG(currentUrl, 110);
+  } catch (e) {
+    console.error('QR Generator error:', e);
+  }
+
+  return (
+    <div className="exact-requisition-page">
+      {/* 1. Hero Header Banner */}
+      <div className="shopee-banner card mb-4">
+        <div className="banner-left">
+          <div className="shopee-tag">
+            <ShoppingBag size={16} />
+            <span>OFFICE ASSET REQUISITION PORTAL</span>
+          </div>
+          <h1 className="banner-title">
+            {lang === 'th' ? 'เลือกเบิกอุปกรณ์สำนักงาน (Multi-Item Requisition)' : 'Office Asset Requisition'}
+          </h1>
+          <p className="banner-desc">
+            {lang === 'th'
+              ? 'กดปุ่ม "เบิกจ่าย" บนการ์ดอุปกรณ์เพื่อใส่ตะกร้า สามารถเลือกเบิกได้หลายรายการพร้อมกัน แล้วส่งคำขอเบิกเพื่อให้เจ้าหน้าที่คลังอนุมัติ!'
+              : 'Add items to basket and submit requisition request for warehouse approval'}
+          </p>
+        </div>
+
+        {/* Header Cart Button & QR Code */}
+        <div className="banner-cart-wrapper">
+          <button
+            className={`btn-header-cart ${totalCartCount > 0 ? 'has-items' : ''}`}
+            onClick={() => cart.length > 0 && setIsCartOpen(true)}
+          >
+            <ShoppingCart size={22} />
+            <span>{lang === 'th' ? 'ตะกร้าเบิกอุปกรณ์' : 'Requisition Basket'}</span>
+            <span className="cart-count-badge">{totalCartCount}</span>
+          </button>
+
+          {/* QR Code Poster Badge */}
+          <div className="banner-qr-badge">
+            <div dangerouslySetInnerHTML={{ __html: portalQrSvg }} />
+            <div className="qr-text">{lang === 'th' ? '📱 สแกนเข้ามือถือ' : 'Scan Mobile'}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Top View Mode Tabs */}
+      <div className="page-view-tabs mb-4">
+        <button
+          className={`view-tab-btn ${activeTab === 'catalog' ? 'active' : ''}`}
+          onClick={() => setActiveTab('catalog')}
+        >
+          <ShoppingBag size={18} />
+          <span>{lang === 'th' ? '🛒 เลือกเบิกอุปกรณ์สำนักงาน' : 'Catalog & Basket'}</span>
+        </button>
+        <button
+          className={`view-tab-btn ${activeTab === 'my-requests' ? 'active' : ''}`}
+          onClick={() => setActiveTab('my-requests')}
+        >
+          <FileText size={18} />
+          <span>{lang === 'th' ? '📑 ติดตามสถานะคำขอเบิกของฉัน' : 'My Requests Tracking'}</span>
+          <span className="tab-badge">{myRequests.length}</span>
+        </button>
+      </div>
+
+      {/* VIEW 1: CATALOG */}
+      {activeTab === 'catalog' && (
+        <>
+          {/* Search & Category Filter Bar */}
+          <div className="shopee-toolbar card mb-4">
+            <div className="search-bar-wrap">
+              <Search className="search-icon" size={20} />
+              <input
+                type="text"
+                className="shopee-search-input"
+                placeholder={lang === 'th' ? 'ค้นหาอุปกรณ์ที่ต้องการเบิก (เช่น ปากกา, กระดาษ A4, ยางลบ)...' : 'Search office items...'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Category Pills Slider */}
+            <div className="category-pills-row mt-3">
+              <button
+                className={`cat-pill ${selectedCat === 'ALL' ? 'active' : ''}`}
+                onClick={() => setSelectedCat('ALL')}
+              >
+                📦 {lang === 'th' ? 'อุปกรณ์ทั้งหมด' : 'All Items'} ({safeProducts.length})
+              </button>
+              {safeCategories.map((cat) => {
+                const count = safeProducts.filter((p) => p.category === cat.id).length;
+                return (
+                  <button
+                    key={cat.id}
+                    className={`cat-pill ${selectedCat === cat.id ? 'active' : ''}`}
+                    onClick={() => setSelectedCat(cat.id)}
+                  >
+                    🏷️ {lang === 'th' ? cat.nameTh || cat.name : cat.name} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Ticket Success View */}
+          {submittedTicket && (
+            <div className="card ticket-success-card mb-6 print-area">
+              <div className="ticket-header flex-center gap-3">
+                <CheckCircle2 size={36} color="#10b981" />
+                <div>
+                  <h2 className="font-bold text-lg text-emerald">
+                    {lang === 'th' ? '🎉 ยื่นส่งใบคำขอเบิกอุปกรณ์สำนักงานสำเร็จ!' : 'Requisition Request Submitted!'}
+                  </h2>
+                  <div className="text-xs text-muted">
+                    {lang === 'th' ? 'เลขที่ใบคำขอเบิก:' : 'Ref Invoice No:'}{' '}
+                    <span className="font-mono font-bold text-primary">{submittedTicket.refNo}</span>
+                    <span className="ml-2 badge badge-warning">🟡 รอการอนุมัติ (Pending)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="ticket-body my-4">
+                <div className="ticket-row mb-2">
+                  <span className="t-label font-bold">{lang === 'th' ? 'บริษัท:' : 'Company:'}</span>{' '}
+                  <span className="t-val font-bold text-primary">{submittedTicket.requesterCompany}</span>
+                </div>
+                <div className="ticket-row mb-2">
+                  <span className="t-label font-bold">{lang === 'th' ? 'ผู้ขอเบิก:' : 'Requester:'}</span>{' '}
+                  <span className="t-val font-semibold">{submittedTicket.requesterName} ({submittedTicket.requesterDept || '-'})</span>
+                </div>
+
+                {/* List of items in ticket */}
+                <div className="ticket-items-box card bg-main my-3 p-3">
+                  <div className="font-bold text-xs mb-2 text-muted">
+                    📦 {lang === 'th' ? 'รายการอุปกรณ์ที่ขอเบิก:' : 'Requested Items:'}
+                  </div>
+                  {submittedTicket.items.map((item, idx) => (
+                    <div key={idx} className="ticket-item-row flex-between py-1 border-bottom">
+                      <div>
+                        <span className="font-bold">{item.name}</span>
+                        <span className="text-xs text-muted font-mono ml-2">({item.sku})</span>
+                      </div>
+                      <span className="font-bold text-red">
+                        {item.quantity} {item.unit || 'ชิ้น'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="ticket-actions no-print flex-center gap-2">
+                <button className="btn btn-secondary" onClick={() => window.print()}>
+                  <Printer size={16} />
+                  {lang === 'th' ? 'พิมพ์ใบคำขอเบิก' : 'Print Slip'}
+                </button>
+                <button className="btn btn-primary" onClick={() => setSubmittedTicket(null)}>
+                  <ShoppingBag size={16} />
+                  {lang === 'th' ? 'เลือกเบิกอุปกรณ์รายการอื่นต่อ' : 'Requisition More Equipment'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* EXACT MATCH EQUIPMENT CARD GRID */}
+          <div className="exact-cards-grid mb-6">
+            {filteredProducts.length === 0 ? (
+              <div className="no-products-box card text-center py-10">
+                <Package size={40} color="#94a3b8" />
+                <div className="font-bold mt-2">{lang === 'th' ? 'ไม่พบอุปกรณ์ที่ค้นหา' : 'No items match your search'}</div>
+              </div>
+            ) : (
+              filteredProducts.map((prod) => {
+                const isOut = prod.quantity === 0;
+                const catName = getCatName(prod.category);
+                const cartItem = cart.find((item) => item.product.id === prod.id);
+                const inCartQty = cartItem ? cartItem.quantity : 0;
+
+                return (
+                  <div key={prod.id} className={`exact-asset-card card ${isOut ? 'is-out-card' : ''}`}>
+                    {/* Image & Yellow Stock Badge at Top Right */}
+                    <div className="card-image-wrap">
+                      <img src={prod.image} alt={prod.name} className="card-img" />
+                      <span className="yellow-stock-pill">
+                        {prod.quantity} {prod.unit || 'ชิ้น'}
+                      </span>
+                      {isOut && (
+                        <div className="out-overlay-banner">
+                          <span>{lang === 'th' ? 'หมดคลัง' : 'Out of Stock'}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Content Body */}
+                    <div className="card-content-body">
+                      {/* Category Pill Chip */}
+                      <div className="cat-chip-badge">{catName}</div>
+
+                      {/* Product Title */}
+                      <h3 className="exact-prod-title" title={prod.name}>{prod.name}</h3>
+
+                      {/* Asset Tag SKU / QR */}
+                      <div className="exact-asset-sku">
+                        Asset Tag: <span className="font-mono">{prod.sku}</span>
+                      </div>
+
+                      <div className="exact-card-divider" />
+
+                      {inCartQty > 0 ? (
+                        <div className="card-in-cart-counter">
+                          <button
+                            type="button"
+                            className="btn-counter-sub"
+                            onClick={() => handleUpdateCartQty(prod.id, -1)}
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="cart-counter-val font-bold">
+                            {inCartQty} {prod.unit || 'ชิ้น'} (ในตะกร้า)
+                          </span>
+                          <button
+                            type="button"
+                            className="btn-counter-add"
+                            onClick={() => handleUpdateCartQty(prod.id, 1)}
+                            disabled={inCartQty >= prod.quantity}
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className={`btn-exact-requisition ${isOut ? 'disabled' : ''}`}
+                          disabled={isOut}
+                          onClick={() => handleAddToCart(prod)}
+                        >
+                          <Plus size={15} />
+                          <span>
+                            {isOut
+                              ? (lang === 'th' ? 'อุปกรณ์หมด' : 'Out of Stock')
+                              : (lang === 'th' ? '+ เบิกอุปกรณ์' : '+ Requisition')}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
+
+      {/* VIEW 2: MY REQUESTS TRACKING */}
+      {activeTab === 'my-requests' && (
+        <div className="my-requests-section">
+          <div className="card mb-4">
+            <h2 className="font-extrabold text-base mb-1 flex-center gap-2">
+              <FileText color="#4f46e5" size={20} />
+              {lang === 'th' ? 'ประวัติและการติดตามสถานะคำขอเบิกของฉัน' : 'My Requisition Requests Tracking'}
+            </h2>
+            <p className="text-xs text-muted">
+              {lang === 'th' ? 'ติดตามสถานะการอนุมัติและพิมพ์ใบคำขอเบิกได้ที่นี่' : 'Track your submitted requests'}
+            </p>
+          </div>
+
+          <div className="requests-feed">
+            {myRequests.length === 0 ? (
+              <div className="card text-center py-10 text-muted">
+                <FileText size={48} color="#cbd5e1" className="mb-2" />
+                <div className="font-bold text-base text-primary mb-1">
+                  {lang === 'th' ? 'ยังไม่มีประวัติการยื่นคำขอเบิกของคุณ' : 'No requests yet'}
+                </div>
+                <div className="text-xs text-muted">
+                  {lang === 'th'
+                    ? `เข้าสู่ระบบในชื่อ "${user?.name || 'ผู้ใช้งาน'}" (ยังไม่มีคำขอที่ส่งจากบัญชีนี้)`
+                    : 'Your submitted requisition requests will appear here'}
+                </div>
+              </div>
+            ) : (
+              myRequests.map((req) => {
+                const isPending = req.status === 'PENDING';
+                const isApproved = req.status === 'APPROVED';
+                const isRejected = req.status === 'REJECTED';
+                const isCancelled = req.status === 'CANCELLED';
+
+                const reqDateRaw = req.date || req.createdAt;
+                const reqDateObj = reqDateRaw ? new Date(reqDateRaw) : new Date();
+                const isValidDate = !isNaN(reqDateObj.getTime());
+                const displayDate = isValidDate
+                  ? reqDateObj.toLocaleDateString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
+                  : new Date().toLocaleDateString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+
+                return (
+                  <div key={req.id} className="card mb-4">
+                    <div className="flex-between pb-2 border-bottom">
+                      <div className="flex-center gap-3">
+                        <span className="font-mono font-extrabold text-primary text-base">{req.refNo}</span>
+                        <span className={`badge ${isPending ? 'badge-warning' : isApproved ? 'badge-success' : isCancelled ? 'badge-secondary' : 'badge-danger'}`}>
+                          {isPending && '🟡 รอการอนุมัติ (Pending)'}
+                          {isApproved && '🟢 อนุมัติแล้ว (Approved)'}
+                          {isRejected && '🔴 ไม่อนุมัติ (Rejected)'}
+                          {isCancelled && '⚪ ยกเลิกแล้ว (Cancelled)'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted font-mono">
+                        <Clock size={14} className="inline-icon" />
+                        {displayDate}
+                      </div>
+                    </div>
+
+                    <div className="my-3 text-sm">
+                      <div><strong>ผู้ขอเบิก:</strong> {req.requesterName} ({req.requesterDept || '-'}) - {req.requesterCompany}</div>
+                      {req.note && <div className="text-muted text-xs mt-1"><strong>หมายเหตุ:</strong> {req.note}</div>}
+                    </div>
+
+                    <div className="table-responsive mb-3">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>อุปกรณ์</th>
+                            <th>Asset Tag</th>
+                            <th className="text-right">จำนวนที่ขอเบิก</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {req.items.map((it, idx) => (
+                            <tr key={idx}>
+                              <td>{idx + 1}</td>
+                              <td className="font-bold">{it.name}</td>
+                              <td className="font-mono text-xs text-muted">{it.sku}</td>
+                              <td className="text-right font-bold text-red">{it.quantity} {it.unit || 'ชิ้น'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {req.statusNote && (
+                      <div className="alert-box alert-success text-xs mb-3">
+                        <strong>บันทึกจากเจ้าหน้าที่:</strong> {req.statusNote}
+                      </div>
+                    )}
+
+                    <div className="flex-between flex-wrap gap-2 pt-2 border-top">
+                      <div>
+                        {isPending && (
+                          <button
+                            type="button"
+                            className="btn btn-sm flex-center gap-1"
+                            style={{
+                              color: '#ef4444',
+                              borderColor: '#fca5a5',
+                              background: '#fff1f2',
+                              fontWeight: '700',
+                              fontSize: '0.8rem',
+                              padding: '0.35rem 0.75rem',
+                              borderRadius: '6px',
+                            }}
+                            onClick={() => {
+                              const confirmMsg = lang === 'th'
+                                ? `คุณต้องการยกเลิกคำขอเบิก [${req.refNo}] นี้ใช่หรือไม่?`
+                                : `Do you want to cancel request [${req.refNo}]?`;
+                              if (window.confirm(confirmMsg)) {
+                                cancelRequisitionRequest(req.id);
+                              }
+                            }}
+                          >
+                            <XCircle size={15} />
+                            <span>{lang === 'th' ? 'ยกเลิกคำขอนี้ (Cancel)' : 'Cancel Request'}</span>
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex-center gap-2">
+                        <button className="btn btn-secondary btn-sm" onClick={() => setViewSlipReq(req)}>
+                          <Printer size={15} /> {lang === 'th' ? 'พิมพ์ใบคำขอเบิก' : 'Print Slip'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* COMPACT FLOATING CART BUTTON (BOTTOM RIGHT) */}
+      {cart.length > 0 && activeTab === 'catalog' && (
+        <button
+          className="compact-floating-cart-btn shadow-lg"
+          onClick={() => setIsCartOpen(true)}
+        >
+          <div className="cart-btn-icon-wrap">
+            <ShoppingCart size={20} />
+            <span className="cart-badge-count">{totalCartCount}</span>
+          </div>
+          <span className="font-bold">{lang === 'th' ? 'ยื่นคำขอเบิก' : 'Checkout Request'}</span>
+        </button>
+      )}
+
+      {/* MULTI-ITEM REQUISITION CHECKOUT MODAL */}
+      {isCartOpen && (
+        <div className="modal-overlay" onClick={() => setIsCartOpen(false)}>
+          <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-header-title">
+                <Send size={22} color="#e11d48" />
+                <div>
+                  <h2 className="font-bold">{lang === 'th' ? 'ยื่นส่งใบคำขอเบิกอุปกรณ์สำนักงาน' : 'Submit Requisition Request'}</h2>
+                  <div className="text-xs text-muted">
+                    {lang === 'th' ? `เลือกอุปกรณ์ทั้งหมด ${cart.length} รายการ (${totalCartCount} ชิ้น)` : `${cart.length} items`}
+                  </div>
+                </div>
+              </div>
+              <button className="close-btn" onClick={() => setIsCartOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitMultiRequisition}>
+              <div className="modal-body">
+                {errorMsg && (
+                  <div className="alert-box alert-danger mb-4">
+                    <AlertCircle size={20} />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
+
+                {/* Table of selected items */}
+                <div className="card mb-4 p-3 bg-main">
+                  <div className="flex-between mb-2">
+                    <span className="font-bold text-sm">
+                      📦 {lang === 'th' ? `รายการอุปกรณ์ในตะกร้า (${cart.length} รายการ)` : `Cart Items (${cart.length})`}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs text-red"
+                      onClick={() => setCart([])}
+                    >
+                      <Trash2 size={14} /> {lang === 'th' ? 'ล้างตะกร้า' : 'Clear'}
+                    </button>
+                  </div>
+
+                  <div className="table-responsive">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>{lang === 'th' ? 'อุปกรณ์ที่เลือกเบิก' : 'Asset'}</th>
+                          <th>{lang === 'th' ? 'จำนวนที่ขอเบิก' : 'Quantity'}</th>
+                          <th className="text-center"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cart.map(({ product: p, quantity: q }, index) => (
+                          <tr key={p.id}>
+                            <td className="font-bold text-muted text-xs">{index + 1}</td>
+                            <td>
+                              <div className="font-bold text-sm">{p.name}</div>
+                              <div className="text-xs text-muted font-mono">
+                                Tag: {p.sku} | ในคลังมี: <strong className="text-green">{p.quantity}</strong> {p.unit || 'ชิ้น'}
+                              </div>
+                            </td>
+                            <td>
+                              <div className="flex-center gap-1">
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-xs"
+                                  onClick={() => handleUpdateCartQty(p.id, -1)}
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  className="form-control text-center font-bold"
+                                  style={{ width: '60px', padding: '0.25rem' }}
+                                  min="1"
+                                  max={p.quantity}
+                                  value={q}
+                                  onChange={(e) => {
+                                    const val = Math.max(1, Math.min(p.quantity, Number(e.target.value) || 1));
+                                    setCart((prev) =>
+                                      prev.map((item) => (item.product.id === p.id ? { ...item, quantity: val } : item))
+                                    );
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-xs"
+                                  onClick={() => handleUpdateCartQty(p.id, 1)}
+                                  disabled={q >= p.quantity}
+                                >
+                                  +
+                                </button>
+                                <span className="text-xs text-muted ml-1">{p.unit || 'ชิ้น'}</span>
+                              </div>
+                            </td>
+                            <td className="text-center">
+                              <button
+                                type="button"
+                                className="btn-icon-sm text-red"
+                                onClick={() => handleRemoveFromCart(p.id)}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Requester Identity Card (Auto-loaded from Authenticated Login Session) */}
+                <div className="card p-3 mb-3" style={{ background: 'var(--bg-main)', border: '1.5px solid var(--border-color)' }}>
+                  <div className="flex-between mb-2">
+                    <div className="font-bold text-sm text-primary flex-center gap-2">
+                      <UserCheck size={18} color="#4f46e5" />
+                      <span>{lang === 'th' ? 'ข้อมูลผู้ขอเบิก (ดึงข้อมูลอัตโนมัติจากการเข้าสู่ระบบ)' : 'Requester Information'}</span>
+                    </div>
+                    <span className="badge badge-success text-xxs font-bold">
+                      <CheckCircle2 size={12} /> ยืนยันตัวตนแล้ว
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-lg" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+                    <div className="flex-center gap-3">
+                      <div
+                        style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '10px',
+                          background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                          color: '#2563eb',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          border: '1px solid #bfdbfe',
+                        }}
+                      >
+                        <UserCheck size={20} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div className="flex-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-primary" style={{ fontSize: '1.02rem' }}>
+                            {user?.name || requesterName || 'พนักงาน'}
+                          </span>
+                          {user?.employeeCode && (
+                            <span className="badge badge-primary font-mono text-xxs font-bold">
+                              {user.employeeCode}
+                            </span>
+                          )}
+                          {user?.role && (
+                            <span className="badge badge-info text-xxs font-bold">
+                              {user.role === 'admin' ? 'ผู้ดูแลระบบ' : user.role === 'staff' ? 'เจ้าหน้าที่คลัง' : 'ผู้ขอเบิก'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted flex items-center gap-2 flex-wrap mt-1">
+                          <span style={{ fontWeight: 600, color: '#1e40af' }}>🏢 {user?.company || 'EXION THAILAND'}</span>
+                          {user?.department && (
+                            <>
+                              <span className="text-muted">•</span>
+                              <span>📁 {user.department}</span>
+                            </>
+                          )}
+                          {user?.position && (
+                            <>
+                              <span className="text-muted">•</span>
+                              <span>💼 {user.position}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-group mt-3">
+                    <label className="form-label text-xs font-bold">วัตถุประสงค์ในการเบิก</label>
+                    <select
+                      className="form-control text-xs"
+                      value={purpose}
+                      onChange={(e) => setPurpose(e.target.value)}
+                    >
+                      <option value="DAILY">💻 ใช้งานประจำวันในสำนักงาน</option>
+                      <option value="ONBOARDING">👤 อุปกรณ์พนักงานใหม่ (Onboarding)</option>
+                      <option value="PROJECT">🚀 โครงการพิเศษ / ประชุมภายนอก</option>
+                      <option value="REPLACEMENT">🛠️ เบิกทดแทนอุปกรณ์เดิมชำรุด</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group mt-2">
+                    <label className="form-label text-xs">หมายเหตุเพิ่มเติม</label>
+                    <input
+                      type="text"
+                      className="form-control text-xs"
+                      placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Department Monthly Quota Status */}
+                  {user?.department && (
+                    <div
+                      className="p-2.5 rounded-md mt-2"
+                      style={{
+                        background: (getDepartmentUsageThisMonth(user.department) + totalCartCount > (departmentQuotas[user.department] || 50)) ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+                        border: (getDepartmentUsageThisMonth(user.department) + totalCartCount > (departmentQuotas[user.department] || 50)) ? '1px solid #fca5a5' : '1px solid #86efac',
+                      }}
+                    >
+                      <div className="flex-between text-xs">
+                        <span className="font-bold text-primary">
+                          📊 โควตาเบิกประจำเดือน ({user.department}):
+                        </span>
+                        <span className="font-mono font-bold" style={{ color: (getDepartmentUsageThisMonth(user.department) + totalCartCount > (departmentQuotas[user.department] || 50)) ? '#ef4444' : '#10b981' }}>
+                          ใช้ไป {getDepartmentUsageThisMonth(user.department)} + ครั้งนี้ {totalCartCount} / {departmentQuotas[user.department] || 50} ชิ้น
+                        </span>
+                      </div>
+                      {(getDepartmentUsageThisMonth(user.department) + totalCartCount > (departmentQuotas[user.department] || 50)) && (
+                        <div className="text-xxs text-red mt-1 font-bold">
+                          ⚠️ คำขอนี้จะเกินโควตาประจำเดือนของแผนก ({getDepartmentUsageThisMonth(user.department) + totalCartCount - (departmentQuotas[user.department] || 50)} ชิ้น) ต้องรอผู้อนุมัติพิจารณาเป็นกรณีพิเศษ
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setIsCartOpen(false)}>
+                  {lang === 'th' ? 'ยกเลิก' : 'Cancel'}
+                </button>
+                <button type="submit" className="btn btn-danger font-bold flex-1">
+                  <Send size={18} />
+                  {lang === 'th'
+                    ? `📨 ยื่นส่งใบคำขอเบิกทั้ง ${cart.length} รายการ (ส่งอนุมัติ)`
+                    : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PRINT SLIP MODAL */}
+      <RequisitionSlipModal
+        isOpen={Boolean(viewSlipReq)}
+        onClose={() => setViewSlipReq(null)}
+        request={viewSlipReq}
+      />
+    </div>
+  );
+};
