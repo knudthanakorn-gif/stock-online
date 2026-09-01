@@ -649,63 +649,79 @@ export const RequisitionPage = () => {
       {isCartOpen && (
         <div className="modal-overlay" onClick={() => setIsCartOpen(false)}>
           <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-header-title">
-                <Send size={22} color="#e11d48" />
-                <div>
-                  <h2 className="font-bold">{lang === 'th' ? 'ยื่นส่งใบคำขอเบิกอุปกรณ์สำนักงาน' : 'Submit Requisition Request'}</h2>
-                  <div className="text-xs text-muted">
-                    {lang === 'th' ? `เลือกอุปกรณ์ทั้งหมด ${cart.length} รายการ (${totalCartCount} ชิ้น)` : `${cart.length} items`}
+            <div className="modal-header flex-between">
+              <div className="modal-header-title flex-center gap-2.5" style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: '#ffe4e6',
+                    color: '#e11d48',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Send size={18} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <h2 className="font-extrabold text-sm md:text-base text-slate-800" style={{ margin: 0, lineHeight: 1.2 }}>
+                    {lang === 'th' ? 'ยื่นส่งใบคำขอเบิกอุปกรณ์สำนักงาน' : 'Submit Requisition Request'}
+                  </h2>
+                  <div className="text-xxs text-muted mt-0.5">
+                    {lang === 'th' ? `อุปกรณ์ในตะกร้าทั้งหมด ${cart.length} รายการ (${totalCartCount} ชิ้น)` : `${cart.length} items (${totalCartCount} pcs)`}
                   </div>
                 </div>
               </div>
               <button className="close-btn" onClick={() => setIsCartOpen(false)}>
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSubmitMultiRequisition}>
-              <div className="modal-body">
+              <div className="modal-body" style={{ maxHeight: 'calc(82vh - 120px)', overflowY: 'auto' }}>
                 {errorMsg && (
-                  <div className="alert-box alert-danger mb-4">
-                    <AlertCircle size={20} />
-                    <span>{errorMsg}</span>
+                  <div className="alert-box alert-danger mb-3">
+                    <AlertCircle size={18} />
+                    <span className="text-xs">{errorMsg}</span>
                   </div>
                 )}
 
                 {/* Table of selected items */}
-                <div className="card mb-4 p-3 bg-main">
+                <div className="card mb-3 p-2.5 bg-main" style={{ borderRadius: '12px' }}>
                   <div className="flex-between mb-2">
-                    <span className="font-bold text-sm">
+                    <span className="font-bold text-xs">
                       📦 {lang === 'th' ? `รายการอุปกรณ์ในตะกร้า (${cart.length} รายการ)` : `Cart Items (${cart.length})`}
                     </span>
                     <button
                       type="button"
-                      className="btn btn-ghost btn-xs text-red"
+                      className="btn btn-ghost btn-xs text-red font-bold"
                       onClick={() => setCart([])}
                     >
-                      <Trash2 size={14} /> {lang === 'th' ? 'ล้างตะกร้า' : 'Clear'}
+                      <Trash2 size={13} /> {lang === 'th' ? 'ล้างตะกร้า' : 'Clear'}
                     </button>
                   </div>
 
-                  <div className="table-responsive">
+                  <div className="table-responsive" style={{ margin: 0 }}>
                     <table className="data-table">
                       <thead>
                         <tr>
-                          <th>#</th>
-                          <th>{lang === 'th' ? 'อุปกรณ์ที่เลือกเบิก' : 'Asset'}</th>
-                          <th>{lang === 'th' ? 'จำนวนที่ขอเบิก' : 'Quantity'}</th>
-                          <th className="text-center"></th>
+                          <th style={{ width: '30px' }}>#</th>
+                          <th>{lang === 'th' ? 'อุปกรณ์' : 'Asset'}</th>
+                          <th style={{ width: '130px' }}>{lang === 'th' ? 'จำนวน' : 'Quantity'}</th>
+                          <th style={{ width: '30px' }}></th>
                         </tr>
                       </thead>
                       <tbody>
                         {cart.map(({ product: p, quantity: q }, index) => (
                           <tr key={p.id}>
-                            <td className="font-bold text-muted text-xs">{index + 1}</td>
+                            <td className="font-bold text-muted text-xxs">{index + 1}</td>
                             <td>
-                              <div className="font-bold text-sm">{p.name}</div>
-                              <div className="text-xs text-muted font-mono">
-                                Tag: {p.sku} | ในคลังมี: <strong className="text-green">{p.quantity}</strong> {p.unit || 'ชิ้น'}
+                              <div className="font-bold text-xs text-slate-800">{p.name}</div>
+                              <div className="text-xxs text-muted font-mono mt-0.5">
+                                Tag: {p.sku} | คลัง: <strong className="text-green">{p.quantity}</strong> {p.unit || 'ชิ้น'}
                               </div>
                             </td>
                             <td>
@@ -713,6 +729,7 @@ export const RequisitionPage = () => {
                                 <button
                                   type="button"
                                   className="btn btn-secondary btn-xs"
+                                  style={{ padding: '0.2rem 0.4rem' }}
                                   onClick={() => handleUpdateCartQty(p.id, -1)}
                                 >
                                   -
@@ -720,7 +737,7 @@ export const RequisitionPage = () => {
                                 <input
                                   type="number"
                                   className="form-control text-center font-bold"
-                                  style={{ width: '60px', padding: '0.25rem' }}
+                                  style={{ width: '48px', padding: '0.2rem 0.1rem', fontSize: '0.85rem' }}
                                   min="1"
                                   max={p.quantity}
                                   value={q}
@@ -734,12 +751,13 @@ export const RequisitionPage = () => {
                                 <button
                                   type="button"
                                   className="btn btn-secondary btn-xs"
+                                  style={{ padding: '0.2rem 0.4rem' }}
                                   onClick={() => handleUpdateCartQty(p.id, 1)}
                                   disabled={q >= p.quantity}
                                 >
                                   +
                                 </button>
-                                <span className="text-xs text-muted ml-1">{p.unit || 'ชิ้น'}</span>
+                                <span className="text-xxs text-muted">{p.unit || 'ชิ้น'}</span>
                               </div>
                             </td>
                             <td className="text-center">
@@ -748,7 +766,7 @@ export const RequisitionPage = () => {
                                 className="btn-icon-sm text-red"
                                 onClick={() => handleRemoveFromCart(p.id)}
                               >
-                                <Trash2 size={16} />
+                                <Trash2 size={14} />
                               </button>
                             </td>
                           </tr>
@@ -759,24 +777,24 @@ export const RequisitionPage = () => {
                 </div>
 
                 {/* Requester Identity Card (Auto-loaded from Authenticated Login Session) */}
-                <div className="card p-3 mb-3" style={{ background: 'var(--bg-main)', border: '1.5px solid var(--border-color)' }}>
-                  <div className="flex-between mb-2">
-                    <div className="font-bold text-sm text-primary flex-center gap-2">
-                      <UserCheck size={18} color="#4f46e5" />
-                      <span>{lang === 'th' ? 'ข้อมูลผู้ขอเบิก (ดึงข้อมูลอัตโนมัติจากการเข้าสู่ระบบ)' : 'Requester Information'}</span>
+                <div className="card p-3 mb-3" style={{ background: 'var(--bg-main)', border: '1.5px solid var(--border-color)', borderRadius: '14px' }}>
+                  <div className="flex-between mb-2 flex-wrap gap-1">
+                    <div className="font-bold text-xs text-primary flex-center gap-1.5">
+                      <UserCheck size={16} color="#4f46e5" />
+                      <span>{lang === 'th' ? 'ข้อมูลผู้ขอเบิก (ระบบยืนยันตัวตน)' : 'Requester Information'}</span>
                     </div>
                     <span className="badge badge-success text-xxs font-bold">
-                      <CheckCircle2 size={12} /> ยืนยันตัวตนแล้ว
+                      <CheckCircle2 size={11} /> ยืนยันแล้ว
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-lg" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-                    <div className="flex-center gap-3">
+                  <div className="p-2.5 rounded-lg" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
+                    <div className="flex items-start gap-2.5">
                       <div
                         style={{
-                          width: '42px',
-                          height: '42px',
-                          borderRadius: '10px',
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '8px',
                           background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
                           color: '#2563eb',
                           display: 'flex',
@@ -784,13 +802,14 @@ export const RequisitionPage = () => {
                           justifyContent: 'center',
                           flexShrink: 0,
                           border: '1px solid #bfdbfe',
+                          marginTop: '2px',
                         }}
                       >
-                        <UserCheck size={20} />
+                        <UserCheck size={18} />
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div className="flex-center gap-2 flex-wrap">
-                          <span className="font-extrabold text-primary" style={{ fontSize: '1.02rem' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="flex-center gap-1.5 flex-wrap justify-start">
+                          <span className="font-extrabold text-primary text-sm">
                             {user?.name || requesterName || 'พนักงาน'}
                           </span>
                           {user?.employeeCode && (
@@ -804,17 +823,17 @@ export const RequisitionPage = () => {
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-muted flex items-center gap-2 flex-wrap mt-1">
-                          <span style={{ fontWeight: 600, color: '#1e40af' }}>🏢 {user?.company || 'EXION THAILAND'}</span>
+                        <div className="text-xxs text-muted flex items-center gap-1 flex-wrap mt-1">
+                          <span style={{ fontWeight: 700, color: '#1e40af' }}>🏢 {user?.company || 'EXION THAILAND'}</span>
                           {user?.department && (
                             <>
-                              <span className="text-muted">•</span>
+                              <span>•</span>
                               <span>📁 {user.department}</span>
                             </>
                           )}
                           {user?.position && (
                             <>
-                              <span className="text-muted">•</span>
+                              <span>•</span>
                               <span>💼 {user.position}</span>
                             </>
                           )}
@@ -823,10 +842,11 @@ export const RequisitionPage = () => {
                     </div>
                   </div>
 
-                  <div className="form-group mt-3">
-                    <label className="form-label text-xs font-bold">วัตถุประสงค์ในการเบิก</label>
+                  <div className="form-group mt-2.5">
+                    <label className="form-label text-xxs font-bold">วัตถุประสงค์ในการเบิก</label>
                     <select
                       className="form-control text-xs"
+                      style={{ padding: '0.45rem 0.65rem' }}
                       value={purpose}
                       onChange={(e) => setPurpose(e.target.value)}
                     >
@@ -838,10 +858,11 @@ export const RequisitionPage = () => {
                   </div>
 
                   <div className="form-group mt-2">
-                    <label className="form-label text-xs">หมายเหตุเพิ่มเติม</label>
+                    <label className="form-label text-xxs font-bold">หมายเหตุเพิ่มเติม</label>
                     <input
                       type="text"
                       className="form-control text-xs"
+                      style={{ padding: '0.45rem 0.65rem' }}
                       placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
@@ -851,15 +872,15 @@ export const RequisitionPage = () => {
                   {/* Department Monthly Quota Status */}
                   {user?.department && (
                     <div
-                      className="p-2.5 rounded-md mt-2"
+                      className="p-2 rounded-md mt-2"
                       style={{
                         background: (getDepartmentUsageThisMonth(user.department) + totalCartCount > (departmentQuotas[user.department] || 50)) ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
                         border: (getDepartmentUsageThisMonth(user.department) + totalCartCount > (departmentQuotas[user.department] || 50)) ? '1px solid #fca5a5' : '1px solid #86efac',
                       }}
                     >
-                      <div className="flex-between text-xs">
+                      <div className="flex-between text-xxs flex-wrap gap-1">
                         <span className="font-bold text-primary">
-                          📊 โควตาเบิกประจำเดือน ({user.department}):
+                          📊 โควตาเบิก ({user.department}):
                         </span>
                         <span className="font-mono font-bold" style={{ color: (getDepartmentUsageThisMonth(user.department) + totalCartCount > (departmentQuotas[user.department] || 50)) ? '#ef4444' : '#10b981' }}>
                           ใช้ไป {getDepartmentUsageThisMonth(user.department)} + ครั้งนี้ {totalCartCount} / {departmentQuotas[user.department] || 50} ชิ้น
@@ -875,12 +896,12 @@ export const RequisitionPage = () => {
                 </div>
               </div>
 
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsCartOpen(false)}>
+              <div className="modal-footer" style={{ padding: '0.75rem 1rem', display: 'flex', gap: '0.5rem' }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setIsCartOpen(false)}>
                   {lang === 'th' ? 'ยกเลิก' : 'Cancel'}
                 </button>
-                <button type="submit" className="btn btn-danger font-bold flex-1">
-                  <Send size={18} />
+                <button type="submit" className="btn btn-danger btn-sm font-bold flex-1" style={{ padding: '0.65rem 1rem' }}>
+                  <Send size={15} />
                   {lang === 'th'
                     ? `📨 ยื่นส่งใบคำขอเบิกทั้ง ${cart.length} รายการ (ส่งอนุมัติ)`
                     : 'Submit Request'}
