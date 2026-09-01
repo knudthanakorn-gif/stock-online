@@ -9,8 +9,8 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  // Generate URL for Opening Requisition Form
-  const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/?tab=request-qr` : 'http://localhost:5173/?tab=request-qr';
+  // Generate URL for Opening Main Portal / Login Page
+  const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://stock-online-mauve.vercel.app/';
   const qrSvgHtml = renderQRCodeSVG(portalUrl, 220);
 
   const handlePrint = () => {
@@ -23,7 +23,7 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
         <div className="modal-header no-print">
           <div className="modal-header-title">
             <QrCode color="#2563eb" size={24} />
-            <h2>{lang === 'th' ? 'ป้าย QR Code สำหรับแสกนเข้าฟอร์มเบิกอุปกรณ์' : 'Requisition Form QR Code Poster'}</h2>
+            <h2>{lang === 'th' ? 'ป้าย QR Code สำหรับสแกนเข้าสู่ระบบ (Login Portal)' : 'System Login QR Code Poster'}</h2>
           </div>
           <button className="close-btn" onClick={onClose}>
             <X size={20} />
@@ -34,15 +34,15 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
           {/* Printable QR Code Poster Card */}
           <div className="requisition-poster-card print-area" ref={printRef}>
             <div className="poster-header">
-              <Building2 size={22} color="#2563eb" />
-              <div className="poster-org-name">OFFICE ASSET REQUISITION PORTAL</div>
+              <Building2 size={24} color="#2563eb" />
+              <div className="poster-org-name">OFFICE ASSET MANAGEMENT PORTAL</div>
               <div className="poster-sub">EXION (THAILAND) COMPANY LIMITED</div>
             </div>
 
             <div className="poster-body">
               <div className="poster-badge">
                 <Smartphone size={16} />
-                <span>{lang === 'th' ? 'แสกนด้วยกล้องมือถือเพื่อเข้าฟอร์มเบิกของ' : 'Scan with phone camera to requisition'}</span>
+                <span>{lang === 'th' ? 'สแกนด้วยกล้องมือถือเพื่อเข้าสู่ระบบ (Login)' : 'Scan to Login into Stock System'}</span>
               </div>
 
               {/* Large Scannable QR Code */}
@@ -54,22 +54,22 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
               <div className="poster-instructions">
                 <div className="instruction-step">
                   <span className="step-num">1</span>
-                  <span>{lang === 'th' ? 'เปิดกล้องมือถือ / LINE แสกน QR Code นี้' : 'Open phone camera or LINE app to scan'}</span>
+                  <span>{lang === 'th' ? 'เปิดกล้องมือถือ / แอป LINE สแกน QR Code นี้' : 'Open phone camera or LINE app to scan'}</span>
                 </div>
                 <div className="instruction-step">
                   <span className="step-num">2</span>
-                  <span>{lang === 'th' ? 'ระบบจะเปิดหน้าฟอร์มขอเบิกอุปกรณ์สำนักงาน' : 'Self-service requisition form opens on your phone'}</span>
+                  <span>{lang === 'th' ? 'ระบบจะเปิดหน้าเข้าสู่ระบบ (Login) ของ Stock Online' : 'System opens Stock Online Login page'}</span>
                 </div>
                 <div className="instruction-step">
                   <span className="step-num">3</span>
-                  <span>{lang === 'th' ? 'เลือกชื่อผู้เบิก และเลือกอุปกรณ์ที่ต้องการเบิกในฟอร์ม' : 'Select requester details and pick equipment to requisition'}</span>
+                  <span>{lang === 'th' ? 'กรอกชื่อผู้ใช้ / รหัสพนักงาน และรหัสผ่านเพื่อเข้าใช้งาน' : 'Enter username / employee code and password to start'}</span>
                 </div>
               </div>
             </div>
 
             <div className="poster-footer">
               <ClipboardList size={14} />
-              <span>{lang === 'th' ? 'ระบบบริหารจัดการคลังอุปกรณ์สำนักงานด้วย QR Code (Standard QR Code Portal)' : 'Standard 2D QR Code Asset Management System'}</span>
+              <span>{lang === 'th' ? 'ระบบบริหารจัดการคลังและเบิกจ่ายอุปกรณ์สำนักงาน (Stock Online)' : 'Stock Online Asset Management & Requisition System'}</span>
             </div>
           </div>
         </div>
