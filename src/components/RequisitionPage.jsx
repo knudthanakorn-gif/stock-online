@@ -239,58 +239,74 @@ export const RequisitionPage = () => {
 
   return (
     <div className="exact-requisition-page">
-      {/* 1. Hero Header Banner */}
-      <div className="shopee-banner card mb-4">
+      {/* 1. Modern Compact Hero Header Banner */}
+      <div className="shopee-banner card mb-3">
         <div className="banner-left">
           <div className="shopee-tag">
-            <ShoppingBag size={16} />
-            <span>OFFICE ASSET REQUISITION PORTAL</span>
+            <ShoppingBag size={14} />
+            <span>{lang === 'th' ? 'ระบบเบิกอุปกรณ์พัสดุ' : 'REQUISITION PORTAL'}</span>
           </div>
           <h1 className="banner-title">
-            {lang === 'th' ? 'เลือกเบิกอุปกรณ์สำนักงาน (Multi-Item Requisition)' : 'Office Asset Requisition'}
+            {lang === 'th' ? 'เลือกเบิกอุปกรณ์สำนักงาน' : 'Office Equipment Requisition'}
           </h1>
           <p className="banner-desc">
             {lang === 'th'
-              ? 'กดปุ่ม "เบิกจ่าย" บนการ์ดอุปกรณ์เพื่อใส่ตะกร้า สามารถเลือกเบิกได้หลายรายการพร้อมกัน แล้วส่งคำขอเบิกเพื่อให้เจ้าหน้าที่คลังอนุมัติ!'
-              : 'Add items to basket and submit requisition request for warehouse approval'}
+              ? 'เลือกอุปกรณ์ที่ต้องการเบิกใส่ตะกร้า แล้วกดยื่นคำขอเบิกได้ทันที'
+              : 'Add items to basket and submit requisition request'}
           </p>
         </div>
 
-        {/* Header Cart Button & QR Code */}
-        <div className="banner-cart-wrapper">
+        {/* Desktop Only Cart Button */}
+        <div className="banner-cart-wrapper desktop-only">
           <button
             className={`btn-header-cart ${totalCartCount > 0 ? 'has-items' : ''}`}
             onClick={() => cart.length > 0 && setIsCartOpen(true)}
           >
-            <ShoppingCart size={22} />
+            <ShoppingCart size={18} />
             <span>{lang === 'th' ? 'ตะกร้าเบิกอุปกรณ์' : 'Requisition Basket'}</span>
             <span className="cart-count-badge">{totalCartCount}</span>
           </button>
-
-          {/* QR Code Poster Badge */}
-          <div className="banner-qr-badge">
-            <div dangerouslySetInnerHTML={{ __html: portalQrSvg }} />
-            <div className="qr-text">{lang === 'th' ? '📱 สแกนเข้ามือถือ' : 'Scan Mobile'}</div>
-          </div>
         </div>
       </div>
 
+      {/* Mobile Floating Sticky Cart Bar */}
+      {totalCartCount > 0 && (
+        <div className="mobile-floating-cart-bar">
+          <div className="flex-center gap-2">
+            <div className="floating-cart-icon-box">
+              <ShoppingCart size={18} color="#ffffff" />
+              <span className="floating-cart-badge">{totalCartCount}</span>
+            </div>
+            <div className="text-white text-xs font-bold">
+              เลือกแล้ว {totalCartCount} ชิ้น ({cart.length} รายการ)
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-white font-extrabold"
+            onClick={() => setIsCartOpen(true)}
+          >
+            {lang === 'th' ? 'ดูตะกร้า & ยื่นเบิก ➔' : 'View Cart ➔'}
+          </button>
+        </div>
+      )}
+
       {/* 2. Top View Mode Tabs */}
-      <div className="page-view-tabs mb-4">
+      <div className="page-view-tabs mb-3">
         <button
           className={`view-tab-btn ${activeTab === 'catalog' ? 'active' : ''}`}
           onClick={() => setActiveTab('catalog')}
         >
-          <ShoppingBag size={18} />
-          <span>{lang === 'th' ? '🛒 เลือกเบิกอุปกรณ์สำนักงาน' : 'Catalog & Basket'}</span>
+          <ShoppingBag size={16} />
+          <span>{lang === 'th' ? 'เลือกเบิกอุปกรณ์' : 'Catalog'}</span>
         </button>
         <button
           className={`view-tab-btn ${activeTab === 'my-requests' ? 'active' : ''}`}
           onClick={() => setActiveTab('my-requests')}
         >
-          <FileText size={18} />
-          <span>{lang === 'th' ? '📑 ติดตามสถานะคำขอเบิกของฉัน' : 'My Requests Tracking'}</span>
-          <span className="tab-badge">{myRequests.length}</span>
+          <FileText size={16} />
+          <span>{lang === 'th' ? 'คำขอของฉัน' : 'My Requests'}</span>
+          {myRequests.length > 0 && <span className="tab-badge">{myRequests.length}</span>}
         </button>
       </div>
 

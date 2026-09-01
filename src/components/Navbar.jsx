@@ -166,7 +166,7 @@ export const Navbar = ({
       <div className="navbar-actions">
         {onOpenRequisitionQR && user?.role !== 'user' && user?.role !== 'viewer' && (
           <button
-            className="btn btn-sm btn-primary"
+            className="btn btn-sm btn-primary desktop-only"
             onClick={onOpenRequisitionQR}
             title={lang === 'th' ? 'สร้าง/พิมพ์ ป้าย QR Code สำหรับแสกนเบิกอุปกรณ์' : 'Generate/Print Requisition QR Poster'}
           >
@@ -177,7 +177,7 @@ export const Navbar = ({
 
         {/* Language Switch */}
         <button
-          className="action-icon-btn"
+          className="action-icon-btn desktop-only"
           onClick={toggleLang}
           title={lang === 'th' ? 'Switch to English' : 'เปลี่ยนเป็นภาษาไทย'}
         >
@@ -187,7 +187,7 @@ export const Navbar = ({
 
         {/* Theme Switch */}
         <button
-          className="action-icon-btn"
+          className="action-icon-btn desktop-only"
           onClick={toggleTheme}
           title={theme === 'light' ? 'Dark Mode' : 'Light Mode'}
         >

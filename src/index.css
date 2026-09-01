@@ -2122,6 +2122,149 @@ input[type="file"].hidden,
 /* ==========================================================================
    📱 ULTRA-POLISHED MOBILE RESPONSIVE DESIGN (SMARTPHONES & TABLETS)
    ========================================================================== */
+.mobile-floating-cart-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-floating-cart-bar {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    background: linear-gradient(135deg, #4f46e5 0%, #e11d48 100%);
+    color: #ffffff;
+    border-radius: 9999px;
+    padding: 0.65rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 10px 25px -3px rgba(225, 29, 72, 0.45), 0 4px 10px rgba(0, 0, 0, 0.2);
+    z-index: 990;
+    animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .floating-cart-icon-box {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .floating-cart-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ffffff;
+    color: #e11d48;
+    font-size: 0.65rem;
+    font-weight: 900;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-white {
+    background: #ffffff !important;
+    color: #4f46e5 !important;
+    border: none !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 9999px !important;
+    padding: 0.4rem 0.85rem !important;
+    font-size: 0.78rem !important;
+  }
+
+  .btn-white:hover {
+    background: #f8fafc !important;
+    color: #4338ca !important;
+  }
+
+  /* Shopee Banner on Mobile */
+  .shopee-banner {
+    padding: 1.15rem 1.25rem !important;
+    border-radius: 18px !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .shopee-tag {
+    font-size: 0.65rem !important;
+    padding: 0.2rem 0.65rem !important;
+    margin-bottom: 0.4rem !important;
+  }
+
+  .banner-title {
+    font-size: 1.25rem !important;
+    line-height: 1.2 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .banner-desc {
+    font-size: 0.75rem !important;
+    line-height: 1.35 !important;
+    opacity: 0.9 !important;
+  }
+
+  /* Segmented Control Tabs on Mobile */
+  .page-view-tabs {
+    display: flex !important;
+    background: #f1f5f9 !important;
+    padding: 4px !important;
+    border-radius: 9999px !important;
+    gap: 4px !important;
+    margin-bottom: 0.75rem !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  [data-theme="dark"] .page-view-tabs {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+  }
+
+  .view-tab-btn {
+    flex: 1 !important;
+    padding: 0.5rem 0.5rem !important;
+    font-size: 0.78rem !important;
+    border-radius: 9999px !important;
+    justify-content: center !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .view-tab-btn.active {
+    background: #ffffff !important;
+    color: #4f46e5 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  [data-theme="dark"] .view-tab-btn.active {
+    background: #0f172a !important;
+    color: #818cf8 !important;
+  }
+
+  .view-tab-btn:nth-child(2).active {
+    background: #ffffff !important;
+    color: #0284c7 !important;
+  }
+
+  [data-theme="dark"] .view-tab-btn:nth-child(2).active {
+    background: #0f172a !important;
+    color: #38bdf8 !important;
+  }
+}
+
 @media (max-width: 640px) {
   /* 2-Column Clean Modern Grid for Requisition Items */
   .exact-cards-grid {
