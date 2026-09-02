@@ -19,6 +19,8 @@ import {
   Clock,
   Send,
   XCircle,
+  Zap,
+  Calendar,
 } from 'lucide-react';
 import { renderQRCodeSVG } from '../utils/qrGenerator';
 import { RequisitionSlipModal } from './RequisitionSlipModal';

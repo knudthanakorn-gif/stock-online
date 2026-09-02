@@ -18,6 +18,8 @@ import {
   Sparkles,
   FileText,
   Trash2,
+  Calendar,
+  Zap,
 } from 'lucide-react';
 import { renderQRCodeSVG } from '../utils/qrGenerator';
 import { RequisitionSlipModal } from './RequisitionSlipModal';

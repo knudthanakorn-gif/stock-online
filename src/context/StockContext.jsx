@@ -575,6 +575,7 @@ export const StockProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
     refreshDataFromSupabase();
 
     // Comprehensive Realtime Postgres Changes Subscription for ALL tables
