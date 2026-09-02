@@ -309,7 +309,9 @@ export const Login = () => {
           ) : (
             /* Username Input */
             <div className="form-group mb-3">
-              <label className="form-label">{lang === 'th' ? '1️⃣ ชื่อจริงผู้เบิก' : '1️⃣ Requester First Name'}</label>
+              <label className="form-label font-semibold text-slate-700">
+                {lang === 'th' ? 'ชื่อจริงผู้เบิก' : 'First Name'}
+              </label>
               <div className="input-icon-wrapper">
                 <User size={18} className="input-icon" />
                 <input
@@ -331,27 +333,26 @@ export const Login = () => {
                   required
                 />
               </div>
-              <div className="text-xxs text-muted mt-1">
-                {lang === 'th' ? '💡 หากชื่อซ้ำกัน ระบบจะเปิดหน้าต่างให้เลือกแผนกก่อนใส่รหัส' : 'If name is duplicated, system asks to choose department first'}
-              </div>
             </div>
           )}
 
           {/* Step 2: Password Input */}
-          <div className="form-group mb-3">
-            <label className="form-label flex-between">
-              <span>{lang === 'th' ? '2️⃣ รหัสผ่าน (Password / PIN)' : '2️⃣ Password / PIN'}</span>
-              <span className="text-xxs font-bold" style={{ color: 'var(--primary-color)', background: 'var(--primary-50)', padding: '0.1rem 0.45rem', borderRadius: '4px', border: '1px solid var(--primary-200)' }}>
-                {lang === 'th' ? '🔑 เข้าครั้งแรก: 1234' : '🔑 Default: 1234'}
+          <div className="form-group mb-4">
+            <div className="flex-between mb-1">
+              <label className="form-label font-semibold text-slate-700" style={{ marginBottom: 0 }}>
+                {lang === 'th' ? 'รหัสผ่าน' : 'Password'}
+              </label>
+              <span style={{ fontSize: '0.72rem', color: '#4f46e5', fontWeight: 700, background: '#eff6ff', padding: '2px 8px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                🔑 {lang === 'th' ? 'รหัสเริ่มต้น: 1234' : 'Default: 1234'}
               </span>
-            </label>
+            </div>
             <div className="input-icon-wrapper">
               <Lock size={18} className="input-icon" />
               <input
                 ref={passwordInputRef}
                 type={showPassword ? 'text' : 'password'}
                 className="form-control with-icon"
-                placeholder={lang === 'th' ? 'กรอกรหัสผ่าน (เข้าครั้งแรกใช้ 1234)...' : 'Enter password (default: 1234)...'}
+                placeholder={lang === 'th' ? 'กรอกรหัสผ่าน...' : 'Enter password...'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -363,9 +364,6 @@ export const Login = () => {
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
-            </div>
-            <div className="text-xxs text-muted mt-1">
-              {lang === 'th' ? '💡 หากเข้าใช้งานครั้งแรก ให้ใส่รหัสเริ่มต้น 1234 (สามารถเปลี่ยนรหัสผ่านได้หลังเข้าสู่ระบบ)' : '💡 First-time login password is 1234 (can be changed in profile)'}
             </div>
           </div>
 
