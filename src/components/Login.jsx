@@ -339,14 +339,19 @@ export const Login = () => {
 
           {/* Step 2: Password Input */}
           <div className="form-group mb-3">
-            <label className="form-label">{lang === 'th' ? '2️⃣ รหัสผ่าน (Password / PIN)' : '2️⃣ Password / PIN'}</label>
+            <label className="form-label flex-between">
+              <span>{lang === 'th' ? '2️⃣ รหัสผ่าน (Password / PIN)' : '2️⃣ Password / PIN'}</span>
+              <span className="text-xxs font-bold" style={{ color: 'var(--primary-color)', background: 'var(--primary-50)', padding: '0.1rem 0.45rem', borderRadius: '4px', border: '1px solid var(--primary-200)' }}>
+                {lang === 'th' ? '🔑 เข้าครั้งแรก: 1234' : '🔑 Default: 1234'}
+              </span>
+            </label>
             <div className="input-icon-wrapper">
               <Lock size={18} className="input-icon" />
               <input
                 ref={passwordInputRef}
                 type={showPassword ? 'text' : 'password'}
                 className="form-control with-icon"
-                placeholder={lang === 'th' ? 'กรอกรหัสผ่าน (Password)...' : 'Password...'}
+                placeholder={lang === 'th' ? 'กรอกรหัสผ่าน (เข้าครั้งแรกใช้ 1234)...' : 'Enter password (default: 1234)...'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -358,6 +363,9 @@ export const Login = () => {
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
+            </div>
+            <div className="text-xxs text-muted mt-1">
+              {lang === 'th' ? '💡 หากเข้าใช้งานครั้งแรก ให้ใส่รหัสเริ่มต้น 1234 (สามารถเปลี่ยนรหัสผ่านได้หลังเข้าสู่ระบบ)' : '💡 First-time login password is 1234 (can be changed in profile)'}
             </div>
           </div>
 
