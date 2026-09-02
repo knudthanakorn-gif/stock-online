@@ -83,35 +83,34 @@ export const NotificationSettingsModal = ({ isOpen, onClose }) => {
               </div>
             )}
 
-            {/* LINE Notify Token Section */}
+            {/* Staff Notification Email Section */}
             <div className="form-group mb-3">
               <label className="form-label font-bold text-xs flex-between">
-                <span>💬 LINE Notify Token (สำหรับส่งเข้ากลุ่ม LINE แผนก/คลัง)</span>
-                <span className="text-xxs text-primary font-normal">ฟรีไม่มีค่าใช้จ่าย</span>
+                <span>📧 อีเมลเจ้าหน้าที่คลัง (Staff Notification Emails)</span>
+                <span className="text-xxs text-primary font-normal">รับแจ้งเตือนคำขอเบิกใหม่</span>
               </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="password"
-                  className="form-control font-mono"
-                  placeholder="วาง LINE Notify Token ที่นี่ (เช่น 1a2b3c4d...)"
-                  value={formData.lineNotifyToken || ''}
-                  onChange={(e) => setFormData({ ...formData, lineNotifyToken: e.target.value })}
-                />
-              </div>
+              <input
+                type="text"
+                className="form-control font-mono text-xs"
+                placeholder="ระบุอีเมลเจ้าหน้าที่คลัง เช่น warehouse@company.com, admin@company.com"
+                value={formData.staffNotificationEmail || ''}
+                onChange={(e) => setFormData({ ...formData, staffNotificationEmail: e.target.value })}
+              />
               <div className="text-xxs text-muted mt-1">
-                สร้าง Token ได้ที่ <a href="https://notify-bot.line.me" target="_blank" rel="noreferrer" style={{ color: '#4f46e5', textDecoration: 'underline' }}>notify-bot.line.me</a> แล้วนำ Token มาใส่ในช่องนี้
+                เมื่อพนักงานกดยื่นเบิกของ ระบบจะส่งอีเมลแจ้งเตือนไปยังอีเมลที่ระบุในช่องนี้ทันที
               </div>
             </div>
 
             {/* Discord / Custom Webhook */}
             <div className="form-group mb-4">
-              <label className="form-label font-bold text-xs">
-                🌐 Discord / Custom Webhook URL (ทางเลือกเพิ่มเติม)
+              <label className="form-label font-bold text-xs flex-between">
+                <span>🌐 Webhook URL / Google Apps Script / Discord (ทางเลือกเพิ่มเติม)</span>
+                <span className="text-xxs text-muted font-normal">ส่งเข้ากลุ่ม LINE / Discord</span>
               </label>
               <input
                 type="url"
                 className="form-control font-mono text-xs"
-                placeholder="https://discord.com/api/webhooks/... หรือ Webhook URL อื่นๆ"
+                placeholder="https://script.google.com/macros/s/... หรือ Discord Webhook"
                 value={formData.webhookUrl || ''}
                 onChange={(e) => setFormData({ ...formData, webhookUrl: e.target.value })}
               />
@@ -124,31 +123,41 @@ export const NotificationSettingsModal = ({ isOpen, onClose }) => {
                 <span>เหตุการณ์ที่ต้องการให้ส่งแจ้งเตือน:</span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 <label className="flex-center gap-2 cursor-pointer text-xs font-semibold">
                   <input
                     type="checkbox"
-                    checked={formData.notifyNewReq}
+                    checked={formData.notifyNewReq !== false}
                     onChange={(e) => setFormData({ ...formData, notifyNewReq: e.target.checked })}
                     style={{ width: '16px', height: '16px' }}
                   />
-                  <span>📑 แจ้งเตือนเมื่อมีคำขอเบิกอุปกรณ์ใหม่ (New Requisition)</span>
+                  <span>📑 แจ้งเตือนเมื่อมีคำขอเบิกอุปกรณ์ใหม่ (ส่งหา Staff)</span>
                 </label>
 
                 <label className="flex-center gap-2 cursor-pointer text-xs font-semibold">
                   <input
                     type="checkbox"
-                    checked={formData.notifyApproval}
+                    checked={formData.notifyApproval !== false}
                     onChange={(e) => setFormData({ ...formData, notifyApproval: e.target.checked })}
                     style={{ width: '16px', height: '16px' }}
                   />
-                  <span>✅ แจ้งเตือนผลการอนุมัติ / ไม่อนุมัติคำขอ (Approval Decision)</span>
+                  <span>🔵 แจ้งเตือนเมื่ออนุมัติคำขอ & กำลังจัดของ (ส่งหา User)</span>
                 </label>
 
                 <label className="flex-center gap-2 cursor-pointer text-xs font-semibold">
                   <input
                     type="checkbox"
-                    checked={formData.notifyLowStock}
+                    checked={formData.notifyEmailReadyForPickup !== false}
+                    onChange={(e) => setFormData({ ...formData, notifyEmailReadyForPickup: e.target.checked })}
+                    style={{ width: '16px', height: '16px' }}
+                  />
+                  <span>🎁 แจ้งเตือนเมื่อเตรียมของเสร็จแล้ว ให้มารับพัสดุ (ส่งหา User)</span>
+                </label>
+
+                <label className="flex-center gap-2 cursor-pointer text-xs font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={formData.notifyLowStock !== false}
                     onChange={(e) => setFormData({ ...formData, notifyLowStock: e.target.checked })}
                     style={{ width: '16px', height: '16px' }}
                   />

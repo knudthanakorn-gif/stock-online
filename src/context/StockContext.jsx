@@ -26,6 +26,12 @@ import {
   INITIAL_REQUESTERS,
   INITIAL_REQUESTS,
 } from '../data/initialData';
+import {
+  sendNewRequisitionEmailToStaff,
+  sendRequisitionApprovedEmailToUser,
+  sendReadyForPickupEmailToUser,
+  sendRequisitionRejectedEmailToUser,
+} from '../services/emailService';
 
 const StockContext = createContext();
 
@@ -75,9 +81,13 @@ const DEFAULT_DEPARTMENT_QUOTAS = {
 const DEFAULT_NOTIF_SETTINGS = {
   lineNotifyToken: '',
   webhookUrl: '',
+  staffNotificationEmail: '',
   notifyNewReq: true,
   notifyApproval: true,
   notifyLowStock: true,
+  notifyEmailNewReq: true,
+  notifyEmailApproval: true,
+  notifyEmailReadyForPickup: true,
 };
 
 const VALID_ROLES = ['admin', 'staff', 'user', 'viewer'];
@@ -1440,8 +1450,12 @@ export const StockProvider = ({ children }) => {
     requesterCompany,
     requesterDept,
     requesterPosition,
+    requesterEmail,
     purpose,
     note,
+    isAdvance = false,
+    scheduledDate = null,
+    scheduledTimeSlot = '',
     items,
   }) => {
     const refNo = `REQ-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -1457,12 +1471,18 @@ export const StockProvider = ({ children }) => {
       requesterCompany: requesterCompany || (user ? user.company : 'EXION THAILAND'),
       requesterDept: requesterDept || (user ? user.department : ''),
       requesterPosition: requesterPosition || (user ? user.position : ''),
+      requesterEmail: requesterEmail || (user ? user.email : ''),
       purpose: purpose || 'DAILY',
       note: note ? note.trim() : '',
+      isAdvance: !!isAdvance,
+      scheduledDate: isAdvance ? scheduledDate : null,
+      scheduledTimeSlot: isAdvance ? scheduledTimeSlot : '',
       status: 'PENDING',
       statusNote: '',
       approvedBy: null,
       approvedAt: null,
+      readyAt: null,
+      completedAt: null,
       items: items.map(item => ({
         productId: item.product ? item.product.id : item.productId,
         name: item.product ? item.product.name : item.name,
@@ -1483,13 +1503,23 @@ export const StockProvider = ({ children }) => {
 
     // Send In-App Notification (For Staff/Admin)
     const itemCount = items.reduce((sum, it) => sum + it.quantity, 0);
+    const advancePrefix = isAdvance ? '📅 [เบิกล่วงหน้า] ' : '';
     addNotification({
       type: 'NEW_REQUEST',
-      title: '📑 มีคำขอเบิกอุปกรณ์ใหม่',
-      message: `${newReq.requesterName} (${newReq.requesterDept || newReq.requesterCompany}) ส่งคำขอเบิก ${itemCount} ชิ้น [${refNo}]`,
+      title: `${advancePrefix}📑 มีคำขอเบิกอุปกรณ์ใหม่`,
+      message: `${newReq.requesterName} (${newReq.requesterDept || newReq.requesterCompany}) ส่งคำขอเบิก ${itemCount} ชิ้น [${refNo}]${isAdvance && scheduledDate ? ` นัดรับ: ${scheduledDate}` : ''}`,
       linkTab: 'approvals',
       targetRole: 'admin',
     });
+
+    // Send Email to Staff
+    if (notificationSettings.notifyEmailNewReq) {
+      sendNewRequisitionEmailToStaff({
+        request: newReq,
+        staffEmail: notificationSettings.staffNotificationEmail,
+        webhookUrl: notificationSettings.webhookUrl,
+      });
+    }
 
     return newReq;
   };
@@ -1539,7 +1569,7 @@ export const StockProvider = ({ children }) => {
     const updatedReq = {
       ...targetReq,
       status: 'APPROVED',
-      statusNote: approvalNote || (lang === 'th' ? 'อนุมัติและตัดจ่ายสต็อกเรียบร้อย' : 'Approved & Dispatched'),
+      statusNote: approvalNote || (lang === 'th' ? 'อนุมัติคำขอแล้ว • กำลังจัดเตรียมพัสดุ' : 'Approved & Preparing'),
       approvedBy: user ? `${user.name} (${user.role ? user.role.toUpperCase() : 'STAFF'})` : 'Admin',
       approvedAt: new Date().toISOString(),
     };
@@ -1554,7 +1584,93 @@ export const StockProvider = ({ children }) => {
     addNotification({
       type: 'APPROVED',
       title: '✅ คำขอเบิกได้รับการอนุมัติ',
-      message: `คำขอ [${targetReq.refNo}] ของคุณได้รับการอนุมัติและจ่ายของเรียบร้อย`,
+      message: `คำขอ [${targetReq.refNo}] ได้รับการอนุมัติแล้ว • เจ้าหน้าที่กำลังจัดเตรียมพัสดุ`,
+      linkTab: 'request-qr',
+      targetUser: targetReq.requesterName,
+      targetRole: 'user',
+    });
+
+    // Send Email to User
+    if (notificationSettings.notifyEmailApproval) {
+      sendRequisitionApprovedEmailToUser({
+        request: updatedReq,
+        userEmail: targetReq.requesterEmail,
+        webhookUrl: notificationSettings.webhookUrl,
+      });
+    }
+
+    return true;
+  };
+
+  // Staff marks items as prepared and ready for pickup
+  const markRequestReadyForPickup = (requestId, readyNote = '') => {
+    if (user?.role === 'viewer' || user?.role === 'user') {
+      throw new Error(lang === 'th' ? 'สิทธิ์เฉพาะเจ้าหน้าที่คลังหรือผู้ดูแลระบบเท่านั้น' : 'Admin or Staff required');
+    }
+
+    const targetReq = requests.find(r => r.id === requestId);
+    if (!targetReq) return false;
+
+    const updatedReq = {
+      ...targetReq,
+      status: 'READY_FOR_PICKUP',
+      statusNote: readyNote || (lang === 'th' ? 'จัดเตรียมพัสดุเสร็จแล้ว • กรุณามารับของที่ห้องคลัง' : 'Ready for pickup at warehouse'),
+      readyAt: new Date().toISOString(),
+    };
+
+    setRequests(prev => prev.map(r => (r.id === requestId ? updatedReq : r)));
+
+    supabase.from('requests').upsert(mapRequestToDb(updatedReq)).then(({ error }) => {
+      if (error) console.error('Supabase mark ready error:', error);
+    });
+
+    addNotification({
+      type: 'APPROVED',
+      title: '🎁 พัสดุของคุณพร้อมรับแล้ว!',
+      message: `คำขอ [${targetReq.refNo}] จัดเตรียมเสร็จสิ้นแล้ว สามารถมารับของได้ที่ห้องคลังพัสดุ`,
+      linkTab: 'request-qr',
+      targetUser: targetReq.requesterName,
+      targetRole: 'user',
+    });
+
+    // Send Email to User (Ready for pickup)
+    if (notificationSettings.notifyEmailReadyForPickup) {
+      sendReadyForPickupEmailToUser({
+        request: updatedReq,
+        userEmail: targetReq.requesterEmail,
+        webhookUrl: notificationSettings.webhookUrl,
+      });
+    }
+
+    return true;
+  };
+
+  // Staff completes handover when user picks up items
+  const completeRequisitionHandover = (requestId) => {
+    if (user?.role === 'viewer' || user?.role === 'user') {
+      throw new Error(lang === 'th' ? 'สิทธิ์เฉพาะเจ้าหน้าที่คลังหรือผู้ดูแลระบบเท่านั้น' : 'Admin or Staff required');
+    }
+
+    const targetReq = requests.find(r => r.id === requestId);
+    if (!targetReq) return false;
+
+    const updatedReq = {
+      ...targetReq,
+      status: 'COMPLETED',
+      statusNote: lang === 'th' ? 'พนักงานรับมอบพัสดุเรียบร้อยสมบูรณ์' : 'Handover completed',
+      completedAt: new Date().toISOString(),
+    };
+
+    setRequests(prev => prev.map(r => (r.id === requestId ? updatedReq : r)));
+
+    supabase.from('requests').upsert(mapRequestToDb(updatedReq)).then(({ error }) => {
+      if (error) console.error('Supabase complete handover error:', error);
+    });
+
+    addNotification({
+      type: 'APPROVED',
+      title: '🎉 ส่งมอบพัสดุสำเร็จ',
+      message: `คำขอ [${targetReq.refNo}] ส่งมอบพัสดุให้คุณ ${targetReq.requesterName} เรียบร้อยแล้ว`,
       linkTab: 'request-qr',
       targetUser: targetReq.requesterName,
       targetRole: 'user',
@@ -1593,6 +1709,16 @@ export const StockProvider = ({ children }) => {
         targetUser: targetReq.requesterName,
         targetRole: 'user',
       });
+
+      // Send Email to User
+      if (notificationSettings.notifyEmailApproval) {
+        sendRequisitionRejectedEmailToUser({
+          request: updatedReq,
+          userEmail: targetReq.requesterEmail,
+          reason: rejectionReason,
+          webhookUrl: notificationSettings.webhookUrl,
+        });
+      }
     }
 
     return true;
@@ -1981,6 +2107,8 @@ export const StockProvider = ({ children }) => {
         requests,
         createRequisitionRequest,
         approveRequisitionRequest,
+        markRequestReadyForPickup,
+        completeRequisitionHandover,
         rejectRequisitionRequest,
         cancelRequisitionRequest,
         deleteRequisitionRequest,

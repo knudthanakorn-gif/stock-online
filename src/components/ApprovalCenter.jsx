@@ -29,6 +29,8 @@ export const ApprovalCenter = () => {
     usersList = [],
     requestersList = [],
     approveRequisitionRequest,
+    markRequestReadyForPickup,
+    completeRequisitionHandover,
     rejectRequisitionRequest,
     deleteRequisitionRequest,
     lang,
@@ -39,7 +41,7 @@ export const ApprovalCenter = () => {
   const isViewer = user?.role === 'viewer';
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'READY_FOR_PICKUP' | 'ADVANCE' | 'COMPLETED' | 'REJECTED'
 
   // Rejection Modal State
   const [rejectModalReq, setRejectModalReq] = useState(null);
@@ -65,13 +67,21 @@ export const ApprovalCenter = () => {
       (req.requesterCompany && req.requesterCompany.toLowerCase().includes(searchQuery.toLowerCase())) ||
       req.items.some((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchStatus = statusFilter === 'ALL' || req.status === statusFilter;
+    let matchStatus = true;
+    if (statusFilter === 'ADVANCE') {
+      matchStatus = !!req.isAdvance;
+    } else if (statusFilter !== 'ALL') {
+      matchStatus = req.status === statusFilter;
+    }
 
     return matchSearch && matchStatus;
   });
 
   const pendingCount = requests.filter((r) => r.status === 'PENDING').length;
-  const approvedCount = requests.filter((r) => r.status === 'APPROVED').length;
+  const preparingCount = requests.filter((r) => r.status === 'APPROVED').length;
+  const readyCount = requests.filter((r) => r.status === 'READY_FOR_PICKUP').length;
+  const advanceCount = requests.filter((r) => !!r.isAdvance).length;
+  const completedCount = requests.filter((r) => r.status === 'COMPLETED').length;
   const rejectedCount = requests.filter((r) => r.status === 'REJECTED').length;
 
   const handleConfirmApprove = () => {
@@ -81,9 +91,33 @@ export const ApprovalCenter = () => {
 
     try {
       approveRequisitionRequest(approveModalReq.id, approveNote);
-      setActionSuccess(lang === 'th' ? `อนุมัติคำขอ ${approveModalReq.refNo} และตัดจ่ายสต็อกเรียบร้อยแล้ว!` : `Approved ${approveModalReq.refNo}`);
+      setActionSuccess(lang === 'th' ? `อนุมัติคำขอ ${approveModalReq.refNo} และเริ่มการจัดเตรียมพัสดุเรียบร้อย!` : `Approved ${approveModalReq.refNo}`);
       setApproveModalReq(null);
       setApproveNote('');
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  const handleMarkReady = (req) => {
+    setActionError('');
+    setActionSuccess('');
+    try {
+      markRequestReadyForPickup(req.id);
+      setActionSuccess(lang === 'th' ? `🎉 จัดเตรียมพัสดุ ${req.refNo} เสร็จสิ้น • ระบบส่งแจ้งเตือนให้คุณ ${req.requesterName} มารับของแล้ว!` : `Ready for pickup: ${req.refNo}`);
+      setTimeout(() => setActionSuccess(''), 4000);
+    } catch (err) {
+      setActionError(err.message);
+    }
+  };
+
+  const handleCompleteHandover = (req) => {
+    setActionError('');
+    setActionSuccess('');
+    try {
+      completeRequisitionHandover(req.id);
+      setActionSuccess(lang === 'th' ? `✅ ส่งมอบพัสดุ ${req.refNo} ให้คุณ ${req.requesterName} เรียบร้อยแล้ว!` : `Handover completed: ${req.refNo}`);
+      setTimeout(() => setActionSuccess(''), 4000);
     } catch (err) {
       setActionError(err.message);
     }
@@ -138,44 +172,54 @@ export const ApprovalCenter = () => {
       )}
 
       {/* KPI Status Summary Cards */}
-      <div className="approval-kpi-grid mb-6">
+      <div className="approval-kpi-grid mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
         <div className={`card kpi-pill-card ${statusFilter === 'PENDING' ? 'active-border-amber' : ''}`} onClick={() => setStatusFilter('PENDING')}>
           <div className="kpi-pill-icon bg-amber">
-            <Clock size={24} />
+            <Clock size={22} />
           </div>
           <div>
-            <div className="kpi-pill-label">{lang === 'th' ? '🟡 รอการอนุมัติ' : 'Pending Review'}</div>
-            <div className="kpi-pill-value text-amber">{pendingCount} <span className="text-xs text-muted">{lang === 'th' ? 'รายการ' : 'requests'}</span></div>
+            <div className="kpi-pill-label">{lang === 'th' ? '🟡 รอการอนุมัติ' : 'Pending'}</div>
+            <div className="kpi-pill-value text-amber">{pendingCount} <span className="text-xs text-muted">{lang === 'th' ? 'คำขอ' : 'reqs'}</span></div>
           </div>
         </div>
 
-        <div className={`card kpi-pill-card ${statusFilter === 'APPROVED' ? 'active-border-emerald' : ''}`} onClick={() => setStatusFilter('APPROVED')}>
-          <div className="kpi-pill-icon bg-emerald">
-            <CheckCircle2 size={24} />
-          </div>
-          <div>
-            <div className="kpi-pill-label">{lang === 'th' ? '🟢 อนุมัติแล้ว' : 'Approved'}</div>
-            <div className="kpi-pill-value text-green">{approvedCount} <span className="text-xs text-muted">{lang === 'th' ? 'รายการ' : 'requests'}</span></div>
-          </div>
-        </div>
-
-        <div className={`card kpi-pill-card ${statusFilter === 'REJECTED' ? 'active-border-rose' : ''}`} onClick={() => setStatusFilter('REJECTED')}>
-          <div className="kpi-pill-icon bg-rose">
-            <XCircle size={24} />
-          </div>
-          <div>
-            <div className="kpi-pill-label">{lang === 'th' ? '🔴 ไม่อนุมัติ' : 'Rejected'}</div>
-            <div className="kpi-pill-value text-red">{rejectedCount} <span className="text-xs text-muted">{lang === 'th' ? 'รายการ' : 'requests'}</span></div>
-          </div>
-        </div>
-
-        <div className={`card kpi-pill-card ${statusFilter === 'ALL' ? 'active-border-indigo' : ''}`} onClick={() => setStatusFilter('ALL')}>
+        <div className={`card kpi-pill-card ${statusFilter === 'APPROVED' ? 'active-border-indigo' : ''}`} onClick={() => setStatusFilter('APPROVED')}>
           <div className="kpi-pill-icon bg-indigo">
-            <FileText size={24} />
+            <Package size={22} />
           </div>
           <div>
-            <div className="kpi-pill-label">{lang === 'th' ? '📋 คำขอทั้งหมด' : 'All Requests'}</div>
-            <div className="kpi-pill-value">{requests.length} <span className="text-xs text-muted">{lang === 'th' ? 'รายการ' : 'total'}</span></div>
+            <div className="kpi-pill-label">{lang === 'th' ? '🔵 กำลังจัดของ' : 'Preparing'}</div>
+            <div className="kpi-pill-value text-primary">{preparingCount} <span className="text-xs text-muted">{lang === 'th' ? 'คำขอ' : 'reqs'}</span></div>
+          </div>
+        </div>
+
+        <div className={`card kpi-pill-card ${statusFilter === 'READY_FOR_PICKUP' ? 'active-border-emerald' : ''}`} onClick={() => setStatusFilter('READY_FOR_PICKUP')}>
+          <div className="kpi-pill-icon bg-emerald">
+            <CheckCircle2 size={22} />
+          </div>
+          <div>
+            <div className="kpi-pill-label">{lang === 'th' ? '🟢 พร้อมรับของ' : 'Ready'}</div>
+            <div className="kpi-pill-value text-green">{readyCount} <span className="text-xs text-muted">{lang === 'th' ? 'คำขอ' : 'reqs'}</span></div>
+          </div>
+        </div>
+
+        <div className={`card kpi-pill-card ${statusFilter === 'ADVANCE' ? 'active-border-blue' : ''}`} onClick={() => setStatusFilter('ADVANCE')}>
+          <div className="kpi-pill-icon" style={{ background: '#dbeafe', color: '#1d4ed8' }}>
+            <Calendar size={22} />
+          </div>
+          <div>
+            <div className="kpi-pill-label">{lang === 'th' ? '📅 เบิกล่วงหน้า' : 'Advance'}</div>
+            <div className="kpi-pill-value" style={{ color: '#1d4ed8' }}>{advanceCount} <span className="text-xs text-muted">{lang === 'th' ? 'คำขอ' : 'reqs'}</span></div>
+          </div>
+        </div>
+
+        <div className={`card kpi-pill-card ${statusFilter === 'COMPLETED' ? 'active-border-indigo' : ''}`} onClick={() => setStatusFilter('COMPLETED')}>
+          <div className="kpi-pill-icon" style={{ background: '#f3e8ff', color: '#7e22ce' }}>
+            <Check size={22} />
+          </div>
+          <div>
+            <div className="kpi-pill-label">{lang === 'th' ? '🟣 ส่งมอบแล้ว' : 'Handed Over'}</div>
+            <div className="kpi-pill-value" style={{ color: '#7e22ce' }}>{completedCount} <span className="text-xs text-muted">{lang === 'th' ? 'คำขอ' : 'reqs'}</span></div>
           </div>
         </div>
       </div>
@@ -193,7 +237,7 @@ export const ApprovalCenter = () => {
           />
         </div>
 
-        <div className="status-filter-tabs">
+        <div className="status-filter-tabs" style={{ flexWrap: 'wrap', gap: '0.35rem' }}>
           <button
             className={`status-tab-btn ${statusFilter === 'ALL' ? 'active' : ''}`}
             onClick={() => setStatusFilter('ALL')}
@@ -207,10 +251,28 @@ export const ApprovalCenter = () => {
             🟡 {lang === 'th' ? 'รออนุมัติ' : 'Pending'} ({pendingCount})
           </button>
           <button
-            className={`status-tab-btn ${statusFilter === 'APPROVED' ? 'active active-emerald' : ''}`}
+            className={`status-tab-btn ${statusFilter === 'APPROVED' ? 'active' : ''}`}
             onClick={() => setStatusFilter('APPROVED')}
           >
-            🟢 {lang === 'th' ? 'อนุมัติแล้ว' : 'Approved'} ({approvedCount})
+            🔵 {lang === 'th' ? 'กำลังจัดของ' : 'Preparing'} ({preparingCount})
+          </button>
+          <button
+            className={`status-tab-btn ${statusFilter === 'READY_FOR_PICKUP' ? 'active active-emerald' : ''}`}
+            onClick={() => setStatusFilter('READY_FOR_PICKUP')}
+          >
+            🟢 {lang === 'th' ? 'พร้อมรับของ' : 'Ready'} ({readyCount})
+          </button>
+          <button
+            className={`status-tab-btn ${statusFilter === 'ADVANCE' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('ADVANCE')}
+          >
+            📅 {lang === 'th' ? 'เบิกล่วงหน้า' : 'Advance'} ({advanceCount})
+          </button>
+          <button
+            className={`status-tab-btn ${statusFilter === 'COMPLETED' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('COMPLETED')}
+          >
+            🟣 {lang === 'th' ? 'ส่งมอบแล้ว' : 'Completed'} ({completedCount})
           </button>
           <button
             className={`status-tab-btn ${statusFilter === 'REJECTED' ? 'active active-rose' : ''}`}
@@ -233,6 +295,8 @@ export const ApprovalCenter = () => {
           filteredRequests.map((req) => {
             const isPending = req.status === 'PENDING';
             const isApproved = req.status === 'APPROVED';
+            const isReady = req.status === 'READY_FOR_PICKUP';
+            const isCompleted = req.status === 'COMPLETED';
             const isRejected = req.status === 'REJECTED';
             const isCancelled = req.status === 'CANCELLED';
 
@@ -282,14 +346,45 @@ export const ApprovalCenter = () => {
                 : matchedUser?.position || '';
 
             return (
-              <div key={req.id} className={`card request-card mb-4 ${isPending ? 'border-amber-glow' : ''}`}>
+              <div
+                key={req.id}
+                className={`card request-card mb-4 ${isPending ? 'border-amber-glow' : ''}`}
+                style={{
+                  border: isReady ? '2px solid #10b981' : isApproved ? '2px solid #6366f1' : '1px solid var(--border-color)',
+                }}
+              >
                 {/* Header Row */}
-                <div className="request-card-header flex-between">
-                  <div className="flex-center gap-3">
+                <div className="request-card-header flex-between flex-wrap gap-2">
+                  <div className="flex-center gap-2 flex-wrap">
                     <span className="ref-number-badge font-mono font-extrabold">{req.refNo}</span>
-                    <span className={`status-pill-badge ${isPending ? 'pill-pending' : isApproved ? 'pill-approved' : isCancelled ? 'pill-cancelled' : 'pill-rejected'}`}>
-                      {isPending && '🟡 รอการอนุมัติ (Pending)'}
-                      {isApproved && '🟢 อนุมัติและตัดจ่ายสต็อกแล้ว (Approved)'}
+                    {req.isAdvance && (
+                      <span className="badge badge-info text-xxs font-bold" style={{ background: '#dbeafe', color: '#1e40af', border: '1px solid #bfdbfe' }}>
+                        📅 เบิกล่วงหน้า (นัดรับ: {req.scheduledDate} {req.scheduledTimeSlot ? `• ${req.scheduledTimeSlot}` : ''})
+                      </span>
+                    )}
+                    <span
+                      className={`status-pill-badge ${
+                        isPending
+                          ? 'pill-pending'
+                          : isApproved
+                          ? 'pill-approved'
+                          : isReady
+                          ? 'pill-approved font-extrabold'
+                          : isCompleted
+                          ? 'pill-approved'
+                          : isCancelled
+                          ? 'pill-cancelled'
+                          : 'pill-rejected'
+                      }`}
+                      style={{
+                        background: isReady ? '#d1fae5' : isApproved ? '#e0e7ff' : isCompleted ? '#ede9fe' : undefined,
+                        color: isReady ? '#065f46' : isApproved ? '#3730a3' : isCompleted ? '#5b21b6' : undefined,
+                      }}
+                    >
+                      {isPending && '🟡 รอการตรวจสอบ (Pending)'}
+                      {isApproved && '🔵 อนุมัติแล้ว • กำลังจัดเตรียมพัสดุ'}
+                      {isReady && '🟢 📦 พร้อมรับของแล้ว (Ready for Pickup)'}
+                      {isCompleted && '🟣 ส่งมอบพัสดุสำเร็จ (Completed)'}
                       {isRejected && '🔴 ไม่อนุมัติ (Rejected)'}
                       {isCancelled && '⚪ ผู้ขอเบิกยกเลิกแล้ว (Cancelled)'}
                     </span>
@@ -423,28 +518,61 @@ export const ApprovalCenter = () => {
                     )}
                   </div>
 
-                  {isPending && !isViewer && (
-                    <div className="action-group-right">
-                      <button
-                        className="btn btn-danger btn-sm flex-1"
-                        onClick={() => {
-                          setRejectModalReq(req);
-                          setRejectReason('');
-                        }}
-                      >
-                        <XCircle size={15} />
-                        <span>{lang === 'th' ? 'ปฏิเสธคำขอ' : 'Reject'}</span>
-                      </button>
-                      <button
-                        className="btn btn-success btn-sm font-extrabold flex-1"
-                        onClick={() => {
-                          setApproveModalReq(req);
-                          setApproveNote('');
-                        }}
-                      >
-                        <CheckCircle2 size={15} />
-                        <span>{lang === 'th' ? 'อนุมัติ & จ่ายของ' : 'Approve'}</span>
-                      </button>
+                  {!isViewer && (
+                    <div className="action-group-right flex-wrap gap-2">
+                      {isPending && (
+                        <>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => {
+                              setRejectModalReq(req);
+                              setRejectReason('');
+                            }}
+                          >
+                            <XCircle size={15} />
+                            <span>{lang === 'th' ? 'ปฏิเสธคำขอ' : 'Reject'}</span>
+                          </button>
+                          <button
+                            className="btn btn-primary btn-sm font-extrabold"
+                            onClick={() => {
+                              setApproveModalReq(req);
+                              setApproveNote('');
+                            }}
+                          >
+                            <CheckCircle2 size={15} />
+                            <span>{lang === 'th' ? 'อนุมัติ & เริ่มจัดของ' : 'Approve & Prepare'}</span>
+                          </button>
+                        </>
+                      )}
+
+                      {isApproved && (
+                        <button
+                          className="btn btn-success btn-sm font-extrabold flex-center gap-1.5 shadow-sm"
+                          style={{ background: '#059669', borderColor: '#047857' }}
+                          onClick={() => handleMarkReady(req)}
+                        >
+                          <Package size={16} />
+                          <span>{lang === 'th' ? '📦 จัดเตรียมเสร็จแล้ว (ส่งเมลแจ้งรับของ)' : 'Ready for Pickup'}</span>
+                        </button>
+                      )}
+
+                      {isReady && (
+                        <button
+                          className="btn btn-primary btn-sm font-extrabold flex-center gap-1.5 shadow-sm"
+                          style={{ background: '#4f46e5', borderColor: '#4338ca' }}
+                          onClick={() => handleCompleteHandover(req)}
+                        >
+                          <CheckCircle2 size={16} />
+                          <span>{lang === 'th' ? '✅ ส่งมอบของสำเร็จ (รับของแล้ว)' : 'Complete Handover'}</span>
+                        </button>
+                      )}
+
+                      {isCompleted && (
+                        <span className="badge badge-success text-xs font-bold py-1.5 px-3 flex-center gap-1">
+                          <CheckCircle2 size={14} />
+                          <span>{lang === 'th' ? 'ส่งมอบสมบูรณ์แล้ว' : 'Handed Over'}</span>
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

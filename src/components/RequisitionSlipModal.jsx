@@ -65,8 +65,22 @@ export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
   const getStatusBadge = (status) => {
     if (status === 'APPROVED') {
       return (
-        <span className="badge badge-success" style={{ fontSize: '0.82rem', padding: '0.35rem 0.75rem' }}>
-          <CheckCircle2 size={14} className="inline-icon" /> {lang === 'th' ? 'อนุมัติ / จ่ายของแล้ว' : 'Approved & Dispatched'}
+        <span className="badge badge-info" style={{ fontSize: '0.82rem', padding: '0.35rem 0.75rem', background: '#e0e7ff', color: '#3730a3' }}>
+          <Clock size={14} className="inline-icon" /> {lang === 'th' ? '🔵 อนุมัติแล้ว • กำลังจัดของ' : 'Approved (Preparing)'}
+        </span>
+      );
+    }
+    if (status === 'READY_FOR_PICKUP') {
+      return (
+        <span className="badge badge-success" style={{ fontSize: '0.82rem', padding: '0.35rem 0.75rem', background: '#d1fae5', color: '#065f46', fontWeight: '800' }}>
+          <CheckCircle2 size={14} className="inline-icon" /> {lang === 'th' ? '🟢 📦 จัดของเสร็จแล้ว • พร้อมรับของ' : 'Ready for Pickup'}
+        </span>
+      );
+    }
+    if (status === 'COMPLETED') {
+      return (
+        <span className="badge badge-secondary" style={{ fontSize: '0.82rem', padding: '0.35rem 0.75rem', background: '#f3e8ff', color: '#6b21a8' }}>
+          <CheckCircle2 size={14} className="inline-icon" /> {lang === 'th' ? '🟣 ส่งมอบและรับของแล้ว' : 'Completed'}
         </span>
       );
     }
@@ -79,7 +93,7 @@ export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
     }
     return (
       <span className="badge badge-warning" style={{ fontSize: '0.82rem', padding: '0.35rem 0.75rem' }}>
-        <Clock size={14} className="inline-icon" /> {lang === 'th' ? 'รออนุมัติ' : 'Pending Approval'}
+        <Clock size={14} className="inline-icon" /> {lang === 'th' ? '🟡 รอการอนุมัติ' : 'Pending Approval'}
       </span>
     );
   };

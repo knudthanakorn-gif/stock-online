@@ -95,8 +95,16 @@ export const RequisitionPage = () => {
   const [requesterDept, setRequesterDept] = useState('');
   const [requesterName, setRequesterName] = useState('');
   const [requesterPosition, setRequesterPosition] = useState('');
+  const [requesterEmail, setRequesterEmail] = useState(user?.email || '');
   const [purpose, setPurpose] = useState('DAILY');
   const [note, setNote] = useState('');
+  const [isAdvance, setIsAdvance] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().slice(0, 10);
+  });
+  const [scheduledTimeSlot, setScheduledTimeSlot] = useState('09:00 - 11:30 (ช่วงเช้า)');
 
   const [submittedTicket, setSubmittedTicket] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -221,8 +229,12 @@ export const RequisitionPage = () => {
         requesterCompany: finalCompany,
         requesterDept: finalDept,
         requesterPosition: finalPosition,
+        requesterEmail: requesterEmail.trim() || user?.email || '',
         purpose,
         note: note.trim(),
+        isAdvance,
+        scheduledDate: isAdvance ? scheduledDate : null,
+        scheduledTimeSlot: isAdvance ? scheduledTimeSlot : '',
         items: cart,
       });
 
@@ -575,6 +587,8 @@ export const RequisitionPage = () => {
               myRequests.map((req) => {
                 const isPending = req.status === 'PENDING';
                 const isApproved = req.status === 'APPROVED';
+                const isReady = req.status === 'READY_FOR_PICKUP';
+                const isCompleted = req.status === 'COMPLETED';
                 const isRejected = req.status === 'REJECTED';
                 const isCancelled = req.status === 'CANCELLED';
 
@@ -586,13 +600,32 @@ export const RequisitionPage = () => {
                   : new Date().toLocaleDateString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
 
                 return (
-                  <div key={req.id} className="card mb-4">
-                    <div className="flex-between pb-2 border-bottom">
-                      <div className="flex-center gap-3">
+                  <div key={req.id} className="card mb-4" style={{ border: isReady ? '2px solid #10b981' : '1px solid var(--border-color)' }}>
+                    <div className="flex-between pb-2 border-bottom flex-wrap gap-2">
+                      <div className="flex-center gap-2 flex-wrap">
                         <span className="font-mono font-extrabold text-primary text-base">{req.refNo}</span>
-                        <span className={`badge ${isPending ? 'badge-warning' : isApproved ? 'badge-success' : isCancelled ? 'badge-secondary' : 'badge-danger'}`}>
-                          {isPending && '🟡 รอการอนุมัติ (Pending)'}
-                          {isApproved && '🟢 อนุมัติแล้ว (Approved)'}
+                        {req.isAdvance && (
+                          <span className="badge badge-info text-xxs font-bold">
+                            📅 นัดรับ: {req.scheduledDate} {req.scheduledTimeSlot ? `(${req.scheduledTimeSlot})` : ''}
+                          </span>
+                        )}
+                        <span className={`badge ${
+                          isPending
+                            ? 'badge-warning'
+                            : isReady
+                            ? 'badge-success font-extrabold'
+                            : isApproved
+                            ? 'badge-info'
+                            : isCompleted
+                            ? 'badge-secondary'
+                            : isCancelled
+                            ? 'badge-secondary'
+                            : 'badge-danger'
+                        }`}>
+                          {isPending && '🟡 รอการตรวจสอบ (Pending)'}
+                          {isApproved && '🔵 อนุมัติแล้ว • กำลังจัดเตรียมของ'}
+                          {isReady && '🟢 📦 พร้อมรับของแล้ว! (Ready for Pickup)'}
+                          {isCompleted && '🟣 รับของเรียบร้อย (Completed)'}
                           {isRejected && '🔴 ไม่อนุมัติ (Rejected)'}
                           {isCancelled && '⚪ ยกเลิกแล้ว (Cancelled)'}
                         </span>
@@ -602,6 +635,16 @@ export const RequisitionPage = () => {
                         {displayDate}
                       </div>
                     </div>
+
+                    {isReady && (
+                      <div className="alert-box alert-success my-2.5 flex-center gap-2" style={{ background: '#ecfdf5', border: '1.5px solid #10b981', color: '#065f46' }}>
+                        <CheckCircle2 size={20} color="#059669" />
+                        <div>
+                          <strong>🎉 พัสดุของคุณจัดเตรียมเสร็จสิ้นแล้ว!</strong>
+                          <div className="text-xxs text-muted mt-0.5">กรุณาเดินทางมารับของได้ที่ห้องคลังพัสดุ พร้อมแสดงรหัสคำขอเบิกนี้</div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="my-3 text-sm">
                       <div><strong>ผู้ขอเบิก:</strong> {req.requesterName} ({req.requesterDept || '-'}) - {req.requesterCompany}</div>
@@ -910,7 +953,90 @@ export const RequisitionPage = () => {
                     </div>
                   </div>
 
+                  {/* Requisition Timing Selector (Immediate vs Advance) */}
                   <div className="form-group mt-2.5">
+                    <label className="form-label text-xxs font-bold mb-1.5 flex-between">
+                      <span>รูปแบบการเบิกพัสดุ</span>
+                      <span className="text-muted font-normal text-xxs">
+                        {isAdvance ? '📅 กำหนดวันนัดรับล่วงหน้า' : '⚡ รับของวันนี้'}
+                      </span>
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <button
+                        type="button"
+                        className={`btn btn-sm font-bold flex-center gap-1 ${!isAdvance ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.75rem', borderRadius: '8px' }}
+                        onClick={() => setIsAdvance(false)}
+                      >
+                        <Zap size={13} />
+                        <span>เบิกด่วนวันนี้</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-sm font-bold flex-center gap-1 ${isAdvance ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.75rem', borderRadius: '8px' }}
+                        onClick={() => setIsAdvance(true)}
+                      >
+                        <Calendar size={13} />
+                        <span>เบิกล่วงหน้า (Advance)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Advance Booking Date & Time Slot */}
+                  {isAdvance && (
+                    <div className="p-2.5 mt-2 rounded-lg" style={{ background: 'var(--bg-surface)', border: '1.5px solid #93c5fd', borderRadius: '10px' }}>
+                      <div className="text-xxs font-bold text-primary mb-1.5 flex-center gap-1">
+                        <Calendar size={13} color="#2563eb" />
+                        <span>กำหนดการรับพัสดุล่วงหน้า:</span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                        <div>
+                          <label className="text-xxs text-muted font-bold block mb-0.5">วันที่ต้องการรับของ</label>
+                          <input
+                            type="date"
+                            min={new Date().toISOString().slice(0, 10)}
+                            className="form-control text-xs"
+                            style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}
+                            value={scheduledDate}
+                            onChange={(e) => setScheduledDate(e.target.value)}
+                            required={isAdvance}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xxs text-muted font-bold block mb-0.5">ช่วงเวลาที่สะดวกรับ</label>
+                          <select
+                            className="form-control text-xs"
+                            style={{ padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}
+                            value={scheduledTimeSlot}
+                            onChange={(e) => setScheduledTimeSlot(e.target.value)}
+                          >
+                            <option value="09:00 - 11:30 (ช่วงเช้า)">09:00 - 11:30 (ช่วงเช้า)</option>
+                            <option value="13:30 - 16:30 (ช่วงบ่าย)">13:30 - 16:30 (ช่วงบ่าย)</option>
+                            <option value="ทั้งวัน (เวลาใดก็ได้)">ทั้งวัน (เวลาใดก็ได้)</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Requester Email for Notifications */}
+                  <div className="form-group mt-2">
+                    <label className="form-label text-xxs font-bold flex-between">
+                      <span>อีเมลรับแจ้งเตือนเมื่อของพร้อมรับ</span>
+                      <span className="text-xxs text-muted font-normal">ระบบจะส่งเมลหาคุณอัตโนมัติ</span>
+                    </label>
+                    <input
+                      type="email"
+                      className="form-control text-xs"
+                      style={{ padding: '0.45rem 0.65rem' }}
+                      placeholder="เช่น employee@company.com (เพื่อรับแจ้งเตือนทางอีเมล)"
+                      value={requesterEmail}
+                      onChange={(e) => setRequesterEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group mt-2">
                     <label className="form-label text-xxs font-bold">วัตถุประสงค์ในการเบิก</label>
                     <select
                       className="form-control text-xs"
@@ -920,7 +1046,7 @@ export const RequisitionPage = () => {
                     >
                       <option value="DAILY">💻 ใช้งานประจำวันในสำนักงาน</option>
                       <option value="ONBOARDING">👤 อุปกรณ์พนักงานใหม่ (Onboarding)</option>
-                      <option value="PROJECT">🚀 โครงการพิเศษ / ประชุมภายนอก</option>
+                      <option value="PROJECT">🚀 โครงการพิเศษ / สัมมนา / ประชุม</option>
                       <option value="REPLACEMENT">🛠️ เบิกทดแทนอุปกรณ์เดิมชำรุด</option>
                     </select>
                   </div>
