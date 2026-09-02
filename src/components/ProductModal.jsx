@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStock } from '../context/StockContext';
-import { X, Package, QrCode } from 'lucide-react';
+import { X, Package, QrCode, Upload, Sparkles, CheckCircle2, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
 
 export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
   const { categories, suppliers, addProduct, updateProduct, lang } = useStock();
@@ -17,6 +17,86 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
   const [supplierId, setSupplierId] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
+  const [isConverting, setIsConverting] = useState(false);
+
+  // Helper to compress any image into lightweight permanent WebP/JPEG data URL
+  const compressImage = (imgSrc, maxWidth = 500, maxHeight = 500, quality = 0.88) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        try {
+          const dataUrl = canvas.toDataURL('image/webp', quality);
+          resolve(dataUrl);
+        } catch (e) {
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = (err) => reject(err);
+      img.src = imgSrc;
+    });
+  };
+
+  const handleConvertUrlToPermanent = async () => {
+    if (!image || image.startsWith('data:image/')) return;
+    setIsConverting(true);
+    try {
+      try {
+        const permanentDataUrl = await compressImage(image);
+        setImage(permanentDataUrl);
+        setIsConverting(false);
+        return;
+      } catch (directErr) {
+        const cleanUrl = image.replace(/^https?:\/\//, '');
+        const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&w=500&output=webp`;
+        const permanentDataUrl = await compressImage(proxyUrl);
+        setImage(permanentDataUrl);
+        setIsConverting(false);
+      }
+    } catch (err) {
+      console.warn('Image conversion fallback warning:', err);
+      setIsConverting(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const rawDataUrl = event.target?.result;
+      if (rawDataUrl) {
+        try {
+          const compressed = await compressImage(rawDataUrl);
+          setImage(compressed);
+        } catch (err) {
+          setImage(rawDataUrl);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     if (productToEdit) {
@@ -180,43 +260,97 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
                 />
               </div>
 
-              {/* Image URL */}
+              {/* Image URL & Permanent Storage */}
               <div className="form-group col-span-2">
-                <label className="form-label flex-between">
-                  <span>{lang === 'th' ? 'ลิงก์ / URL รูปภาพอุปกรณ์' : 'Image URL'}</span>
-                  {image && (
-                    <span className="text-xxs text-primary font-bold">
-                      {lang === 'th' ? '✓ มีรูปภาพ' : '✓ Image Preview'}
+                <div className="flex-between mb-1">
+                  <label className="form-label" style={{ marginBottom: 0 }}>
+                    {lang === 'th' ? 'รูปภาพอุปกรณ์ (จัดเก็บถาวรในระบบ)' : 'Product Image (Permanent)'}
+                  </label>
+                  {image && image.startsWith('data:image/') ? (
+                    <span className="badge badge-success" style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>
+                      🛡️ {lang === 'th' ? 'จัดเก็บในระบบถาวรแล้ว (ไม่มีวันรูปหลุด)' : 'Permanently Stored'}
                     </span>
-                  )}
-                </label>
+                  ) : image ? (
+                    <span className="badge badge-warning" style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem' }}>
+                      🌐 {lang === 'th' ? 'ลิงก์ภายนอก' : 'External Link'}
+                    </span>
+                  ) : null}
+                </div>
+
                 <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
                   <input
                     type="text"
                     className="form-control"
                     style={{ flex: 1 }}
-                    placeholder="เช่น /images/products/... หรือ https://..."
-                    value={image}
+                    placeholder={lang === 'th' ? 'วางลิงก์รูปภาพ หรือกดเลือกไฟล์จากเครื่อง...' : 'Paste image URL or choose file...'}
+                    value={image.startsWith('data:image/') ? `[ รูปภาพถูกแปลงและบันทึกถาวรในระบบแล้ว (${Math.round(image.length / 1024)} KB) ]` : image}
                     onChange={(e) => setImage(e.target.value)}
                   />
-                  {image && (
-                    <img
-                      src={image}
-                      alt="Preview"
-                      style={{
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '6px',
-                        objectFit: 'cover',
-                        border: '1px solid var(--border-color)',
-                        flexShrink: 0,
-                        background: '#f8fafc',
-                      }}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
-                    />
+
+                  {/* Convert External URL button */}
+                  {image && !image.startsWith('data:image/') && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleConvertUrlToPermanent}
+                      disabled={isConverting}
+                      title={lang === 'th' ? 'แปลงลิงก์นี้เป็นรูปภาพถาวรเก็บไว้ในระบบ ป้องกันรูปลบ/หมดอายุ' : 'Convert URL to permanent image'}
+                      style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      <Sparkles size={14} color="#f59e0b" />
+                      <span>{isConverting ? (lang === 'th' ? 'กำลังแปลง...' : 'Converting...') : (lang === 'th' ? 'แปลงเก็บถาวร' : 'Store Image')}</span>
+                    </button>
                   )}
+
+                  {/* Upload File Button */}
+                  <label
+                    className="btn btn-secondary btn-sm"
+                    style={{
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      marginBottom: 0
+                    }}
+                    title={lang === 'th' ? 'เลือกไฟล์รูปภาพจากมือถือ / คอมพิวเตอร์' : 'Upload photo from device'}
+                  >
+                    <Upload size={14} color="#2563eb" />
+                    <span>{lang === 'th' ? 'เลือกไฟล์รูป' : 'Upload'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+
+                  {/* Preview Thumbnail */}
+                  {image && (
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <img
+                        src={image}
+                        alt="Preview"
+                        style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '8px',
+                          objectFit: 'cover',
+                          border: '1.5px solid var(--border-color)',
+                          background: '#ffffff',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="text-xxs text-muted mt-1">
+                  {lang === 'th'
+                    ? '💡 คุณสามารถวางลิงก์รูปภาพ, กด "เลือกไฟล์รูป" จากเครื่อง, หรือกด Ctrl+V วางรูปภาพได้ทันที ระบบจะบีบอัดและจัดเก็บรูปภาพไว้อย่างถาวร'
+                    : '💡 Paste an image link, upload a file, or paste from clipboard (Ctrl+V). Image is permanently stored.'}
                 </div>
               </div>
 
