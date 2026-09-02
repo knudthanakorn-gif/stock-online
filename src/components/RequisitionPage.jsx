@@ -748,12 +748,12 @@ export const RequisitionPage = () => {
                     <div className="flex-center gap-1.5">
                       <button
                         type="button"
-                        className={`btn ${isAddingItems ? 'btn-secondary' : 'btn-primary'} btn-xs font-bold flex-center gap-1`}
-                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', borderRadius: '6px' }}
-                        onClick={() => setIsAddingItems(!isAddingItems)}
+                        className="btn btn-secondary btn-xs font-bold flex-center gap-1"
+                        style={{ padding: '0.28rem 0.65rem', fontSize: '0.75rem', borderRadius: '6px' }}
+                        onClick={() => setIsCartOpen(false)}
                       >
-                        <Plus size={14} />
-                        <span>{isAddingItems ? (lang === 'th' ? 'ปิดเมนูเลือก' : 'Close Picker') : (lang === 'th' ? '+ เพิ่มรายการสินค้า' : '+ Add Items')}</span>
+                        <Plus size={13} />
+                        <span>{lang === 'th' ? '+ เลือกสินค้าเพิ่ม' : '+ Add More'}</span>
                       </button>
                       {cart.length > 0 && (
                         <button
@@ -768,84 +768,18 @@ export const RequisitionPage = () => {
                     </div>
                   </div>
 
-                  {/* In-Modal Quick Product Picker */}
-                  {isAddingItems && (
-                    <div className="quick-add-picker-card p-2.5 mb-3" style={{ background: 'var(--bg-surface)', borderRadius: '10px', border: '1.5px solid #fda4af' }}>
-                      <div className="flex-between mb-2">
-                        <span className="text-xs font-bold text-slate-800">🔍 ค้นหาและเลือกอุปกรณ์เพิ่มลงตะกร้า:</span>
-                        <span className="text-xxs text-muted">พร้อมเบิกในคลัง</span>
-                      </div>
-                      <div className="input-icon-wrapper mb-2">
-                        <Search size={14} className="input-icon" />
-                        <input
-                          type="text"
-                          className="form-control form-control-sm with-icon"
-                          placeholder={lang === 'th' ? 'พิมพ์ชื่อสินค้า หรือ รหัส SKU เพื่อค้นหา...' : 'Search item name or SKU...'}
-                          value={addItemSearch}
-                          onChange={(e) => setAddItemSearch(e.target.value)}
-                          style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem 0.35rem 2rem' }}
-                        />
-                      </div>
-                      <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                        {safeProducts
-                          .filter((p) => p.quantity > 0 && (!addItemSearch || p.name.toLowerCase().includes(addItemSearch.toLowerCase()) || p.sku.toLowerCase().includes(addItemSearch.toLowerCase())))
-                          .slice(0, 20)
-                          .map((p) => {
-                            const inCart = cart.find((item) => item.product.id === p.id);
-                            return (
-                              <div
-                                key={p.id}
-                                className="flex-between p-1.5"
-                                style={{
-                                  background: inCart ? '#fff1f2' : 'var(--bg-main)',
-                                  borderRadius: '6px',
-                                  border: inCart ? '1px solid #fecdd3' : '1px solid var(--border-color)',
-                                  fontSize: '0.78rem',
-                                }}
-                              >
-                                <div className="flex-center gap-2" style={{ minWidth: 0 }}>
-                                  <img
-                                    src={p.image || '/images/products/default.jpg'}
-                                    alt=""
-                                    style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px', background: '#ffffff', flexShrink: 0 }}
-                                  />
-                                  <div style={{ minWidth: 0 }}>
-                                    <div className="font-bold text-slate-800 text-truncate" style={{ maxWidth: '210px' }} title={p.name}>
-                                      {p.name}
-                                    </div>
-                                    <div className="text-xxs text-muted font-mono">
-                                      คงเหลือ: <strong className="text-green font-bold">{p.quantity}</strong> {p.unit || 'ชิ้น'}
-                                    </div>
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  className={`btn ${inCart ? 'btn-secondary' : 'btn-primary'} btn-xs font-bold`}
-                                  style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem', flexShrink: 0 }}
-                                  onClick={() => handleAddToCart(p)}
-                                  disabled={inCart && inCart.quantity >= p.quantity}
-                                >
-                                  {inCart ? `+ เพิ่ม (${inCart.quantity})` : '+ ใส่ตะกร้า'}
-                                </button>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Empty Cart Prompt */}
-                  {cart.length === 0 && !isAddingItems ? (
-                    <div style={{ textAlign: 'center', padding: '1.5rem 1rem', background: 'var(--bg-surface)', borderRadius: '10px', border: '1px dashed var(--border-color)' }}>
-                      <p className="text-xs text-muted mb-2.5 font-medium">📭 ยังไม่มีรายการอุปกรณ์ในตะกร้า</p>
+                  {cart.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.75rem 1rem', background: 'var(--bg-surface)', borderRadius: '10px', border: '1px dashed var(--border-color)' }}>
+                      <p className="text-xs text-muted mb-2 font-medium">📭 ยังไม่มีรายการอุปกรณ์ในตะกร้า</p>
                       <button
                         type="button"
                         className="btn btn-primary btn-sm font-bold flex-center gap-1.5"
-                        style={{ margin: '0 auto', padding: '0.45rem 1rem' }}
-                        onClick={() => setIsAddingItems(true)}
+                        style={{ margin: '0 auto', padding: '0.45rem 1.15rem', borderRadius: '8px' }}
+                        onClick={() => setIsCartOpen(false)}
                       >
                         <Plus size={15} />
-                        <span>{lang === 'th' ? '+ คลิกเพื่อเลือกรายการสินค้า' : '+ Pick Items to Add'}</span>
+                        <span>{lang === 'th' ? '+ ไปเลือกสินค้าที่หน้าหลัก' : '+ Browse Catalog'}</span>
                       </button>
                     </div>
                   ) : (
