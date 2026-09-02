@@ -255,7 +255,7 @@ export const Navbar = ({
                   )}
                 </div>
                 <div className="flex-center gap-1">
-                  {onOpenNotificationSettings && (
+                  {onOpenNotificationSettings && user?.role === 'admin' && (
                     <button
                       className="btn-icon-sm"
                       style={{ width: '28px', height: '28px' }}
@@ -263,7 +263,7 @@ export const Navbar = ({
                         setIsNotifOpen(false);
                         onOpenNotificationSettings();
                       }}
-                      title="ตั้งค่า LINE Notify & การแจ้งเตือน"
+                      title={lang === 'th' ? 'ตั้งค่าการแจ้งเตือน (เฉพาะ Admin)' : 'Notification Settings (Admin)'}
                     >
                       <Settings size={14} />
                     </button>

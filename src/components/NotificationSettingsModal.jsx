@@ -19,13 +19,14 @@ export const NotificationSettingsModal = ({ isOpen, onClose }) => {
     updateNotificationSettings,
     sendTestNotification,
     lang,
+    user,
   } = useStock();
 
   const [formData, setFormData] = useState({ ...notificationSettings });
   const [testResult, setTestResult] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  if (!isOpen) return null;
+  if (!isOpen || user?.role !== 'admin') return null;
 
   const handleSave = (e) => {
     e.preventDefault();
