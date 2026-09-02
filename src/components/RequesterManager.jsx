@@ -265,8 +265,8 @@ export const RequesterManager = () => {
 
   const handleDownloadTemplate = () => {
     const headers = ['employeeCode', 'name', 'company', 'department', 'position'];
-    const sample1 = ['EMP-1001', 'คุณสมชาย มั่นคง', 'EXION (THAILAND) COMPANY LIMITED', 'แผนก IT / เทคโนโลยีสารสนเทศ', 'Senior System Engineer'];
-    const sample2 = ['EMP-1006', 'คุณสมชาย มั่นคง', 'EXION (THAILAND) COMPANY LIMITED', 'ฝ่ายผลิตและปฏิบัติการ', 'Production Lead'];
+    const sample1 = ['EMP-1001', 'Somchai Mankhong', 'EXION (THAILAND) COMPANY LIMITED', 'แผนก IT / เทคโนโลยีสารสนเทศ', 'Senior System Engineer'];
+    const sample2 = ['EMP-1006', 'Somchai Mankhong', 'EXION (THAILAND) COMPANY LIMITED', 'ฝ่ายผลิตและปฏิบัติการ', 'Production Lead'];
 
     const csvContent = '\uFEFF' + [headers.join(','), sample1.join(','), sample2.join(',')].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -843,7 +843,7 @@ export const RequesterManager = () => {
                   <input
                     type="text"
                     className="form-control"
-                    placeholder={lang === 'th' ? 'เช่น คุณสมชาย, คุณกิตติพงษ์' : 'e.g. Somchai'}
+                    placeholder={lang === 'th' ? 'เช่น Somchai, Kittipong' : 'e.g. Somchai, Kittipong'}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required

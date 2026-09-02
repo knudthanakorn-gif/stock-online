@@ -158,7 +158,7 @@ export const SupplierManager = () => {
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="เช่น คุณสมชาย ใจดี"
+                    placeholder={lang === 'th' ? 'เช่น Somchai Jaidee' : 'e.g. Somchai Jaidee'}
                     value={formData.contactPerson}
                     onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
                   />

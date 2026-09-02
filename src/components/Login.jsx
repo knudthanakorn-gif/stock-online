@@ -315,7 +315,7 @@ export const Login = () => {
                 <input
                   type="text"
                   className="form-control with-icon"
-                  placeholder={lang === 'th' ? 'เช่น คุณสมชาย, คุณกิตติพงษ์, EMP-1001' : 'Enter name or EMP code...'}
+                  placeholder={lang === 'th' ? 'เช่น Somchai, Kittipong, EMP-1001' : 'e.g. Somchai, Kittipong, EMP-1001'}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   onBlur={handleUsernameBlur}
