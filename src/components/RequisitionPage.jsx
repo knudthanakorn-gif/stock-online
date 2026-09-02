@@ -173,6 +173,25 @@ export const RequisitionPage = () => {
     });
   };
 
+  const handleSetCartQty = (productId, newQty, maxQty) => {
+    const parsed = parseInt(newQty, 10);
+    if (isNaN(parsed) || parsed <= 0) {
+      handleRemoveFromCart(productId);
+      return;
+    }
+    const clampedQty = Math.min(parsed, maxQty || 9999);
+    setCart((prevCart) => {
+      return prevCart
+        .map((item) => {
+          if (item.product.id === productId) {
+            return { ...item, quantity: clampedQty };
+          }
+          return item;
+        })
+        .filter(Boolean);
+    });
+  };
+
   const handleRemoveFromCart = (productId) => {
     setCart((prevCart) => prevCart.filter((item) => item.product.id !== productId));
   };
@@ -472,17 +491,31 @@ export const RequisitionPage = () => {
                             type="button"
                             className="btn-counter-sub"
                             onClick={() => handleUpdateCartQty(prod.id, -1)}
+                            title="ลดจำนวน"
                           >
                             <Minus size={14} />
                           </button>
-                          <span className="cart-counter-val font-bold">
-                            {inCartQty} {prod.unit || 'ชิ้น'} (ในตะกร้า)
-                          </span>
+                          <div className="cart-counter-input-group">
+                            <input
+                              type="number"
+                              min="1"
+                              max={prod.quantity}
+                              value={inCartQty}
+                              onChange={(e) => handleSetCartQty(prod.id, e.target.value, prod.quantity)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="cart-counter-input"
+                              title="คลิกเพื่อพิมพ์จำนวนที่ต้องการ"
+                            />
+                            <span className="cart-counter-unit">
+                              {prod.unit || 'ชิ้น'} (ในตะกร้า)
+                            </span>
+                          </div>
                           <button
                             type="button"
                             className="btn-counter-add"
                             onClick={() => handleUpdateCartQty(prod.id, 1)}
                             disabled={inCartQty >= prod.quantity}
+                            title="เพิ่มจำนวน"
                           >
                             <Plus size={14} />
                           </button>
@@ -775,9 +808,24 @@ export const RequisitionPage = () => {
                             >
                               -
                             </button>
-                            <span className="font-mono font-extrabold text-xs" style={{ width: '24px', textAlign: 'center' }}>
-                              {q}
-                            </span>
+                            <input
+                              type="number"
+                              min="1"
+                              max={p.quantity}
+                              value={q}
+                              onChange={(e) => handleSetCartQty(p.id, e.target.value, p.quantity)}
+                              className="font-mono font-extrabold text-xs"
+                              style={{
+                                width: '36px',
+                                textAlign: 'center',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '4px',
+                                background: 'var(--bg-surface)',
+                                color: 'var(--text-main)',
+                                padding: '2px 0',
+                                outline: 'none',
+                              }}
+                            />
                             <button
                               type="button"
                               className="btn btn-ghost btn-xs"
