@@ -509,7 +509,7 @@ export const RequisitionPage = () => {
                               title="คลิกเพื่อพิมพ์จำนวนที่ต้องการ"
                             />
                             <span className="cart-counter-unit">
-                              {prod.unit || 'ชิ้น'} (ในตะกร้า)
+                              {prod.unit || 'ชิ้น'}
                             </span>
                           </div>
                           <button
