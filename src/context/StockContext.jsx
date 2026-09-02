@@ -80,8 +80,8 @@ const DEFAULT_DEPARTMENT_QUOTAS = {
 
 const DEFAULT_NOTIF_SETTINGS = {
   lineNotifyToken: '',
-  webhookUrl: '',
-  staffNotificationEmail: '',
+  webhookUrl: 'https://script.google.com/macros/s/AKfycbwVkcE33q_irpCPH6k-A0qTAF02ok0NLtMW1zQz-Z33lP7Q8NuV65Ut2dJ9IHJW2ZpS/exec',
+  staffNotificationEmail: 'tks@pdflowtech.com',
   notifyNewReq: true,
   notifyApproval: true,
   notifyLowStock: true,
@@ -408,8 +408,19 @@ export const StockProvider = ({ children }) => {
   });
 
   const [notificationSettings, setNotificationSettings] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.NOTIF_SETTINGS);
-    return saved ? JSON.parse(saved) : DEFAULT_NOTIF_SETTINGS;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.NOTIF_SETTINGS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...DEFAULT_NOTIF_SETTINGS,
+          ...parsed,
+          webhookUrl: parsed.webhookUrl && parsed.webhookUrl.includes('/exec') ? parsed.webhookUrl : DEFAULT_NOTIF_SETTINGS.webhookUrl,
+          staffNotificationEmail: parsed.staffNotificationEmail || DEFAULT_NOTIF_SETTINGS.staffNotificationEmail,
+        };
+      }
+    } catch (e) {}
+    return DEFAULT_NOTIF_SETTINGS;
   });
 
   // Department Quotas State
