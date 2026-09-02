@@ -542,11 +542,6 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
                   ))}
                 </tbody>
               </table>
-              {filteredTransactions.length > 30 && (
-                <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#64748b', marginBottom: '1rem' }}>
-                  * แสดง 30 รายการแรกจากทั้งหมด {filteredTransactions.length} รายการ (ส่งออกไฟล์ CSV เพื่อดูครบทุกรายการ)
-                </div>
-              )}
             </div>
           )}
 
