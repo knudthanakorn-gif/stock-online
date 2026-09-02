@@ -928,6 +928,25 @@ export const UserManager = () => {
                   />
                 </div>
 
+                {/* Email for Requisition Notifications */}
+                <div className="form-group col-span-2">
+                  <label className="form-label flex-between">
+                    <span className="font-bold text-primary flex-center gap-1">
+                      <Mail size={14} color="#4f46e5" />
+                      <span>{lang === 'th' ? 'อีเมลสำหรับรับแจ้งเตือน (Email Notification) *' : 'Email Address'}</span>
+                    </span>
+                    <span className="text-xxs text-muted font-normal">ระบบจะส่งเมลแจ้งเตือนการเบิกของไปที่เมลนี้</span>
+                  </label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    style={{ borderColor: '#818cf8', background: '#f8fafc' }}
+                    placeholder="เช่น employee@pdflowtech.com หรือ user@gmail.com"
+                    value={formData.email || ''}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+
                 {/* Username */}
                 <div className="form-group">
                   <label className="form-label">{lang === 'th' ? 'ชื่อผู้ใช้ (Username) *' : 'Username *'}</label>
@@ -1001,24 +1020,6 @@ export const UserManager = () => {
                     placeholder="เช่น Senior Engineer"
                     value={formData.position}
                     onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                  />
-                </div>
-
-                {/* Email for Requisition Notifications */}
-                <div className="form-group col-span-2">
-                  <label className="form-label flex-between">
-                    <span className="font-bold text-primary flex-center gap-1">
-                      <Mail size={14} />
-                      <span>{lang === 'th' ? 'อีเมลสำหรับรับแจ้งเตือน (Email Notification) *' : 'Email Address'}</span>
-                    </span>
-                    <span className="text-xxs text-muted font-normal">ระบบจะส่งเมลแจ้งเตือนการเบิกของไปที่เมลนี้</span>
-                  </label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    placeholder="เช่น employee@pdflowtech.com หรือ user@gmail.com"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
                 </div>
               </div>
