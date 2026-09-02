@@ -205,28 +205,54 @@ export const mapRequestToDb = (req) => ({
   updated_at: new Date().toISOString(),
 });
 
-export const mapNotificationFromDb = (row) => ({
-  id: row.id,
-  type: row.type,
-  title: row.title,
-  message: row.message,
-  linkTab: row.link_tab || row.linkTab,
-  targetUser: row.target_user || row.targetUser || null,
-  targetRole: row.target_role || row.targetRole || null,
-  read: row.read ?? false,
-  createdAt: row.created_at,
-});
+export const mapNotificationFromDb = (row) => {
+  let msg = row.message || '';
+  let targetUser = row.target_user || null;
+  let targetRole = row.target_role || null;
 
-export const mapNotificationToDb = (n) => ({
-  id: n.id,
-  type: n.type,
-  title: n.title,
-  message: n.message,
-  link_tab: n.linkTab || n.link_tab || '',
-  target_user: n.targetUser || n.target_user || null,
-  target_role: n.targetRole || n.target_role || null,
-  read: n.read ?? false,
-});
+  const targetUserMatch = msg.match(/\[targetUser:(.+?)\]/);
+  if (targetUserMatch) {
+    targetUser = targetUserMatch[1];
+    msg = msg.replace(targetUserMatch[0], '').trim();
+  }
+
+  const targetRoleMatch = msg.match(/\[targetRole:(.+?)\]/);
+  if (targetRoleMatch) {
+    targetRole = targetRoleMatch[1];
+    msg = msg.replace(targetRoleMatch[0], '').trim();
+  }
+
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    message: msg,
+    linkTab: row.link_tab || row.linkTab,
+    targetUser,
+    targetRole,
+    read: row.read ?? false,
+    createdAt: row.created_at,
+  };
+};
+
+export const mapNotificationToDb = (n) => {
+  let msg = n.message || '';
+  if (n.targetUser && !msg.includes(`[targetUser:`)) {
+    msg += ` [targetUser:${n.targetUser}]`;
+  }
+  if (n.targetRole && !msg.includes(`[targetRole:`)) {
+    msg += ` [targetRole:${n.targetRole}]`;
+  }
+  return {
+    id: n.id,
+    type: n.type,
+    title: n.title,
+    message: msg,
+    link_tab: n.linkTab || n.link_tab || '',
+    read: n.read ?? false,
+    created_at: n.createdAt || n.created_at || new Date().toISOString(),
+  };
+};
 
 // Seed data function if Supabase is completely fresh/empty
 export const seedInitialDataIfEmpty = async () => {
