@@ -74,8 +74,14 @@ const generateEmailTemplate = ({ title, badgeText, badgeColor = '#4f46e5', bodyH
 export const dispatchEmail = async ({ to, subject, htmlContent, webhookUrl, metadata = {} }) => {
   if (!to && !webhookUrl) return false;
 
+  const recipients = Array.isArray(to)
+    ? to
+    : typeof to === 'string'
+    ? to.split(/[,;\n\r]+/).map((s) => s.trim()).filter(Boolean)
+    : [to];
+
   const payload = {
-    to: Array.isArray(to) ? to : [to],
+    to: recipients,
     subject,
     html: htmlContent,
     sentAt: new Date().toISOString(),
