@@ -753,14 +753,25 @@ export const StockProvider = ({ children }) => {
       read: false,
     };
     setNotifications(prev => [newNotif, ...prev.slice(0, 49)]); // Keep recent 50
+
+    // Persist to Supabase so polling does not erase it
+    supabase.from('notifications').upsert(mapNotificationToDb(newNotif)).then(({ error }) => {
+      if (error) console.error('Supabase notif upsert error:', error);
+    });
   };
 
   const markNotificationAsRead = (id) => {
     setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
+    supabase.from('notifications').update({ read: true }).eq('id', id).then(({ error }) => {
+      if (error) console.error('Supabase mark notif read error:', error);
+    });
   };
 
   const markAllNotificationsAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    supabase.from('notifications').update({ read: true }).neq('id', '').then(({ error }) => {
+      if (error) console.error('Supabase mark all notif read error:', error);
+    });
   };
 
   const clearAllNotifications = () => {

@@ -211,6 +211,8 @@ export const mapNotificationFromDb = (row) => ({
   title: row.title,
   message: row.message,
   linkTab: row.link_tab || row.linkTab,
+  targetUser: row.target_user || row.targetUser || null,
+  targetRole: row.target_role || row.targetRole || null,
   read: row.read ?? false,
   createdAt: row.created_at,
 });
@@ -221,6 +223,8 @@ export const mapNotificationToDb = (n) => ({
   title: n.title,
   message: n.message,
   link_tab: n.linkTab || n.link_tab || '',
+  target_user: n.targetUser || n.target_user || null,
+  target_role: n.targetRole || n.target_role || null,
   read: n.read ?? false,
 });
 
