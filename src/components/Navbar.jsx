@@ -56,7 +56,44 @@ export const Navbar = ({
   const notifRef = useRef(null);
   const profileRef = useRef(null);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // Filter notifications according to user role & identity
+  const filteredNotifications = notifications.filter((n) => {
+    if (!user) return true;
+
+    // Admin & Staff see warehouse notifications (requests, low stock, audits) + global + their own
+    if (user.role === 'admin' || user.role === 'staff') {
+      return (
+        !n.targetRole ||
+        n.targetRole === 'admin' ||
+        n.targetRole === 'all' ||
+        (n.targetUser &&
+          ((user.name && n.targetUser.toLowerCase() === user.name.toLowerCase()) ||
+            (user.username && n.targetUser.toLowerCase() === user.username.toLowerCase())))
+      );
+    }
+
+    // Regular Employee (User / Viewer):
+    // ONLY sees notifications specifically addressed to their name / requests!
+    // Exclude warehouse-only alerts like new requests from others or low stock warnings
+    if (n.type === 'NEW_REQUEST' || n.type === 'LOW_STOCK' || n.type === 'STOCK_AUDIT') {
+      return false;
+    }
+
+    const userName = (user.name || '').trim().toLowerCase();
+    const userCode = (user.employeeCode || '').trim().toLowerCase();
+    const target = (n.targetUser || '').trim().toLowerCase();
+    const msg = (n.message || '').toLowerCase();
+    const title = (n.title || '').toLowerCase();
+
+    return (
+      (target && (target === userName || (userCode && target === userCode))) ||
+      (userName && (msg.includes(userName) || title.includes(userName))) ||
+      n.targetRole === 'user' ||
+      n.targetRole === 'all'
+    );
+  });
+
+  const unreadCount = filteredNotifications.filter((n) => !n.read).length;
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -231,7 +268,7 @@ export const Navbar = ({
                       <Settings size={14} />
                     </button>
                   )}
-                  {notifications.length > 0 && (
+                  {filteredNotifications.length > 0 && (
                     <button
                       className="btn-icon-sm"
                       style={{ width: '28px', height: '28px' }}
@@ -245,12 +282,12 @@ export const Navbar = ({
               </div>
 
               <div className="dropdown-body" style={{ overflowY: 'auto', flex: 1, padding: '0.5rem' }}>
-                {notifications.length === 0 ? (
+                {filteredNotifications.length === 0 ? (
                   <div className="dropdown-empty text-center py-6 text-muted text-xs">
                     {lang === 'th' ? 'ไม่มีรายการแจ้งเตือนในขณะนี้ 🎉' : 'No notifications!'}
                   </div>
                 ) : (
-                  notifications.map((n) => (
+                  filteredNotifications.map((n) => (
                     <div
                       key={n.id}
                       className={`notif-item ${!n.read ? 'unread' : ''}`}
@@ -282,7 +319,7 @@ export const Navbar = ({
                 )}
               </div>
 
-              {notifications.length > 0 && (
+              {filteredNotifications.length > 0 && (
                 <div
                   className="dropdown-footer flex-between"
                   style={{

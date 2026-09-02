@@ -723,13 +723,15 @@ export const StockProvider = ({ children }) => {
   const toggleLang = () => setLang(prev => (prev === 'th' ? 'en' : 'th'));
 
   // Notification Helpers
-  const addNotification = ({ type = 'INFO', title, message, linkTab = 'dashboard' }) => {
+  const addNotification = ({ type = 'INFO', title, message, linkTab = 'dashboard', targetUser = null, targetRole = null }) => {
     const newNotif = {
       id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       type,
       title,
       message,
       linkTab,
+      targetUser,
+      targetRole,
       createdAt: new Date().toISOString(),
       read: false,
     };
@@ -1319,6 +1321,7 @@ export const StockProvider = ({ children }) => {
         title: '⚠️ สินค้าใกล้หมดสต็อก',
         message: `อุปกรณ์ "${product.name}" คงเหลือเพียง ${newQty} ${product.unit || 'ชิ้น'} (ต่ำกว่าเกณฑ์ ${product.minThreshold || 5})`,
         linkTab: 'inventory',
+        targetRole: 'admin',
       });
     }
 
@@ -1444,13 +1447,14 @@ export const StockProvider = ({ children }) => {
       if (error) console.error('Supabase request create error:', error);
     });
 
-    // Send In-App Notification
+    // Send In-App Notification (For Staff/Admin)
     const itemCount = items.reduce((sum, it) => sum + it.quantity, 0);
     addNotification({
       type: 'NEW_REQUEST',
       title: '📑 มีคำขอเบิกอุปกรณ์ใหม่',
       message: `${newReq.requesterName} (${newReq.requesterDept || newReq.requesterCompany}) ส่งคำขอเบิก ${itemCount} ชิ้น [${refNo}]`,
       linkTab: 'approvals',
+      targetRole: 'admin',
     });
 
     return newReq;
@@ -1515,9 +1519,11 @@ export const StockProvider = ({ children }) => {
 
     addNotification({
       type: 'APPROVED',
-      title: '✅ อนุมัติคำขอเบิกแล้ว',
-      message: `คำขอ [${targetReq.refNo}] ของคุณ ${targetReq.requesterName} ได้รับการอนุมัติและตัดสต็อกแล้ว`,
+      title: '✅ คำขอเบิกได้รับการอนุมัติ',
+      message: `คำขอ [${targetReq.refNo}] ของคุณได้รับการอนุมัติและจ่ายของเรียบร้อย`,
       linkTab: 'request-qr',
+      targetUser: targetReq.requesterName,
+      targetRole: 'user',
     });
 
     return true;
@@ -1548,8 +1554,10 @@ export const StockProvider = ({ children }) => {
       addNotification({
         type: 'REJECTED',
         title: '❌ คำขอเบิกไม่อนุมัติ',
-        message: `คำขอ [${targetReq.refNo}] ของคุณ ${targetReq.requesterName} ถูกปฏิเสธ: ${rejectionReason || 'ไม่ระบุเหตุผล'}`,
+        message: `คำขอ [${targetReq.refNo}] ถูกปฏิเสธ: ${rejectionReason || 'ไม่ระบุเหตุผล'}`,
         linkTab: 'request-qr',
+        targetUser: targetReq.requesterName,
+        targetRole: 'user',
       });
     }
 
