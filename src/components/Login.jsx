@@ -309,13 +309,13 @@ export const Login = () => {
           ) : (
             /* Username Input */
             <div className="form-group mb-3">
-              <label className="form-label">{lang === 'th' ? '1️⃣ ชื่อจริงผู้เบิก / รหัสพนักงาน' : '1️⃣ Name / Employee Code'}</label>
+              <label className="form-label">{lang === 'th' ? '1️⃣ ชื่อจริงผู้เบิก' : '1️⃣ Requester First Name'}</label>
               <div className="input-icon-wrapper">
                 <User size={18} className="input-icon" />
                 <input
                   type="text"
                   className="form-control with-icon"
-                  placeholder={lang === 'th' ? 'เช่น Somchai, Kittipong, EMP-1001' : 'e.g. Somchai, Kittipong, EMP-1001'}
+                  placeholder={lang === 'th' ? 'เช่น Somchai, Kittipong' : 'e.g. Somchai, Kittipong'}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   onBlur={handleUsernameBlur}
