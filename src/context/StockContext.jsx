@@ -40,7 +40,7 @@ const STORAGE_KEYS = {
   THEME: 'stock_online_theme',
   LANG: 'stock_online_lang',
   AUTH_USER: 'stock_online_user_v1',
-  NOTIFICATIONS: 'stock_online_notifications_v1',
+  NOTIFICATIONS: 'stock_online_notifications_v2',
   NOTIF_SETTINGS: 'stock_online_notif_settings_v1',
   DEPT_QUOTAS: 'stock_online_dept_quotas_v1',
 };
@@ -386,8 +386,15 @@ export const StockProvider = ({ children }) => {
 
   // Notifications State
   const [notifications, setNotifications] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
-    return saved !== null ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
+    try {
+      localStorage.removeItem('stock_online_notifications_v1'); // Purge legacy cache
+      const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return (parsed || []).filter(n => !['notif-1', 'notif-2', 'notif-3', 'notif-4'].includes(n.id) && !n.message?.includes('คุณสมชาย') && !n.message?.includes('คุณวิภาวรรณ'));
+      }
+    } catch (e) {}
+    return [];
   });
 
   const [notificationSettings, setNotificationSettings] = useState(() => {
@@ -549,7 +556,7 @@ export const StockProvider = ({ children }) => {
       if (requestsRes.status === 'fulfilled' && requestsRes.value.data && requestsRes.value.data.length > 0) {
         setRequests(requestsRes.value.data.map(mapRequestFromDb));
       }
-      if (notifRes.status === 'fulfilled' && notifRes.value.data && notifRes.value.data.length > 0) {
+      if (notifRes.status === 'fulfilled' && notifRes.value.data) {
         setNotifications(notifRes.value.data.map(mapNotificationFromDb));
       }
     } catch (err) {
