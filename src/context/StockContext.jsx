@@ -1749,13 +1749,20 @@ export const StockProvider = ({ children }) => {
       notifications,
     };
     const jsonStr = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `stock_online_backup_${new Date().toISOString().slice(0, 10)}_${Date.now().toString().slice(-4)}.json`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      try {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {}
+    }, 1000);
     return true;
   };
 
@@ -1990,6 +1997,8 @@ export const StockProvider = ({ children }) => {
         getDepartmentUsageThisMonth,
         exportSystemBackup,
         importSystemBackup,
+        exportDataJSON: exportSystemBackup,
+        importDataJSON: importSystemBackup,
         syncLocalToSupabase,
         clearAllData,
         resetToSampleData,
