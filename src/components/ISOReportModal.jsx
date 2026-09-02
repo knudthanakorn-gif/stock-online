@@ -36,10 +36,68 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
   // 'FM-WH-003': Master Asset Register
   // 'FM-WH-004': Department Quota & Resource Consumption
 
-  const [dateRange, setDateRange] = useState('ALL'); // 'ALL' | 'THIS_MONTH' | 'LAST_30' | 'LAST_90'
+  const THAI_MONTHS = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+
+  // Default to THIS_MONTH so user sees a clean, concise monthly report by default
+  const [dateRange, setDateRange] = useState('THIS_MONTH'); // 'THIS_MONTH' | 'YYYY-MM' | 'CUSTOM' | 'LAST_30' | 'LAST_90' | 'ALL'
+  const [customMonth, setCustomMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [departmentFilter, setDepartmentFilter] = useState('ALL');
   const [docRevNo, setDocRevNo] = useState('Rev. 02');
   const [effectiveDate, setEffectiveDate] = useState('01/01/2026');
+
+  // Dynamic available months from transactions + current year
+  const availableMonths = (() => {
+    const monthsMap = new Map();
+    const curr = new Date();
+    // Add current year months up to current
+    for (let m = 0; m <= curr.getMonth(); m++) {
+      const key = `${curr.getFullYear()}-${String(m + 1).padStart(2, '0')}`;
+      monthsMap.set(key, { year: curr.getFullYear(), month: m });
+    }
+    // Add months found in transactions
+    transactions.forEach((t) => {
+      if (t.date) {
+        const d = new Date(t.date);
+        if (!isNaN(d.getTime())) {
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          if (!monthsMap.has(key)) {
+            monthsMap.set(key, { year: d.getFullYear(), month: d.getMonth() });
+          }
+        }
+      }
+    });
+    return Array.from(monthsMap.entries())
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([key, val]) => ({
+        key,
+        labelTh: `${THAI_MONTHS[val.month]} ${val.year + 543}`,
+        labelEn: `${new Date(val.year, val.month).toLocaleString('en-US', { month: 'short' })} ${val.year}`,
+      }));
+  })();
+
+  const getPeriodLabel = () => {
+    if (dateRange === 'THIS_MONTH') {
+      const curr = new Date();
+      return `ประจำเดือน ${THAI_MONTHS[curr.getMonth()]} ${curr.getFullYear() + 543}`;
+    }
+    if (dateRange === 'CUSTOM' && customMonth) {
+      const [y, m] = customMonth.split('-').map(Number);
+      return `ประจำเดือน ${THAI_MONTHS[m - 1]} ${y + 543}`;
+    }
+    if (/^\d{4}-\d{2}$/.test(dateRange)) {
+      const [y, m] = dateRange.split('-').map(Number);
+      return `ประจำเดือน ${THAI_MONTHS[m - 1]} ${y + 543}`;
+    }
+    if (dateRange === 'LAST_30') return 'ย้อนหลัง 30 วัน';
+    if (dateRange === 'LAST_90') return 'ย้อนหลัง 90 วัน';
+    return 'ข้อมูลสะสมทั้งหมด';
+  };
 
   useEffect(() => {
     if (initialFormType) {
@@ -67,17 +125,25 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
 
   if (!isOpen) return null;
 
-  // Filter transactions by date range
+  // Filter transactions by date range / selected month
   const now = Date.now();
   const DAY_MS = 86400000;
 
   const filteredTransactions = transactions.filter((tx) => {
     if (!tx.date) return true;
-    const txTime = new Date(tx.date).getTime();
+    const txDate = new Date(tx.date);
+    if (isNaN(txDate.getTime())) return true;
+    const txTime = txDate.getTime();
+
     if (dateRange === 'THIS_MONTH') {
-      const txDate = new Date(tx.date);
       const curr = new Date();
       if (txDate.getMonth() !== curr.getMonth() || txDate.getFullYear() !== curr.getFullYear()) return false;
+    } else if (dateRange === 'CUSTOM' && customMonth) {
+      const [y, m] = customMonth.split('-').map(Number);
+      if (txDate.getFullYear() !== y || txDate.getMonth() + 1 !== m) return false;
+    } else if (/^\d{4}-\d{2}$/.test(dateRange)) {
+      const [y, m] = dateRange.split('-').map(Number);
+      if (txDate.getFullYear() !== y || txDate.getMonth() + 1 !== m) return false;
     } else if (dateRange === 'LAST_30') {
       if (now - txTime > DAY_MS * 30) return false;
     } else if (dateRange === 'LAST_90') {
@@ -90,9 +156,9 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
     return true;
   });
 
-  const totalInQty = filteredTransactions.filter(t => t.type === 'IN').reduce((sum, t) => sum + (t.quantity || 0), 0);
-  const totalOutQty = filteredTransactions.filter(t => t.type === 'OUT').reduce((sum, t) => sum + (t.quantity || 0), 0);
-  const totalOutValue = filteredTransactions.filter(t => t.type === 'OUT').reduce((sum, t) => sum + ((t.quantity || 0) * (t.unitPrice || 0)), 0);
+  const totalInQty = filteredTransactions.filter((t) => t.type === 'IN').reduce((sum, t) => sum + (t.quantity || 0), 0);
+  const totalOutQty = filteredTransactions.filter((t) => t.type === 'OUT').reduce((sum, t) => sum + (t.quantity || 0), 0);
+  const totalOutValue = filteredTransactions.filter((t) => t.type === 'OUT').reduce((sum, t) => sum + ((t.quantity || 0) * (t.unitPrice || 0)), 0);
 
   // Form metadata
   const FORM_METADATA = {
@@ -201,6 +267,7 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
     const metadataHeader = [
       `"ISO FORM EXPORT: ${currentForm.titleTh}"`,
       `"DOCUMENT CODE: ${currentForm.code} | ${docRevNo} | EFFECTIVE: ${effectiveDate}"`,
+      `"PERIOD / AUDIT SCOPE: ${getPeriodLabel()}"`,
       `"ORGANIZATION: บริษัท เอ็กซิออน (ประเทศไทย) จำกัด / EXION (THAILAND) CO., LTD."`,
       `"EXPORT DATE: ${new Date().toLocaleString('th-TH')}"`,
       '',
@@ -304,18 +371,38 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             {formType === 'FM-WH-001' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#ffffff', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>ช่วงเวลา:</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>📅 ประจำงวด/เดือน:</span>
                 <select
                   className="form-control"
-                  style={{ width: '130px', padding: '0.15rem 0.4rem', height: '26px', fontSize: '0.75rem', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                  style={{ width: '180px', padding: '0.15rem 0.4rem', height: '26px', fontSize: '0.75rem', border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 600 }}
                   value={dateRange}
                   onChange={(e) => setDateRange(e.target.value)}
                 >
-                  <option value="ALL">ข้อมูลสะสมทั้งหมด</option>
-                  <option value="THIS_MONTH">ประจำเดือนนี้</option>
-                  <option value="LAST_30">ย้อนหลัง 30 วัน</option>
-                  <option value="LAST_90">ย้อนหลัง 90 วัน</option>
+                  <option value="THIS_MONTH">📍 เดือนนี้ ({THAI_MONTHS[new Date().getMonth()]} {new Date().getFullYear() + 543})</option>
+                  <optgroup label="── เลือกรายเดือน (Monthly Period) ──">
+                    {availableMonths.map((m) => (
+                      <option key={m.key} value={m.key}>
+                        📅 {m.labelTh}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="── ตัวเลือกอื่นๆ ──">
+                    <option value="CUSTOM">🗓️ กำหนดเดือนเอง (Custom Month)...</option>
+                    <option value="LAST_30">ย้อนหลัง 30 วัน</option>
+                    <option value="LAST_90">ย้อนหลัง 90 วัน</option>
+                    <option value="ALL">ข้อมูลสะสมทั้งหมด (All Time)</option>
+                  </optgroup>
                 </select>
+
+                {dateRange === 'CUSTOM' && (
+                  <input
+                    type="month"
+                    className="form-control"
+                    style={{ width: '130px', padding: '0.1rem 0.35rem', height: '26px', fontSize: '0.75rem', border: '1px solid #94a3b8', borderRadius: '4px' }}
+                    value={customMonth}
+                    onChange={(e) => setCustomMonth(e.target.value)}
+                  />
+                )}
               </div>
             )}
 
@@ -384,7 +471,7 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
               <div><strong>วันที่พิมพ์รายงาน:</strong> {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
             </div>
             <div className="flex-between mt-0.5 text-xs text-slate-600">
-              <div><strong>ขอบเขตข้อมูล:</strong> {dateRange === 'ALL' ? 'ข้อมูลสะสมทั้งหมด' : dateRange === 'THIS_MONTH' ? 'ประจำเดือนปัจจุบัน' : dateRange === 'LAST_30' ? 'ย้อนหลัง 30 วัน' : 'ย้อนหลัง 90 วัน'}</div>
+              <div><strong>ขอบเขตข้อมูล / ประจำงวด:</strong> {getPeriodLabel()}</div>
               <div>
                 <strong>ผู้จัดพิมพ์:</strong>{' '}
                 {(user?.name || 'สมชาย มั่นคง')
@@ -432,7 +519,7 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
                 </thead>
                 <tfoot><tr className="print-spacer-row"><td colSpan={8} className="print-spacer-cell" /></tr></tfoot>
                 <tbody>
-                  {filteredTransactions.slice(0, 30).map((tx, idx) => (
+                  {filteredTransactions.map((tx, idx) => (
                     <tr key={tx.id}>
                       <td style={{ textAlign: 'center', color: '#64748b' }}>{idx + 1}</td>
                       <td style={{ fontSize: '0.72rem', fontFamily: 'monospace' }}>
