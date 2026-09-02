@@ -1673,7 +1673,7 @@ tr.print-table-top-spacer {
     color: #000000 !important;
     width: 100% !important;
     height: auto !important;
-    min-height: 100% !important;
+    min-height: 0 !important;
     overflow: visible !important;
     font-size: 8.5pt !important;
   }

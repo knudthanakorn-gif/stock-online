@@ -299,6 +299,55 @@ export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
             </div>
           </div>
         </div>
+
+        {/* PRINT CSS STYLES FOR EXACT SINGLE A4 PAGE */}
+        <style>{`
+          @media print {
+            @page {
+              size: A4 portrait;
+              margin: 0 !important;
+            }
+            html, body {
+              height: auto !important;
+              min-height: 0 !important;
+              max-height: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              overflow: hidden !important;
+              background: #ffffff !important;
+              color: #000000 !important;
+            }
+            .requisition-slip-overlay,
+            .requisition-slip-modal {
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              max-width: 100% !important;
+            }
+            .slip-printable-area {
+              padding: 10mm 15mm !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              box-sizing: border-box !important;
+              margin: 0 !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              page-break-after: avoid !important;
+              page-break-before: avoid !important;
+            }
+            .slip-signatures-grid {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              margin-top: 1.25rem !important;
+            }
+            .no-print {
+              display: none !important;
+            }
+          }
+        `}</style>
       </div>
     </div>
   );
