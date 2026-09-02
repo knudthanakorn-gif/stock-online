@@ -933,6 +933,22 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
               margin-top: 15px !important;
             }
           }
+
+          @media screen and (max-width: 768px) {
+            .modal-content.modal-xl {
+              width: 96vw !important;
+              max-width: 96vw !important;
+              margin: 0.5rem auto !important;
+              max-height: 96vh !important;
+            }
+            .modal-header {
+              padding: 0.75rem 1rem !important;
+            }
+            .iso-printable-sheet {
+              padding: 0.85rem !important;
+              overflow-x: auto !important;
+            }
+          }
         `}</style>
       </div>
     </div>
