@@ -532,7 +532,7 @@ export const RequisitionPage = () => {
                           <span>
                             {isOut
                               ? (lang === 'th' ? 'อุปกรณ์หมด' : 'Out of Stock')
-                              : (lang === 'th' ? '+ เบิกอุปกรณ์' : '+ Requisition')}
+                              : (lang === 'th' ? 'เบิกอุปกรณ์' : 'Requisition')}
                           </span>
                         </button>
                       )}
@@ -753,7 +753,7 @@ export const RequisitionPage = () => {
                         onClick={() => setIsCartOpen(false)}
                       >
                         <Plus size={13} />
-                        <span>{lang === 'th' ? '+ เลือกสินค้าเพิ่ม' : '+ Add More'}</span>
+                        <span>{lang === 'th' ? 'เลือกสินค้าเพิ่ม' : 'Add More'}</span>
                       </button>
                       {cart.length > 0 && (
                         <button
@@ -779,7 +779,7 @@ export const RequisitionPage = () => {
                         onClick={() => setIsCartOpen(false)}
                       >
                         <Plus size={15} />
-                        <span>{lang === 'th' ? '+ ไปเลือกสินค้าที่หน้าหลัก' : '+ Browse Catalog'}</span>
+                        <span>{lang === 'th' ? 'ไปเลือกสินค้าที่หน้าหลัก' : 'Browse Catalog'}</span>
                       </button>
                     </div>
                   ) : (

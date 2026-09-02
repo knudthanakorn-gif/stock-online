@@ -126,7 +126,7 @@ export const ProductList = ({
                 </button>
                 <button className="btn btn-primary" onClick={onOpenAddModal}>
                   <Plus size={18} />
-                  <span>{lang === 'th' ? '+ เพิ่มอุปกรณ์ใหม่' : '+ Add Asset'}</span>
+                  <span>{lang === 'th' ? 'เพิ่มอุปกรณ์ใหม่' : 'Add Asset'}</span>
                 </button>
               </>
             )}
