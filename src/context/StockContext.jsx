@@ -747,13 +747,34 @@ export const StockProvider = ({ children }) => {
   };
 
   const clearAllNotifications = () => {
-    setNotifications([]);
-    try {
-      localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
-    } catch (e) {}
-    supabase.from('notifications').delete().neq('id', 'never_match').then(({ error }) => {
-      if (error) console.error('Supabase clear notifications error:', error);
-    });
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+
+    const userName = (user.name || '').trim().toLowerCase();
+
+    if (user.role === 'admin' || user.role === 'staff') {
+      // Admin/Staff clears warehouse notifications without touching individual employees' personal alerts
+      setNotifications(prev => prev.filter(n => n.targetRole === 'user' && n.targetUser && n.targetUser.toLowerCase() !== userName));
+      supabase.from('notifications').delete().or('target_role.eq.admin,target_role.eq.all,target_role.is.null').then(({ error }) => {
+        if (error) console.error('Supabase clear admin notifications error:', error);
+      });
+    } else {
+      // Regular employee ONLY clears their own personal notifications
+      setNotifications(prev => prev.filter(n => {
+        const target = (n.targetUser || '').trim().toLowerCase();
+        const msg = (n.message || '').toLowerCase();
+        const title = (n.title || '').toLowerCase();
+        const isMine = (target && target === userName) || (userName && (msg.includes(userName) || title.includes(userName)));
+        return !isMine;
+      }));
+      if (user.name) {
+        supabase.from('notifications').delete().ilike('target_user', user.name).then(({ error }) => {
+          if (error) console.error('Supabase clear user notifications error:', error);
+        });
+      }
+    }
   };
 
   const updateNotificationSettings = (newSettings) => {
