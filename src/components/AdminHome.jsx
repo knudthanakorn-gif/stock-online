@@ -346,7 +346,7 @@ export const AdminHome = ({
                           className="btn btn-sm btn-success"
                           onClick={onOpenStockIn}
                         >
-                          <PlusCircle size={14} /> + เติม
+                          <PlusCircle size={14} /> {lang === 'th' ? 'เติมสต็อก' : 'Restock'}
                         </button>
                       </td>
                     </tr>
@@ -379,7 +379,7 @@ export const AdminHome = ({
                       className="btn btn-xs btn-success font-bold"
                       onClick={onOpenStockIn}
                     >
-                      <PlusCircle size={13} /> + เติม
+                      <PlusCircle size={13} /> {lang === 'th' ? 'เติมสต็อก' : 'Restock'}
                     </button>
                   </div>
                 </div>

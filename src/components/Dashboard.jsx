@@ -1165,7 +1165,7 @@ export const Dashboard = ({ onOpenStockIn, setSelectedProductId, setActiveTab })
                               onOpenStockIn();
                             }}
                           >
-                            <PlusCircle size={13} /> + เติม
+                            <PlusCircle size={13} /> {lang === 'th' ? 'เติมสต็อก' : 'Restock'}
                           </button>
                         )}
                       </div>

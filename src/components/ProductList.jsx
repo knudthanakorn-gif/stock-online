@@ -265,24 +265,27 @@ export const ProductList = ({
                           {user?.role !== 'user' && user?.role !== 'viewer' && (
                             <button
                               className="btn btn-xs btn-success"
-                              title={lang === 'th' ? 'รับเข้าอุปกรณ์' : 'Restock'}
+                              title={lang === 'th' ? 'รับเข้าอุปกรณ์ (+)' : 'Restock (+)'}
                               onClick={() => {
                                 setSelectedProductId(prod.id);
                                 onOpenStockIn();
                               }}
                             >
-                              <PlusCircle size={14} /> +
+                              <PlusCircle size={15} />
                             </button>
                           )}
                           <button
                             className="btn btn-xs btn-danger"
-                            title={lang === 'th' ? 'ขอเบิกอุปกรณ์' : 'Requisition'}
+                            title={lang === 'th' ? 'ขอเบิกอุปกรณ์ (-)' : 'Requisition (-)'}
                             onClick={() => {
                               setSelectedProductId(prod.id);
                               onOpenStockOut();
                             }}
                           >
-                            <MinusCircle size={14} /> {user?.role === 'user' || user?.role === 'viewer' ? (lang === 'th' ? 'ขอเบิก' : 'Requisition') : '-'}
+                            <MinusCircle size={15} />
+                            {user?.role === 'user' || user?.role === 'viewer' ? (
+                              <span>{lang === 'th' ? ' ขอเบิก' : ' Requisition'}</span>
+                            ) : null}
                           </button>
                         </div>
                       </td>
