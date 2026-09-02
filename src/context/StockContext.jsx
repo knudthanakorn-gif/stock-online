@@ -798,14 +798,37 @@ export const StockProvider = ({ children }) => {
     setNotificationSettings(prev => ({ ...prev, ...newSettings }));
   };
 
-  const sendTestNotification = (channel = 'LINE') => {
+  const sendTestNotification = async (channel = 'Email & In-App') => {
     const testMsg = `🔔 [ทดสอบการแจ้งเตือน] ระบบ Stock Online พร้อมใช้งาน (ทดสอบเมื่อ ${new Date().toLocaleTimeString('th-TH')})`;
+    
+    // 1. In-App Notification
     addNotification({
       type: 'INFO',
-      title: `ทดสอบแจ้งเตือน ${channel}`,
+      title: `🔔 ทดสอบแจ้งเตือน ${channel}`,
       message: testMsg,
       linkTab: 'dashboard',
+      targetRole: 'admin',
     });
+
+    // 2. Dispatch Email & Webhook
+    const targetEmail = notificationSettings.staffNotificationEmail || user?.email;
+    if (targetEmail || notificationSettings.webhookUrl) {
+      await dispatchEmail({
+        to: targetEmail,
+        subject: `🔔 [ทดสอบระบบ] การแจ้งเตือนจากระบบ Stock Online`,
+        htmlContent: `
+          <div style="font-family: sans-serif; padding: 20px; background: #f8fafc; border-radius: 8px;">
+            <h2 style="color: #4f46e5;">📦 Stock Online Enterprise</h2>
+            <p>นี่คือข้อความทดสอบการแจ้งเตือนอัตโนมัติจากระบบเบิกจ่ายพัสดุ</p>
+            <p><strong>เวลาที่ทดสอบ:</strong> ${new Date().toLocaleString('th-TH')}</p>
+            <p style="color: #10b981; font-weight: bold;">✅ การเชื่อมต่อระบบแจ้งเตือนพร้อมใช้งาน!</p>
+          </div>
+        `,
+        webhookUrl: notificationSettings.webhookUrl,
+        metadata: { event: 'TEST_NOTIFICATION' },
+      });
+    }
+
     return true;
   };
 
