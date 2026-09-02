@@ -335,7 +335,7 @@ export const Navbar = ({
                   >
                     <Trash2 size={12} /> {lang === 'th' ? 'ล้างการแจ้งเตือน' : 'Clear All'}
                   </button>
-                  {onOpenNotificationSettings && (
+                  {onOpenNotificationSettings && user?.role === 'admin' && (
                     <button
                       type="button"
                       className="btn btn-ghost btn-xs text-primary font-bold"
@@ -344,7 +344,7 @@ export const Navbar = ({
                         onOpenNotificationSettings();
                       }}
                     >
-                      <Settings size={12} /> {lang === 'th' ? 'ตั้งค่า LINE' : 'LINE Settings'}
+                      <Settings size={12} /> {lang === 'th' ? 'ตั้งค่าการแจ้งเตือน' : 'Notification Settings'}
                     </button>
                   )}
                 </div>
