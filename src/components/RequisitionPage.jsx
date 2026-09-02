@@ -40,6 +40,7 @@ export const RequisitionPage = () => {
     products = [],
     categories = [],
     requestersList = [],
+    usersList = [],
     requests = [],
     createRequisitionRequest,
     cancelRequisitionRequest,
@@ -97,7 +98,6 @@ export const RequisitionPage = () => {
   const [requesterDept, setRequesterDept] = useState('');
   const [requesterName, setRequesterName] = useState('');
   const [requesterPosition, setRequesterPosition] = useState('');
-  const [requesterEmail, setRequesterEmail] = useState(user?.email || '');
   const [purpose, setPurpose] = useState('DAILY');
   const [note, setNote] = useState('');
   const [isAdvance, setIsAdvance] = useState(false);
@@ -225,13 +225,20 @@ export const RequisitionPage = () => {
     const finalDept = user?.department || requesterDept.trim() || '';
     const finalPosition = user?.position || requesterPosition.trim() || '';
 
+    const matchedUser = (usersList || []).find(
+      (u) =>
+        (u.name && finalRequesterName && u.name.trim().toLowerCase() === finalRequesterName.trim().toLowerCase()) ||
+        (u.username && finalRequesterName && u.username.trim().toLowerCase() === finalRequesterName.trim().toLowerCase())
+    );
+    const resolvedEmail = user?.email || matchedUser?.email || '';
+
     try {
       const newRequest = createRequisitionRequest({
         requesterName: finalRequesterName,
         requesterCompany: finalCompany,
         requesterDept: finalDept,
         requesterPosition: finalPosition,
-        requesterEmail: requesterEmail.trim() || user?.email || '',
+        requesterEmail: resolvedEmail,
         purpose,
         note: note.trim(),
         isAdvance,
@@ -1021,22 +1028,6 @@ export const RequisitionPage = () => {
                       </div>
                     </div>
                   )}
-
-                  {/* Requester Email for Notifications */}
-                  <div className="form-group mt-2">
-                    <label className="form-label text-xxs font-bold flex-between">
-                      <span>อีเมลรับแจ้งเตือนเมื่อของพร้อมรับ</span>
-                      <span className="text-xxs text-muted font-normal">ระบบจะส่งเมลหาคุณอัตโนมัติ</span>
-                    </label>
-                    <input
-                      type="email"
-                      className="form-control text-xs"
-                      style={{ padding: '0.45rem 0.65rem' }}
-                      placeholder="เช่น employee@company.com (เพื่อรับแจ้งเตือนทางอีเมล)"
-                      value={requesterEmail}
-                      onChange={(e) => setRequesterEmail(e.target.value)}
-                    />
-                  </div>
 
                   <div className="form-group mt-2">
                     <label className="form-label text-xxs font-bold">วัตถุประสงค์ในการเบิก</label>
