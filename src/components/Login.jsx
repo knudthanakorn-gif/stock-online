@@ -286,9 +286,6 @@ export const Login = () => {
                 <div>
                   <div className="font-extrabold text-sm flex-center gap-1.5">
                     <span>{selectedUser.name}</span>
-                    {selectedUser.employeeCode && (
-                      <span className="badge badge-info text-xxs font-mono">{selectedUser.employeeCode}</span>
-                    )}
                   </div>
                   <div className="text-xs text-muted mt-0.5">
                     🏢 {selectedUser.department || selectedUser.company || 'EXION THAILAND'}
@@ -420,7 +417,7 @@ export const Login = () => {
                   title={`คลิกเพื่อเลือก ${r.name || r.username}`}
                 >
                   <span className="recent-chip-name">
-                    👤 {r.name || `@${r.username}`} {r.employeeCode ? `[${r.employeeCode}]` : ''}
+                    👤 {r.name || `@${r.username}`}
                   </span>
                   <button
                     type="button"
@@ -534,9 +531,6 @@ export const Login = () => {
                       <div>
                         <div className="font-extrabold text-sm flex-center gap-1.5 justify-start">
                           <span>{u.name}</span>
-                          {u.employeeCode && (
-                            <span className="badge badge-info text-xxs font-mono">{u.employeeCode}</span>
-                          )}
                           {u.role === 'admin' && (
                             <span className="badge badge-success text-xxs font-bold">Admin</span>
                           )}
@@ -608,9 +602,6 @@ export const Login = () => {
                     <div className="dup-info">
                       <div className="font-extrabold text-sm text-primary flex-center gap-2">
                         <span>{u.name}</span>
-                        {u.employeeCode && (
-                          <span className="badge badge-info text-xxs font-mono">{u.employeeCode}</span>
-                        )}
                       </div>
                       <div className="text-xs font-bold text-dark mt-1">
                         📁 {u.department || 'สำนักงานทั่วไป'}
