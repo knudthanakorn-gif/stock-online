@@ -461,6 +461,18 @@ export const UserManager = () => {
                       </div>
                     )}
 
+                    {/* Email Display Row */}
+                    <div className="user-meta-item">
+                      <Mail size={13} className="meta-icon text-indigo" />
+                      {u.email ? (
+                        <span className="text-xs font-semibold text-primary">{u.email}</span>
+                      ) : (
+                        <span className="text-xxs text-muted cursor-pointer" onClick={() => handleOpenEdit(u)} style={{ fontStyle: 'italic', textDecoration: 'underline' }}>
+                          + เพิ่มอีเมลสำหรับรับแจ้งเตือน
+                        </span>
+                      )}
+                    </div>
+
                     {/* Password row with direct reset trigger */}
                     <div className="user-meta-item flex-between" style={{ background: 'var(--bg-main)', padding: '5px 8px', borderRadius: '6px', marginTop: '4px' }}>
                       <div className="flex-center gap-1.5">
@@ -989,6 +1001,24 @@ export const UserManager = () => {
                     placeholder="เช่น Senior Engineer"
                     value={formData.position}
                     onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                  />
+                </div>
+
+                {/* Email for Requisition Notifications */}
+                <div className="form-group col-span-2">
+                  <label className="form-label flex-between">
+                    <span className="font-bold text-primary flex-center gap-1">
+                      <Mail size={14} />
+                      <span>{lang === 'th' ? 'อีเมลสำหรับรับแจ้งเตือน (Email Notification) *' : 'Email Address'}</span>
+                    </span>
+                    <span className="text-xxs text-muted font-normal">ระบบจะส่งเมลแจ้งเตือนการเบิกของไปที่เมลนี้</span>
+                  </label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    placeholder="เช่น employee@pdflowtech.com หรือ user@gmail.com"
+                    value={formData.email || ''}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
                 </div>
               </div>
