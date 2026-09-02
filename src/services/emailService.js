@@ -82,22 +82,28 @@ export const dispatchEmail = async ({ to, subject, htmlContent, webhookUrl, meta
 
   const payload = {
     to: recipients,
+    recipient: recipients.join(', '),
+    toEmail: recipients[0] || '',
     subject,
     html: htmlContent,
+    htmlBody: htmlContent,
+    message: subject,
     sentAt: new Date().toISOString(),
     ...metadata,
   };
 
   try {
     if (webhookUrl) {
+      // Use text/plain;charset=utf-8 to prevent browser CORS Preflight (OPTIONS) errors on Google Apps Script
       await fetch(webhookUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           type: 'EMAIL_NOTIFICATION',
           ...payload,
         }),
       });
+      console.log('[Email Dispatcher] Dispatched successfully via Webhook:', webhookUrl);
       return true;
     }
     console.log('[Email Dispatcher] Sent email to:', to, '| Subject:', subject);
