@@ -219,49 +219,98 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content modal-xl" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1000px', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
-        <div className="modal-header flex-between no-print" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '0.85rem 1.25rem' }}>
-          <div className="flex-center gap-2">
-            <ShieldCheck size={22} color="#4f46e5" />
+        {/* MODAL HEADER */}
+        <div className="modal-header flex-between no-print" style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '1rem 1.5rem' }}>
+          <div className="flex-center gap-3">
+            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)', flexShrink: 0 }}>
+              <ShieldCheck size={22} />
+            </div>
             <div>
-              <h2 className="font-extrabold text-base text-slate-800" style={{ margin: 0 }}>
-                {lang === 'th' ? 'แบบฟอร์มรายงานมาตรฐานสากล (ISO Control Studio)' : 'ISO Standard Audit Studio'}
-              </h2>
-              <span className="text-xs text-slate-500">เอกสารควบคุมคุณภาพ มาตรฐาน ISO 9001 / ISO 14001 • ช่องลงนาม 2 ระดับ</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <h2 className="font-extrabold text-base text-slate-800" style={{ margin: 0 }}>
+                  {lang === 'th' ? 'แบบฟอร์มรายงานมาตรฐานสากล' : 'ISO Standard Audit Studio'}
+                </h2>
+                <span className="badge badge-primary" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', fontWeight: 800 }}>
+                  ISO 9001 / 14001
+                </span>
+              </div>
+              <span className="text-xs text-slate-500" style={{ marginTop: '2px', display: 'block' }}>
+                {lang === 'th' ? 'เอกสารควบคุมคุณภาพ มาตรฐานสากล • ช่องลงนาม 2 ระดับ • ปรับพิมพ์พอดี A4 อัตโนมัติ' : 'Quality Control Documents • ISO Certified Format'}
+              </span>
             </div>
           </div>
           <div className="flex-center gap-2">
-            <button className="btn btn-secondary btn-sm flex-center gap-1" onClick={exportISOCSV}>
+            <button className="btn btn-secondary btn-sm flex-center gap-1.5" onClick={exportISOCSV} style={{ height: '36px', padding: '0 0.85rem' }}>
               <Download size={15} />
-              <span>{lang === 'th' ? 'ส่งออก CSV' : 'Export CSV'}</span>
+              <span className="font-semibold">{lang === 'th' ? 'ส่งออก CSV' : 'Export CSV'}</span>
             </button>
-            <button className="btn btn-primary btn-sm font-bold flex-center gap-1" onClick={handlePrint}>
+            <button className="btn btn-primary btn-sm font-bold flex-center gap-1.5 shadow-sm" onClick={handlePrint} style={{ height: '36px', padding: '0 1rem' }}>
               <Printer size={15} />
               <span>{lang === 'th' ? 'สั่งพิมพ์แบบฟอร์ม' : 'Print Form'}</span>
             </button>
-            <button className="close-btn" onClick={onClose}>
+            <button className="close-btn" onClick={onClose} style={{ marginLeft: '0.25rem' }}>
               <X size={20} />
             </button>
           </div>
         </div>
 
-        <div className="p-3 bg-slate-50 border-bottom no-print flex-between flex-wrap gap-2" style={{ borderBottom: '1px solid #e2e8f0' }}>
-          <div className="flex-center gap-1">
-            {ISO_FORMS.map((f) => (
-              <button
-                key={f.code}
-                className={`btn btn-sm ${formType === f.code ? 'btn-primary font-bold shadow-sm' : 'btn-secondary'}`}
-                style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
-                onClick={() => setFormType(f.code)}
-              >
-                <strong>{f.code}</strong>: {f.name}
-              </button>
-            ))}
+        {/* SUB-HEADER TOOLBAR: SEGMENTED TABS & METADATA CONTROLS */}
+        <div className="no-print" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '0.75rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          {/* Segmented Form Switcher Tabs */}
+          <div style={{ display: 'flex', background: '#e2e8f0', padding: '3px', borderRadius: '8px', gap: '3px', flexWrap: 'wrap' }}>
+            {ISO_FORMS.map((f) => {
+              const isActive = formType === f.code;
+              return (
+                <button
+                  key={f.code}
+                  type="button"
+                  onClick={() => setFormType(f.code)}
+                  style={{
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '0.4rem 0.75rem',
+                    fontSize: '0.78rem',
+                    fontWeight: isActive ? 800 : 600,
+                    background: isActive ? '#ffffff' : 'transparent',
+                    color: isActive ? '#1e293b' : '#64748b',
+                    boxShadow: isActive ? '0 2px 5px rgba(0,0,0,0.08)' : 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: '0.72rem',
+                      padding: '1px 5px',
+                      borderRadius: '4px',
+                      background: isActive ? 'rgba(79, 70, 229, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                      color: isActive ? '#4f46e5' : '#64748b',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {f.code}
+                  </span>
+                  <span>{f.name}</span>
+                </button>
+              );
+            })}
           </div>
-          <div className="flex-center gap-2">
+
+          {/* Document Meta Config Group */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             {formType === 'FM-WH-001' && (
-              <div className="flex-center gap-1 text-xs">
-                <span className="text-slate-600 font-bold">ช่วงเวลา:</span>
-                <select className="form-control text-xs" style={{ width: '135px', padding: '0.2rem 0.5rem', height: '28px' }} value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#ffffff', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>ช่วงเวลา:</span>
+                <select
+                  className="form-control"
+                  style={{ width: '130px', padding: '0.15rem 0.4rem', height: '26px', fontSize: '0.75rem', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                >
                   <option value="ALL">ข้อมูลสะสมทั้งหมด</option>
                   <option value="THIS_MONTH">ประจำเดือนนี้</option>
                   <option value="LAST_30">ย้อนหลัง 30 วัน</option>
@@ -269,13 +318,29 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
                 </select>
               </div>
             )}
-            <div className="flex-center gap-1 text-xs">
-              <span className="text-slate-600 font-bold">Rev:</span>
-              <input type="text" className="form-control text-xs font-mono font-bold" style={{ width: '45px', padding: '0.2rem 0.4rem', height: '28px', textAlign: 'center' }} value={docRevNo} onChange={(e) => setDocRevNo(e.target.value)} />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#ffffff', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>ฉบับที่:</span>
+              <input
+                type="text"
+                className="form-control"
+                style={{ width: '75px', padding: '0.15rem 0.35rem', height: '26px', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, textAlign: 'center', border: 'none', background: 'transparent' }}
+                value={docRevNo}
+                onChange={(e) => setDocRevNo(e.target.value)}
+                placeholder="Rev. 02"
+              />
             </div>
-            <div className="flex-center gap-1 text-xs">
-              <span className="text-slate-600 font-bold">วันที่มีผล:</span>
-              <input type="text" className="form-control text-xs" style={{ width: '100px', padding: '0.2rem 0.5rem', height: '28px' }} value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#ffffff', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>วันที่มีผล:</span>
+              <input
+                type="text"
+                className="form-control"
+                style={{ width: '95px', padding: '0.15rem 0.35rem', height: '26px', fontSize: '0.75rem', textAlign: 'center', border: 'none', background: 'transparent' }}
+                value={effectiveDate}
+                onChange={(e) => setEffectiveDate(e.target.value)}
+                placeholder="01/01/2026"
+              />
             </div>
           </div>
         </div>
