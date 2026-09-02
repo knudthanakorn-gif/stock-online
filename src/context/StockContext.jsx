@@ -535,7 +535,16 @@ export const StockProvider = ({ children }) => {
         } catch (e) {}
       }
       if (txRes.status === 'fulfilled' && txRes.value.data && txRes.value.data.length > 0) {
-        setTransactions(txRes.value.data.map(mapTransactionFromDb));
+        const prodList = prodRes.status === 'fulfilled' && prodRes.value.data ? prodRes.value.data.map(mapProductFromDb) : products;
+        const mappedTxs = txRes.value.data.map((row) => {
+          const t = mapTransactionFromDb(row);
+          if (!t.productName || t.productName.trim() === '') {
+            const matchedProd = prodList.find((p) => p.id === t.productId || p.sku === t.productId);
+            if (matchedProd) t.productName = matchedProd.name;
+          }
+          return t;
+        });
+        setTransactions(mappedTxs);
       }
       if (requestsRes.status === 'fulfilled' && requestsRes.value.data && requestsRes.value.data.length > 0) {
         setRequests(requestsRes.value.data.map(mapRequestFromDb));

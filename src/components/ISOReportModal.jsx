@@ -99,6 +99,21 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
     return 'ข้อมูลสะสมทั้งหมด';
   };
 
+  const getTxProductName = (tx) => {
+    if (tx.productName && tx.productName.trim() !== '') return tx.productName;
+    const p = products.find((prod) => prod.id === tx.productId || prod.sku === tx.productId);
+    return p?.name || 'พัสดุ/อุปกรณ์';
+  };
+
+  const getTxRefNo = (tx) => {
+    if (tx.refNo && tx.refNo.trim() !== '') return tx.refNo;
+    if (tx.note && /REQ-\d+/i.test(tx.note)) {
+      const matched = tx.note.match(/REQ-\d+/i);
+      if (matched) return matched[0];
+    }
+    return '-';
+  };
+
   useEffect(() => {
     if (initialFormType) {
       setFormType(initialFormType);
@@ -206,11 +221,11 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
         `"${tx.id}"`,
         `"${tx.date}"`,
         `"${tx.type}"`,
-        `"${tx.productName.replace(/"/g, '""')}"`,
+        `"${getTxProductName(tx).replace(/"/g, '""')}"`,
         tx.quantity,
         tx.unitPrice || 0,
         (tx.quantity || 0) * (tx.unitPrice || 0),
-        `"${tx.refNo || ''}"`,
+        `"${getTxRefNo(tx)}"`,
         `"${tx.requesterName || tx.customer || ''}"`,
         `"${tx.requesterDept || ''}"`,
         `"${tx.requesterPosition || ''}"`,
@@ -530,8 +545,8 @@ export const ISOReportModal = ({ isOpen, onClose, initialFormType = 'FM-WH-001' 
                           {tx.type}
                         </strong>
                       </td>
-                      <td style={{ fontWeight: '600' }}>{tx.productName}</td>
-                      <td style={{ fontSize: '0.72rem', fontFamily: 'monospace' }}>{tx.refNo || '-'}</td>
+                      <td style={{ fontWeight: '600' }}>{getTxProductName(tx)}</td>
+                      <td style={{ fontSize: '0.72rem', fontFamily: 'monospace' }}>{getTxRefNo(tx)}</td>
                       <td style={{ textAlign: 'right', fontWeight: '700' }}>{tx.quantity}</td>
                       <td style={{ fontSize: '0.75rem' }}>
                         <div>{tx.requesterName || tx.customer || '-'}</div>
