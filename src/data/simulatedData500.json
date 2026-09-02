@@ -18564,42 +18564,5 @@
       "createdBy": "ผู้ดูแลระบบ (Admin)"
     }
   ],
-  "notifications": [
-    {
-      "id": "notif-1",
-      "type": "NEW_REQUEST",
-      "title": "มีคำขอเบิกอุปกรณ์ใหม่",
-      "message": "คุณสมชาย ส่งคำขอเบิก \"โน้ตบุ๊กประมวลผล Dell Latitude 5440 (Intel i7/16GB)\"",
-      "linkTab": "approvals",
-      "createdAt": "2026-08-14T09:54:17.091Z",
-      "read": false
-    },
-    {
-      "id": "notif-2",
-      "type": "LOW_STOCK",
-      "title": "⚠️ สินค้าใกล้หมดสต็อก",
-      "message": "ชุดเมาส์และคีย์บอร์ดไร้สาย Logitech MK270r Silent เหลือ 32 ชุด (ต่ำกว่าเกณฑ์ขั้นต่ำ)",
-      "linkTab": "inventory",
-      "createdAt": "2026-08-14T08:39:17.091Z",
-      "read": false
-    },
-    {
-      "id": "notif-3",
-      "type": "APPROVED",
-      "title": "คำขอเบิกได้รับการอนุมัติ",
-      "message": "คำขอเลขที่ REQ-2026-0245 ของ คุณวิภาวรรณ ได้รับการอนุมัติและจ่ายพัสดุเรียบร้อย",
-      "linkTab": "request-qr",
-      "createdAt": "2026-08-14T06:09:17.091Z",
-      "read": true
-    },
-    {
-      "id": "notif-4",
-      "type": "AUDIT",
-      "title": "ผลการตรวจนับสต็อกประจำงวด",
-      "message": "เจ้าหน้าที่เสร็จสิ้นการตรวจนับสต็อกรอบประจำสัปดาห์ ปรับปรุงยอดสมบูรณ์",
-      "linkTab": "audit",
-      "createdAt": "2026-08-14T00:09:17.091Z",
-      "read": true
-    }
-  ]
+  "notifications": []
 }

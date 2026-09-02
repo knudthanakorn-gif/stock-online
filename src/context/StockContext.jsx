@@ -748,6 +748,12 @@ export const StockProvider = ({ children }) => {
 
   const clearAllNotifications = () => {
     setNotifications([]);
+    try {
+      localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
+    } catch (e) {}
+    supabase.from('notifications').delete().neq('id', 'never_match').then(({ error }) => {
+      if (error) console.error('Supabase clear notifications error:', error);
+    });
   };
 
   const updateNotificationSettings = (newSettings) => {
