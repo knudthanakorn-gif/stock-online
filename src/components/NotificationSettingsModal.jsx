@@ -186,21 +186,21 @@ export const NotificationSettingsModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Test Notification Trigger */}
-            <div className="card p-3 mb-2 flex-between" style={{ background: 'var(--bg-main)', border: '1px dashed var(--border-color)', borderRadius: '10px' }}>
-              <div>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+            <div className="card p-3 mb-4 flex-between gap-3" style={{ background: 'var(--bg-main)', border: '1px dashed var(--border-color)', borderRadius: '10px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate">
                   {lang === 'th' ? 'ทดสอบระบบแจ้งเตือนทางอีเมล' : 'Test Email Alert'}
                 </span>
-                <span className="text-xxs text-muted block mt-0.5">
+                <span className="text-xxs text-muted block mt-0.5 truncate" title={formData.staffNotificationEmail || 'tks@pdflowtech.com'}>
                   {lang === 'th' ? `ส่งไปยัง: ${formData.staffNotificationEmail || 'tks@pdflowtech.com'}` : `Send to: ${formData.staffNotificationEmail || 'Staff'}`}
                 </span>
               </div>
               <button
                 type="button"
-                className="btn btn-primary btn-xs font-bold flex-center gap-1.5"
+                className="btn btn-primary btn-xs font-bold flex-center gap-1.5 flex-shrink-0"
                 onClick={() => handleTest('Email & Webhook')}
                 disabled={isTesting}
-                style={{ padding: '7px 16px', borderRadius: '8px', minWidth: '130px' }}
+                style={{ padding: '8px 16px', borderRadius: '8px', minWidth: '135px' }}
               >
                 {isTesting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                 <span>{isTesting ? (lang === 'th' ? 'กำลังส่ง...' : 'Sending...') : (lang === 'th' ? '✈ ทดสอบส่งอีเมล' : 'Test Send Email')}</span>
