@@ -248,15 +248,28 @@ export const UserManager = () => {
     return 'badge-warning';
   };
 
-  // Get unique companies & departments for filters
+  // Standard company names and case-insensitive normalization
+  const normalizeCompany = (comp) => {
+    if (!comp) return 'EXION (Thailand) Company Limited';
+    const clean = comp.trim();
+    if (clean.toLowerCase().includes('exion')) return 'EXION (Thailand) Company Limited';
+    if (clean.toLowerCase().includes('house of professionals')) return 'HOUSE OF PROFESSIONALS COMPANY LIMITED';
+    if (clean.toLowerCase().includes('pd flowtech') || clean.toLowerCase().includes('pdflowtech')) return 'PD FLOWTECH COMPANY LIMITED';
+    return clean;
+  };
+
+  const STANDARD_COMPANIES = [
+    'EXION (Thailand) Company Limited',
+    'HOUSE OF PROFESSIONALS COMPANY LIMITED',
+    'PD FLOWTECH COMPANY LIMITED',
+  ];
   const REMOVED_COMPANIES = ['c.s.i', 'csi', 'osa', 'tri-gen', 'trigen'];
+
   const companies = Array.from(
     new Set([
-      'EXION (Thailand) Company Limited',
-      'HOUSE OF PROFESSIONALS COMPANY LIMITED',
-      'PD FLOWTECH COMPANY LIMITED',
+      ...STANDARD_COMPANIES,
       ...usersList
-        .map((u) => u.company)
+        .map((u) => normalizeCompany(u.company))
         .filter(Boolean)
         .filter((comp) => !REMOVED_COMPANIES.some((removed) => comp.toLowerCase().includes(removed))),
     ])
@@ -273,7 +286,9 @@ export const UserManager = () => {
       (u.department && u.department.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchRole = selectedRole === 'ALL' || u.role === selectedRole;
-    const matchCompany = selectedCompany === 'ALL' || u.company === selectedCompany;
+    const matchCompany =
+      selectedCompany === 'ALL' ||
+      normalizeCompany(u.company).toLowerCase() === selectedCompany.toLowerCase();
     const matchDept = selectedDept === 'ALL' || u.department === selectedDept;
 
     return matchSearch && matchRole && matchCompany && matchDept;
@@ -1073,6 +1088,20 @@ export const UserManager = () => {
                     <option value="staff">📦 พนักงานคลังสินค้า (Staff)</option>
                     <option value="user">👤 พนักงานทั่วไป (User - เบิกอุปกรณ์)</option>
                     <option value="viewer">👁️ ผู้เข้าชม/ดูประวัติ (Viewer)</option>
+                  </select>
+                </div>
+
+                {/* Company */}
+                <div className="form-group col-span-2">
+                  <label className="form-label font-bold">{lang === 'th' ? 'สังกัดบริษัท (Company) *' : 'Company *'}</label>
+                  <select
+                    className="form-control font-semibold"
+                    value={formData.company || 'EXION (Thailand) Company Limited'}
+                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  >
+                    <option value="EXION (Thailand) Company Limited">EXION (Thailand) Company Limited</option>
+                    <option value="HOUSE OF PROFESSIONALS COMPANY LIMITED">HOUSE OF PROFESSIONALS COMPANY LIMITED</option>
+                    <option value="PD FLOWTECH COMPANY LIMITED">PD FLOWTECH COMPANY LIMITED</option>
                   </select>
                 </div>
 
