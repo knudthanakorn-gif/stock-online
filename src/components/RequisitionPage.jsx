@@ -21,9 +21,11 @@ import {
   XCircle,
   Zap,
   Calendar,
+  ZoomIn,
 } from 'lucide-react';
 import { renderQRCodeSVG } from '../utils/qrGenerator';
 import { RequisitionSlipModal } from './RequisitionSlipModal';
+import { ImageZoomModal } from './ImageZoomModal';
 
 const DEPARTMENT_PRESETS = [
   'แผนก IT / เทคโนโลยีสารสนเทศ',
@@ -111,6 +113,7 @@ export const RequisitionPage = () => {
   const [submittedTicket, setSubmittedTicket] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [viewSlipReq, setViewSlipReq] = useState(null);
+  const [zoomProduct, setZoomProduct] = useState(null);
 
   // Dynamic Companies List
   const availableCompanies = Array.from(
@@ -480,10 +483,18 @@ export const RequisitionPage = () => {
 
                 return (
                   <div key={prod.id} className={`exact-asset-card card ${isOut ? 'is-out-card' : ''}`}>
-                    {/* Image & Yellow Stock Badge at Top Right */}
-                    <div className="card-image-wrap">
+                    {/* Image & Yellow Stock Badge at Top Right - Clickable to Zoom */}
+                    <div
+                      className="card-image-wrap clickable-zoom-trigger"
+                      onClick={() => setZoomProduct(prod)}
+                      title={lang === 'th' ? '🔍 แตะ/คลิกที่รูปเพื่อซูมดูภาพขนาดใหญ่' : 'Tap/Click image to zoom'}
+                      style={{ cursor: 'pointer', position: 'relative' }}
+                    >
                       <img src={prod.image} alt={prod.name} className="card-img" />
-                      <span className="yellow-stock-pill">
+                      <div className="card-zoom-badge" title="ซูมภาพ">
+                        <ZoomIn size={14} />
+                      </div>
+                      <span className="yellow-stock-pill" onClick={(e) => e.stopPropagation()}>
                         {prod.quantity} {prod.unit || 'ชิ้น'}
                       </span>
                       {isOut && (
@@ -1115,6 +1126,18 @@ export const RequisitionPage = () => {
         onClose={() => setViewSlipReq(null)}
         request={viewSlipReq}
       />
+
+      {/* FULL-RESOLUTION IMAGE ZOOM MODAL */}
+      {zoomProduct && (
+        <ImageZoomModal
+          product={zoomProduct}
+          onClose={() => setZoomProduct(null)}
+          lang={lang}
+          onAddToCart={handleAddToCart}
+          inCartQty={cart.find((item) => item.product.id === zoomProduct.id)?.quantity || 0}
+          onUpdateCartQty={handleUpdateCartQty}
+        />
+      )}
     </div>
   );
 };

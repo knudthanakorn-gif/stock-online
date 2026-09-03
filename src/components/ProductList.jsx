@@ -21,7 +21,9 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  ZoomIn,
 } from 'lucide-react';
+import { ImageZoomModal } from './ImageZoomModal';
 
 export const ProductList = ({
   searchQuery,
@@ -42,6 +44,7 @@ export const ProductList = ({
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [zoomProduct, setZoomProduct] = useState(null);
 
   const isViewer = user?.role === 'viewer';
   const isAdmin = user?.role === 'admin';
@@ -233,15 +236,22 @@ export const ProductList = ({
                     <tr key={prod.id}>
                       <td>
                         <div className="product-info-cell">
-                          <img
-                            src={prod.image || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80'}
-                            alt={prod.name}
-                            className="product-image-thumb"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80';
-                            }}
-                          />
+                          <div
+                            style={{ position: 'relative', cursor: 'pointer' }}
+                            onClick={() => setZoomProduct(prod)}
+                            title={lang === 'th' ? '🔍 คลิกเพื่อดูภาพขยาย' : 'Click to zoom image'}
+                          >
+                            <img
+                              src={prod.image || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80'}
+                              alt={prod.name}
+                              className="product-image-thumb"
+                              style={{ transition: 'transform 0.15s ease' }}
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80';
+                              }}
+                            />
+                          </div>
                           <div>
                             <div className="product-name font-bold">{prod.name}</div>
                             {prod.description && <div className="product-desc">{prod.description}</div>}
@@ -336,7 +346,12 @@ export const ProductList = ({
 
             return (
               <div key={prod.id} className="card product-card">
-                <div className="card-image-wrap">
+                <div
+                  className="card-image-wrap clickable-zoom-trigger"
+                  style={{ cursor: 'pointer', position: 'relative' }}
+                  onClick={() => setZoomProduct(prod)}
+                  title={lang === 'th' ? '🔍 แตะ/คลิกเพื่อดูภาพขยาย' : 'Click to zoom image'}
+                >
                   <img
                     src={prod.image || 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=400&q=80'}
                     alt={prod.name}
@@ -346,6 +361,9 @@ export const ProductList = ({
                       e.target.src = 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=400&q=80';
                     }}
                   />
+                  <div className="card-zoom-badge" title="ซูมภาพ">
+                    <ZoomIn size={14} />
+                  </div>
                   <span className={`badge card-badge ${isOut ? 'badge-danger' : isLow ? 'badge-warning' : 'badge-success'}`}>
                     {prod.quantity} {prod.unit}
                   </span>
@@ -770,6 +788,15 @@ export const ProductList = ({
           color: #ffffff;
         }
       `}</style>
+
+      {/* Product Image Lightbox Zoom Modal */}
+      {zoomProduct && (
+        <ImageZoomModal
+          product={zoomProduct}
+          onClose={() => setZoomProduct(null)}
+          lang={lang}
+        />
+      )}
     </div>
   );
 };
