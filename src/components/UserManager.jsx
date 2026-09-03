@@ -35,6 +35,9 @@ import {
   ChevronsRight,
   ArrowUp,
   ArrowDown,
+  ArrowUpDown,
+  ArrowUpAZ,
+  ArrowDownAZ,
 } from 'lucide-react';
 
 const AVATAR_PRESETS = [
@@ -65,6 +68,7 @@ export const UserManager = () => {
   const [selectedRole, setSelectedRole] = useState('ALL');
   const [selectedCompany, setSelectedCompany] = useState('ALL');
   const [selectedDept, setSelectedDept] = useState('ALL');
+  const [sortBy, setSortBy] = useState('NAME_ASC'); // 'NAME_ASC' | 'NAME_DESC' | 'EMP_CODE_ASC' | 'EMP_CODE_DESC' | 'USERNAME_ASC' | 'ROLE'
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
 
   // Pagination & Scroll Helper
@@ -275,12 +279,36 @@ export const UserManager = () => {
     return matchSearch && matchRole && matchCompany && matchDept;
   });
 
+  // Sort users according to selected sort criteria
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    if (sortBy === 'NAME_ASC') {
+      return (a.name || '').localeCompare(b.name || '', 'th', { sensitivity: 'base' });
+    }
+    if (sortBy === 'NAME_DESC') {
+      return (b.name || '').localeCompare(a.name || '', 'th', { sensitivity: 'base' });
+    }
+    if (sortBy === 'EMP_CODE_ASC') {
+      return (a.employeeCode || '').localeCompare(b.employeeCode || '', undefined, { numeric: true });
+    }
+    if (sortBy === 'EMP_CODE_DESC') {
+      return (b.employeeCode || '').localeCompare(a.employeeCode || '', undefined, { numeric: true });
+    }
+    if (sortBy === 'USERNAME_ASC') {
+      return (a.username || '').localeCompare(b.username || '');
+    }
+    if (sortBy === 'ROLE') {
+      const roleOrder = { admin: 1, staff: 2, user: 3, viewer: 4 };
+      return (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99);
+    }
+    return 0;
+  });
+
   // Pagination calculations
-  const totalItems = filteredUsers.length;
+  const totalItems = sortedUsers.length;
   const totalPages = pageSize === 'ALL' ? 1 : Math.max(1, Math.ceil(totalItems / Number(pageSize)));
   const paginatedUsers = pageSize === 'ALL'
-    ? filteredUsers
-    : filteredUsers.slice((currentPage - 1) * Number(pageSize), currentPage * Number(pageSize));
+    ? sortedUsers
+    : sortedUsers.slice((currentPage - 1) * Number(pageSize), currentPage * Number(pageSize));
 
   return (
     <div className="user-manager-page">
@@ -367,6 +395,29 @@ export const UserManager = () => {
               <option value="staff">{lang === 'th' ? '📦 พนักงานคลัง (Staff)' : 'Staff'}</option>
               <option value="user">{lang === 'th' ? '👤 ผู้เบิกอุปกรณ์ (User)' : 'User'}</option>
               <option value="viewer">{lang === 'th' ? '👁️ ผู้เข้าชม (Viewer)' : 'Viewer'}</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <span className="filter-label font-bold text-primary flex-center gap-1">
+              <ArrowUpDown size={13} />
+              <span>{lang === 'th' ? 'เรียงตาม:' : 'Sort:'}</span>
+            </span>
+            <select
+              className="form-control filter-select font-bold"
+              style={{ color: '#4f46e5', borderColor: '#818cf8', background: 'rgba(99, 102, 241, 0.05)' }}
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="NAME_ASC">🔤 {lang === 'th' ? 'ชื่อตามตัวอักษร (ก-ฮ / A-Z)' : 'Name (A-Z)'}</option>
+              <option value="NAME_DESC">🔤 {lang === 'th' ? 'ชื่อย้อนกลับ (ฮ-ก / Z-A)' : 'Name (Z-A)'}</option>
+              <option value="EMP_CODE_ASC">🔢 {lang === 'th' ? 'รหัสพนักงาน (EX001 -> EX999)' : 'Employee Code (Asc)'}</option>
+              <option value="EMP_CODE_DESC">🔢 {lang === 'th' ? 'รหัสพนักงาน (EX999 -> EX001)' : 'Employee Code (Desc)'}</option>
+              <option value="USERNAME_ASC">👤 {lang === 'th' ? 'Username (A-Z)' : 'Username (A-Z)'}</option>
+              <option value="ROLE">🛡️ {lang === 'th' ? 'กลุ่มสิทธิ์ (Admin -> Staff -> User)' : 'Role'}</option>
             </select>
           </div>
         </div>
@@ -524,9 +575,36 @@ export const UserManager = () => {
             <thead>
               <tr>
                 <th style={{ width: '40px', textAlign: 'center' }}>#</th>
-                <th style={{ minWidth: '180px' }}>{lang === 'th' ? 'ผู้ใช้งานระบบ' : 'User'}</th>
-                <th style={{ width: '110px' }}>{lang === 'th' ? 'รหัส / Username' : 'Code / Username'}</th>
-                <th style={{ width: '130px' }}>{lang === 'th' ? 'กลุ่มสิทธิ์' : 'Role'}</th>
+                <th
+                  style={{ minWidth: '180px', cursor: 'pointer', userSelect: 'none' }}
+                  onClick={() => setSortBy(sortBy === 'NAME_ASC' ? 'NAME_DESC' : 'NAME_ASC')}
+                  title="คลิกเพื่อเรียงตามชื่อตัวอักษร"
+                >
+                  <div className="flex-center gap-1.5" style={{ justifyContent: 'flex-start' }}>
+                    <span>{lang === 'th' ? 'ผู้ใช้งานระบบ' : 'User'}</span>
+                    {sortBy === 'NAME_ASC' ? <ArrowUpAZ size={14} color="#4f46e5" /> : sortBy === 'NAME_DESC' ? <ArrowDownAZ size={14} color="#4f46e5" /> : <ArrowUpDown size={12} className="text-muted" />}
+                  </div>
+                </th>
+                <th
+                  style={{ width: '110px', cursor: 'pointer', userSelect: 'none' }}
+                  onClick={() => setSortBy(sortBy === 'EMP_CODE_ASC' ? 'EMP_CODE_DESC' : 'EMP_CODE_ASC')}
+                  title="คลิกเพื่อเรียงตามรหัสพนักงาน"
+                >
+                  <div className="flex-center gap-1.5" style={{ justifyContent: 'flex-start' }}>
+                    <span>{lang === 'th' ? 'รหัส / Username' : 'Code / Username'}</span>
+                    {sortBy.startsWith('EMP_CODE') ? <ArrowUpDown size={13} color="#4f46e5" /> : <ArrowUpDown size={12} className="text-muted" />}
+                  </div>
+                </th>
+                <th
+                  style={{ width: '130px', cursor: 'pointer', userSelect: 'none' }}
+                  onClick={() => setSortBy(sortBy === 'ROLE' ? 'NAME_ASC' : 'ROLE')}
+                  title="คลิกเพื่อเรียงตามกลุ่มสิทธิ์"
+                >
+                  <div className="flex-center gap-1.5" style={{ justifyContent: 'flex-start' }}>
+                    <span>{lang === 'th' ? 'กลุ่มสิทธิ์' : 'Role'}</span>
+                    {sortBy === 'ROLE' ? <ArrowUpDown size={13} color="#4f46e5" /> : <ArrowUpDown size={12} className="text-muted" />}
+                  </div>
+                </th>
                 <th style={{ minWidth: '140px' }}>{lang === 'th' ? 'แผนก / ฝ่าย' : 'Department'}</th>
                 <th style={{ width: '160px' }}>{lang === 'th' ? 'รหัสผ่าน & สถานะ' : 'Password & Status'}</th>
                 <th style={{ width: '110px', textAlign: 'center' }}>{lang === 'th' ? 'สถานะบัญชี' : 'Account'}</th>
