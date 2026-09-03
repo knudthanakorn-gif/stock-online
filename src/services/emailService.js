@@ -168,13 +168,21 @@ const generateEmailTemplate = ({
  * Generic dispatcher that dispatches email payload via Webhook / Email Service
  */
 export const dispatchEmail = async ({ to, subject, htmlContent, webhookUrl, metadata = {} }) => {
-  if (!to && !webhookUrl) return false;
+  if (!webhookUrl && !to) {
+    console.warn('[Email Dispatcher] Skipped: No Webhook URL or recipient configured.');
+    return false;
+  }
 
   const recipients = Array.isArray(to)
     ? to
     : typeof to === 'string'
     ? to.split(/[,;\n\r]+/).map((s) => s.trim()).filter(Boolean)
-    : [to];
+    : to ? [to] : [];
+
+  if (recipients.length === 0) {
+    console.warn('[Email Dispatcher] Skipped: Recipient email address is empty.', { subject, metadata });
+    return false;
+  }
 
   const payload = {
     to: recipients,
@@ -193,22 +201,25 @@ export const dispatchEmail = async ({ to, subject, htmlContent, webhookUrl, meta
 
   try {
     if (webhookUrl) {
-      // Use text/plain;charset=utf-8 to prevent browser CORS Preflight (OPTIONS) errors on Google Apps Script
-      await fetch(webhookUrl, {
+      // Use text/plain;charset=utf-8 with keepalive to prevent browser cancellations
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           type: 'EMAIL_NOTIFICATION',
           ...payload,
         }),
+        keepalive: true,
       });
-      console.log('[Email Dispatcher] Dispatched successfully via Webhook:', webhookUrl);
+
+      console.log(`[Email Dispatcher] ✅ Successfully dispatched email to ${recipients.join(', ')} | Subject: "${subject}" (Status: ${response.status})`);
       return true;
     }
-    console.log('[Email Dispatcher] Sent email to:', to, '| Subject:', subject);
+
+    console.log('[Email Dispatcher] Mock sent email to:', recipients.join(', '), '| Subject:', subject);
     return true;
   } catch (error) {
-    console.error('[Email Dispatcher Error]:', error);
+    console.error('[Email Dispatcher Error]: Failed to dispatch email to', recipients, error);
     return false;
   }
 };

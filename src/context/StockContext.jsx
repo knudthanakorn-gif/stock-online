@@ -1534,6 +1534,30 @@ export const StockProvider = ({ children }) => {
     return adjustedCount;
   };
 
+  // Helper to dynamically resolve user email from profile / user list
+  const resolveRequesterEmail = (targetReq) => {
+    if (!targetReq) return '';
+    if (targetReq.requesterEmail && targetReq.requesterEmail.trim()) {
+      return targetReq.requesterEmail.trim();
+    }
+    const cleanName = (targetReq.requesterName || '').trim().toLowerCase();
+    const cleanUser = (targetReq.userId || '').trim().toLowerCase();
+    const cleanEmp = (targetReq.employeeCode || '').trim().toLowerCase();
+
+    const matched = (usersList || []).find((u) => {
+      const uName = (u.name || '').trim().toLowerCase();
+      const uUser = (u.username || '').trim().toLowerCase();
+      const uEmp = (u.employeeCode || u.employee_code || '').trim().toLowerCase();
+
+      if (cleanEmp && uEmp && uEmp === cleanEmp) return true;
+      if (cleanUser && uUser && uUser === cleanUser) return true;
+      if (cleanName && uName && (uName === cleanName || uName.includes(cleanName) || cleanName.includes(uName))) return true;
+      return false;
+    });
+
+    return matched?.email || '';
+  };
+
   // Requisition Requests
   const createRequisitionRequest = ({
     requesterName,
@@ -1550,6 +1574,12 @@ export const StockProvider = ({ children }) => {
   }) => {
     const refNo = `REQ-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    const finalReqName = (requesterName || (user ? user.name : 'ผู้เบิก')).trim();
+    const autoResolvedEmail =
+      requesterEmail ||
+      (user ? user.email : '') ||
+      resolveRequesterEmail({ requesterName: finalReqName, userId: user?.id, employeeCode: user?.employeeCode });
+
     const newReq = {
       id: `req-order-${Date.now()}`,
       refNo,
@@ -1557,11 +1587,11 @@ export const StockProvider = ({ children }) => {
       createdAt: new Date().toISOString(),
       userId: user ? user.id : null,
       employeeCode: user ? user.employeeCode : null,
-      requesterName: (requesterName || (user ? user.name : 'ผู้เบิก')).trim(),
+      requesterName: finalReqName,
       requesterCompany: requesterCompany || (user ? user.company : 'EXION THAILAND'),
       requesterDept: requesterDept || (user ? user.department : ''),
       requesterPosition: requesterPosition || (user ? user.position : ''),
-      requesterEmail: requesterEmail || (user ? user.email : ''),
+      requesterEmail: autoResolvedEmail,
       purpose: purpose || 'DAILY',
       note: note ? note.trim() : '',
       isAdvance: !!isAdvance,
@@ -1603,7 +1633,7 @@ export const StockProvider = ({ children }) => {
     });
 
     // Send Email to Staff
-    if (notificationSettings.notifyEmailNewReq) {
+    if (notificationSettings.notifyEmailNewReq !== false && notificationSettings.notifyNewReq !== false) {
       sendNewRequisitionEmailToStaff({
         request: newReq,
         staffEmail: notificationSettings.staffNotificationEmail,
@@ -1681,10 +1711,11 @@ export const StockProvider = ({ children }) => {
     });
 
     // Send Email to User
-    if (notificationSettings.notifyEmailApproval) {
+    if (notificationSettings.notifyEmailApproval !== false && notificationSettings.notifyApproval !== false) {
+      const userTargetEmail = resolveRequesterEmail(targetReq);
       sendRequisitionApprovedEmailToUser({
         request: updatedReq,
-        userEmail: targetReq.requesterEmail,
+        userEmail: userTargetEmail,
         webhookUrl: notificationSettings.webhookUrl,
       });
     }
@@ -1724,10 +1755,11 @@ export const StockProvider = ({ children }) => {
     });
 
     // Send Email to User (Ready for pickup)
-    if (notificationSettings.notifyEmailReadyForPickup) {
+    if (notificationSettings.notifyEmailReadyForPickup !== false) {
+      const userTargetEmail = resolveRequesterEmail(targetReq);
       sendReadyForPickupEmailToUser({
         request: updatedReq,
-        userEmail: targetReq.requesterEmail,
+        userEmail: userTargetEmail,
         webhookUrl: notificationSettings.webhookUrl,
       });
     }
@@ -1801,10 +1833,11 @@ export const StockProvider = ({ children }) => {
       });
 
       // Send Email to User
-      if (notificationSettings.notifyEmailApproval) {
+      if (notificationSettings.notifyEmailApproval !== false && notificationSettings.notifyApproval !== false) {
+        const userTargetEmail = resolveRequesterEmail(targetReq);
         sendRequisitionRejectedEmailToUser({
           request: updatedReq,
-          userEmail: targetReq.requesterEmail,
+          userEmail: userTargetEmail,
           reason: rejectionReason,
           webhookUrl: notificationSettings.webhookUrl,
         });

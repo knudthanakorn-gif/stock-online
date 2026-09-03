@@ -146,8 +146,8 @@ export const NotificationSettingsModal = ({ isOpen, onClose }) => {
                 <label className="flex-center gap-2 cursor-pointer text-xs font-semibold">
                   <input
                     type="checkbox"
-                    checked={formData.notifyNewReq !== false}
-                    onChange={(e) => setFormData({ ...formData, notifyNewReq: e.target.checked })}
+                    checked={formData.notifyNewReq !== false && formData.notifyEmailNewReq !== false}
+                    onChange={(e) => setFormData({ ...formData, notifyNewReq: e.target.checked, notifyEmailNewReq: e.target.checked })}
                     style={{ width: '16px', height: '16px' }}
                   />
                   <span>📑 แจ้งเตือนเมื่อมีคำขอเบิกอุปกรณ์ใหม่ (ส่งหา Staff)</span>
@@ -156,8 +156,8 @@ export const NotificationSettingsModal = ({ isOpen, onClose }) => {
                 <label className="flex-center gap-2 cursor-pointer text-xs font-semibold">
                   <input
                     type="checkbox"
-                    checked={formData.notifyApproval !== false}
-                    onChange={(e) => setFormData({ ...formData, notifyApproval: e.target.checked })}
+                    checked={formData.notifyApproval !== false && formData.notifyEmailApproval !== false}
+                    onChange={(e) => setFormData({ ...formData, notifyApproval: e.target.checked, notifyEmailApproval: e.target.checked })}
                     style={{ width: '16px', height: '16px' }}
                   />
                   <span>🔵 แจ้งเตือนเมื่ออนุมัติคำขอ & กำลังจัดของ (ส่งหา User)</span>
