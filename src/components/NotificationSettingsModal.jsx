@@ -25,6 +25,7 @@ export const NotificationSettingsModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({ ...notificationSettings });
   const [testResult, setTestResult] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isTesting, setIsTesting] = useState(false);
 
   if (!isOpen || user?.role !== 'admin') return null;
 
@@ -38,14 +39,30 @@ export const NotificationSettingsModal = ({ isOpen, onClose }) => {
     }, 1200);
   };
 
-  const handleTest = (channel) => {
-    sendTestNotification(channel, formData);
-    setTestResult(
-      lang === 'th'
-        ? `✅ กำลังส่งข้อความทดสอบ ${channel} ไปยัง ${formData.staffNotificationEmail || 'อีเมลคลัง'}... ตรวจสอบที่กล่องข้อความอีเมลและกระดิ่งแจ้งเตือน`
-        : `Test notification sent via ${channel}!`
-    );
-    setTimeout(() => setTestResult(''), 5000);
+  const handleTest = async (channel) => {
+    setIsTesting(true);
+    setTestResult(lang === 'th' ? '⏳ กำลังส่งข้อความทดสอบ...' : 'Sending test...');
+    try {
+      const res = await sendTestNotification(channel, formData);
+      if (res) {
+        setTestResult(
+          lang === 'th'
+            ? `✅ ส่งข้อความทดสอบสำเร็จ! ไปยัง ${formData.staffNotificationEmail || 'อีเมลคลัง'} (กรุณาเช็คใน Outlook / Junk Email)`
+            : `Test notification sent successfully!`
+        );
+      } else {
+        setTestResult(
+          lang === 'th'
+            ? `❌ ส่งไม่สำเร็จ กรุณาตรวจสอบ Webhook URL หรือการตั้งค่าอีเมล`
+            : `Failed to send test notification.`
+        );
+      }
+    } catch (err) {
+      setTestResult(`❌ ข้อผิดพลาด: ${err.message || 'ส่งไม่สำเร็จ'}`);
+    } finally {
+      setIsTesting(false);
+      setTimeout(() => setTestResult(''), 7000);
+    }
   };
 
   return (
