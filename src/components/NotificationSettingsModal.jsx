@@ -11,6 +11,7 @@ import {
   Key,
   Globe,
   Sliders,
+  Loader2,
 } from 'lucide-react';
 
 export const NotificationSettingsModal = ({ isOpen, onClose }) => {
@@ -185,18 +186,25 @@ export const NotificationSettingsModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Test Notification Trigger */}
-            <div className="flex-between">
-              <span className="text-xs text-muted font-semibold">ทดสอบระบบแจ้งเตือน:</span>
-              <div className="flex-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-xs font-bold flex-center gap-1"
-                  onClick={() => handleTest('In-App & LINE')}
-                >
-                  <Send size={12} />
-                  <span>ทดสอบส่งข้อความแจ้งเตือน</span>
-                </button>
+            <div className="card p-3 mb-2 flex-between" style={{ background: 'var(--bg-main)', border: '1px dashed var(--border-color)', borderRadius: '10px' }}>
+              <div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  {lang === 'th' ? 'ทดสอบระบบแจ้งเตือนทางอีเมล' : 'Test Email Alert'}
+                </span>
+                <span className="text-xxs text-muted block mt-0.5">
+                  {lang === 'th' ? `ส่งไปยัง: ${formData.staffNotificationEmail || 'tks@pdflowtech.com'}` : `Send to: ${formData.staffNotificationEmail || 'Staff'}`}
+                </span>
               </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-xs font-bold flex-center gap-1.5"
+                onClick={() => handleTest('Email & Webhook')}
+                disabled={isTesting}
+                style={{ padding: '7px 16px', borderRadius: '8px', minWidth: '130px' }}
+              >
+                {isTesting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                <span>{isTesting ? (lang === 'th' ? 'กำลังส่ง...' : 'Sending...') : (lang === 'th' ? '✈ ทดสอบส่งอีเมล' : 'Test Send Email')}</span>
+              </button>
             </div>
           </div>
 
