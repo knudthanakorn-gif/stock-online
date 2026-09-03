@@ -930,21 +930,20 @@ export const UserManager = () => {
 
                 {/* Email for Requisition Notifications */}
                 <div className="form-group col-span-2">
-                  <label className="form-label flex-between">
-                    <span className="font-bold text-primary flex-center gap-1">
-                      <Mail size={14} color="#4f46e5" />
-                      <span>{lang === 'th' ? 'อีเมลสำหรับรับแจ้งเตือน (Email Notification) *' : 'Email Address'}</span>
-                    </span>
-                    <span className="text-xxs text-muted font-normal">ระบบจะส่งเมลแจ้งเตือนการเบิกของไปที่เมลนี้</span>
+                  <label className="form-label font-bold flex-center gap-1.5 mb-1.5 text-slate-800 dark:text-slate-200" style={{ justifyContent: 'flex-start' }}>
+                    <Mail size={15} color="#4f46e5" />
+                    <span>{lang === 'th' ? 'อีเมลพนักงาน (สำหรับรับการแจ้งเตือน)' : 'Employee Email (Notification)'}</span>
                   </label>
                   <input
                     type="email"
-                    className="form-control"
-                    style={{ borderColor: '#818cf8', background: '#f8fafc' }}
-                    placeholder="เช่น employee@pdflowtech.com หรือ user@gmail.com"
+                    className="form-control font-mono"
+                    placeholder="เช่น employee@pdflowtech.com หรือ name@company.com"
                     value={formData.email || ''}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
+                  <p className="text-xxs text-muted mt-1 mb-0 font-normal">
+                    {lang === 'th' ? '💡 ระบบจะส่งอีเมลแจ้งเตือนเมื่อคำขอได้รับการอนุมัติ และเมื่อคลังจัดเตรียมพัสดุเสร็จสิ้น' : 'Automated notifications will be sent to this email upon approval and pickup readiness.'}
+                  </p>
                 </div>
 
                 {/* Username */}
