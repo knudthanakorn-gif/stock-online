@@ -86,13 +86,13 @@ export const ApprovalCenter = () => {
   const completedCount = requests.filter((r) => r.status === 'COMPLETED').length;
   const rejectedCount = requests.filter((r) => r.status === 'REJECTED').length;
 
-  const handleConfirmApprove = () => {
+  const handleConfirmApprove = async () => {
     if (!approveModalReq) return;
     setActionError('');
     setActionSuccess('');
 
     try {
-      approveRequisitionRequest(approveModalReq.id, approveNote);
+      await approveRequisitionRequest(approveModalReq.id, approveNote);
       setActionSuccess(lang === 'th' ? `อนุมัติคำขอ ${approveModalReq.refNo} และเริ่มการจัดเตรียมพัสดุเรียบร้อย!` : `Approved ${approveModalReq.refNo}`);
       setApproveModalReq(null);
       setApproveNote('');

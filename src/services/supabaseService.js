@@ -24,6 +24,8 @@ export const mapProductFromDb = (row) => ({
   supplierId: row.supplier_id || row.supplierId,
   image: row.image,
   description: row.description,
+  isDeleted: row.is_deleted === true || row.status === 'archived',
+  status: row.status || (row.is_deleted ? 'archived' : 'active'),
   createdAt: row.created_at || row.createdAt,
   updatedAt: row.updated_at || row.updatedAt,
 });
@@ -42,6 +44,8 @@ export const mapProductToDb = (p) => ({
   supplier_id: p.supplierId || p.supplier_id || null,
   image: p.image || '',
   description: p.description || '',
+  is_deleted: p.isDeleted || p.is_deleted || p.status === 'archived' || false,
+  status: p.status || (p.isDeleted ? 'archived' : 'active'),
   updated_at: new Date().toISOString(),
 });
 

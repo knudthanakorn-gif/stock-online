@@ -1132,10 +1132,16 @@ export const StockProvider = ({ children }) => {
       alert(lang === 'th' ? 'ไม่สามารถลบบัญชีผู้ดูแลระบบหลัก (Admin) ได้' : 'Cannot delete primary admin');
       return;
     }
+    // Soft Delete: Mark as inactive and archived to preserve historical audits & requests
+    const updatedUser = { ...targetUser, status: 'inactive', isDeleted: true };
     setUsersList(prev => prev.filter(u => u.id !== id));
-    supabase.from('users').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Supabase deleteUser error:', error);
-    });
+    supabase
+      .from('users')
+      .update({ status: 'inactive', is_deleted: true, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Supabase soft deleteUser error:', error);
+      });
   };
 
   const toggleUserStatus = (id) => {
@@ -1407,10 +1413,14 @@ export const StockProvider = ({ children }) => {
       return;
     }
     setProducts(prev => prev.filter(p => p.id !== id));
-    // Persist to Supabase
-    supabase.from('products').delete().eq('id', id).then(({ error }) => {
-      if (error) console.error('Supabase deleteProduct error:', error);
-    });
+    // Soft delete in Supabase to preserve historical movements, transactions, and audit records
+    supabase
+      .from('products')
+      .update({ is_deleted: true, status: 'archived', updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Supabase soft deleteProduct error:', error);
+      });
   };
 
   // Transaction Movement
@@ -1644,7 +1654,7 @@ export const StockProvider = ({ children }) => {
     return newReq;
   };
 
-  const approveRequisitionRequest = (requestId, approvalNote = '') => {
+  const approveRequisitionRequest = async (requestId, approvalNote = '') => {
     if (user?.role === 'viewer' || user?.role === 'user') {
       throw new Error(lang === 'th' ? 'สิทธิ์เฉพาะเจ้าหน้าที่คลังหรือผู้ดูแลระบบเท่านั้น' : 'Admin or Staff required');
     }
@@ -1653,6 +1663,50 @@ export const StockProvider = ({ children }) => {
     if (!targetReq) return false;
     if (targetReq.status !== 'PENDING') {
       throw new Error(lang === 'th' ? 'คำขอนี้ได้รับการประมวลผลไปแล้ว' : 'Request already processed');
+    }
+
+    // Server-side Double-Check: Query latest status from Supabase to prevent double approval
+    try {
+      const { data: latestDbReq } = await supabase
+        .from('requests')
+        .select('status')
+        .eq('id', requestId)
+        .maybeSingle();
+
+      if (latestDbReq && latestDbReq.status !== 'PENDING') {
+        throw new Error(lang === 'th' ? 'คำขอนี้ได้รับการประมวลผลไปแล้วโดยเจ้าหน้าที่ท่านอื่น' : 'Request already processed');
+      }
+    } catch (e) {
+      if (e.message && e.message.includes('ประมวลผลไปแล้ว')) throw e;
+    }
+
+    // Server-side Concurrency Check: Query live server quantities for all requested items
+    const itemIds = targetReq.items.map(i => i.productId).filter(Boolean);
+    if (itemIds.length > 0) {
+      try {
+        const { data: latestDbProducts } = await supabase
+          .from('products')
+          .select('id, name, quantity')
+          .in('id', itemIds);
+
+        if (latestDbProducts && latestDbProducts.length > 0) {
+          for (const item of targetReq.items) {
+            const liveProd = latestDbProducts.find(p => p.id === item.productId);
+            const availableQty = liveProd ? liveProd.quantity : (products.find(p => p.id === item.productId)?.quantity || 0);
+            if (availableQty < item.quantity) {
+              throw new Error(
+                lang === 'th'
+                  ? `ไม่สามารถอนุมัติได้: อุปกรณ์ "${item.name}" ในคลังคงเหลือไม่เพียงพอ (เหลือจริง ${availableQty} ชิ้น, คำขอเบิก ${item.quantity} ชิ้น)`
+                  : `Insufficient stock for "${item.name}" (remaining: ${availableQty}, requested: ${item.quantity})`
+              );
+            }
+          }
+        }
+      } catch (err) {
+        if (err.message && (err.message.includes('ไม่สามารถอนุมัติได้') || err.message.includes('Insufficient stock'))) {
+          throw err;
+        }
+      }
     }
 
     for (const item of targetReq.items) {
