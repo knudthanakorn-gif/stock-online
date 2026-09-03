@@ -579,7 +579,22 @@ export const StockProvider = ({ children }) => {
         setRequests(requestsRes.value.data.map(mapRequestFromDb));
       }
       if (notifRes.status === 'fulfilled' && notifRes.value.data) {
-        setNotifications(notifRes.value.data.map(mapNotificationFromDb));
+        const rawNotifs = notifRes.value.data;
+        const systemConfigRow = rawNotifs.find((n) => n.id === '__SYSTEM_NOTIFICATION_SETTINGS__');
+        if (systemConfigRow && systemConfigRow.message) {
+          try {
+            const parsedConfig = JSON.parse(systemConfigRow.message);
+            setNotificationSettings((prev) => ({
+              ...DEFAULT_NOTIF_SETTINGS,
+              ...prev,
+              ...parsedConfig,
+            }));
+          } catch (e) {}
+        }
+        const userNotifs = rawNotifs
+          .filter((n) => n.id !== '__SYSTEM_NOTIFICATION_SETTINGS__')
+          .map(mapNotificationFromDb);
+        setNotifications(userNotifs);
       }
     } catch (err) {
       console.warn('refreshDataFromSupabase error:', err);
@@ -714,6 +729,17 @@ export const StockProvider = ({ children }) => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications' },
         (payload) => {
+          if (payload.new && payload.new.id === '__SYSTEM_NOTIFICATION_SETTINGS__') {
+            try {
+              const parsedConfig = JSON.parse(payload.new.message);
+              setNotificationSettings((prev) => ({
+                ...DEFAULT_NOTIF_SETTINGS,
+                ...prev,
+                ...parsedConfig,
+              }));
+            } catch (e) {}
+            return;
+          }
           if (payload.eventType === 'INSERT') {
             const item = mapNotificationFromDb(payload.new);
             setNotifications((prev) => (prev.some((n) => n.id === item.id) ? prev : [item, ...prev]));
@@ -819,7 +845,31 @@ export const StockProvider = ({ children }) => {
   };
 
   const updateNotificationSettings = (newSettings) => {
-    setNotificationSettings(prev => ({ ...prev, ...newSettings }));
+    setNotificationSettings((prev) => {
+      const merged = { ...prev, ...newSettings };
+      try {
+        localStorage.setItem(STORAGE_KEYS.NOTIF_SETTINGS, JSON.stringify(merged));
+      } catch (e) {}
+
+      // Broadcast and persist settings across all devices via Supabase
+      supabase
+        .from('notifications')
+        .upsert({
+          id: '__SYSTEM_NOTIFICATION_SETTINGS__',
+          type: 'SYSTEM_CONFIG',
+          title: 'NOTIFICATION_SETTINGS',
+          message: JSON.stringify(merged),
+          link_tab: '',
+          read: true,
+          created_at: new Date().toISOString(),
+        })
+        .then(({ error }) => {
+          if (error) console.error('Supabase settings sync error:', error);
+          else console.log('✅ Real-time Notification Settings synced to Cloud');
+        });
+
+      return merged;
+    });
   };
 
   const sendTestNotification = async (channel = 'Email & In-App', customSettings = null) => {
