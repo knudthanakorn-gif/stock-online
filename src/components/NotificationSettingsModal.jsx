@@ -39,13 +39,13 @@ export const NotificationSettingsModal = ({ isOpen, onClose }) => {
   };
 
   const handleTest = (channel) => {
-    sendTestNotification(channel);
+    sendTestNotification(channel, formData);
     setTestResult(
       lang === 'th'
-        ? `✅ ส่งข้อความทดสอบ ${channel} สำเร็จ! ตรวจสอบได้ที่กระดิ่งแจ้งเตือน`
+        ? `✅ กำลังส่งข้อความทดสอบ ${channel} ไปยัง ${formData.staffNotificationEmail || 'อีเมลคลัง'}... ตรวจสอบที่กล่องข้อความอีเมลและกระดิ่งแจ้งเตือน`
         : `Test notification sent via ${channel}!`
     );
-    setTimeout(() => setTestResult(''), 4000);
+    setTimeout(() => setTestResult(''), 5000);
   };
 
   return (

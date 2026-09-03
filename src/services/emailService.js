@@ -589,3 +589,70 @@ export const sendRequisitionRejectedEmailToUser = async ({
     metadata: { refNo: request.refNo, event: 'REQUEST_REJECTED' },
   });
 };
+
+/**
+ * 5. Send Test Notification Email
+ */
+export const sendTestEmailNotification = async ({
+  targetEmail,
+  webhookUrl,
+  appUrl = 'https://stock-online-mauve.vercel.app',
+}) => {
+  const bodyHtml = `
+    <!-- Test Announcement Banner -->
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 12px; margin-bottom: 20px; overflow: hidden;">
+      <tr>
+        <td style="padding: 20px; text-align: center;">
+          <div style="font-size: 32px; margin-bottom: 6px;">🚀</div>
+          <div style="font-size: 16px; font-weight: 800; color: #065f46; margin-bottom: 4px;">
+            ระบบแจ้งเตือนทางอีเมลพร้อมใช้งานสมบูรณ์ 100%!
+          </div>
+          <div style="font-size: 13px; color: #047857; font-weight: 600;">
+            การเชื่อมต่อระหว่างระบบ Stock Online และ Email Webhook ทำงานอย่างถูกต้อง
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Info Box -->
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 16px;">
+      <tr>
+        <td style="padding: 16px 18px;">
+          <table width="100%" border="0" cellspacing="0" cellpadding="0">
+            <tr>
+              <td width="36%" style="padding: 5px 0; font-size: 12px; color: #64748b; font-weight: 700;">เวลาทดสอบ:</td>
+              <td width="64%" style="padding: 5px 0; font-size: 13px; color: #0f172a; font-weight: 800;">${new Date().toLocaleString('th-TH')}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 0; font-size: 12px; color: #64748b; font-weight: 700;">อีเมลปลายทาง:</td>
+              <td style="padding: 5px 0; font-size: 13px; color: #4f46e5; font-weight: 800;">${targetEmail || 'tks@pdflowtech.com'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 0; font-size: 12px; color: #64748b; font-weight: 700;">สถานะระบบ:</td>
+              <td style="padding: 5px 0; font-size: 13px; color: #059669; font-weight: 800;">🟢 เชื่อมต่อสำเร็จ (Active & Online)</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const html = generateEmailTemplate({
+    title: 'ทดสอบการแจ้งเตือนจากระบบ Stock Online',
+    subtitle: 'ข้อความทดสอบการส่งอีเมลแจ้งเตือนอัตโนมัติ',
+    badgeText: '🔔 ทดสอบการแจ้งเตือน (System Test)',
+    badgeBgColor: '#10b981',
+    badgeTextColor: '#ffffff',
+    bodyHtml,
+    actionBtnText: '🚀 เข้าสู่ระบบ Stock Online',
+    actionBtnUrl: appUrl,
+  });
+
+  return dispatchEmail({
+    to: targetEmail,
+    subject: `🔔 [ทดสอบระบบ] การแจ้งเตือนจากระบบ Stock Online`,
+    htmlContent: html,
+    webhookUrl,
+    metadata: { event: 'TEST_NOTIFICATION' },
+  });
+};
