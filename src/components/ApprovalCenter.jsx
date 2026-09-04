@@ -307,7 +307,7 @@ export const ApprovalCenter = () => {
                   color: selectedMonth !== 'ALL' ? '#4338ca' : 'var(--text-primary)',
                 }}
               >
-                <option value="ALL">{lang === 'th' ? '📅 ทุกช่วงเดือน (All Months)' : '📅 All Months'}</option>
+                <option value="ALL">{lang === 'th' ? 'ทุกช่วงเดือน (All Months)' : 'All Months'}</option>
                 {availableMonths.map((m) => (
                   <option key={m.value} value={m.value}>
                     {m.label}
