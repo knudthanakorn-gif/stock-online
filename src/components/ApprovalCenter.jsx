@@ -44,6 +44,7 @@ export const ApprovalCenter = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'READY_FOR_PICKUP' | 'ADVANCE' | 'COMPLETED' | 'REJECTED'
+  const [selectedMonth, setSelectedMonth] = useState('ALL'); // 'ALL' | 'YYYY-MM'
 
   // Rejection Modal State
   const [rejectModalReq, setRejectModalReq] = useState(null);
@@ -59,8 +60,56 @@ export const ApprovalCenter = () => {
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
 
-  // Filter Requests
-  const filteredRequests = requests.filter((req) => {
+  // Extract all available months from existing requests
+  const availableMonths = React.useMemo(() => {
+    const monthSet = new Set();
+    requests.forEach((req) => {
+      const dateStr = req.createdAt || req.date || req.timestamp;
+      if (dateStr) {
+        const d = new Date(dateStr);
+        if (!isNaN(d)) {
+          const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          monthSet.add(ym);
+        }
+      }
+    });
+
+    const sorted = Array.from(monthSet).sort().reverse();
+    return sorted.map((ym) => {
+      const [y, m] = ym.split('-');
+      const yearNum = parseInt(y, 10);
+      const monthNum = parseInt(m, 10);
+      const thaiYear = yearNum + 543;
+      const monthNamesTh = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+      ];
+      const monthNamesEn = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+      ];
+      return {
+        value: ym,
+        label: lang === 'th' ? `${monthNamesTh[monthNum - 1]} ${thaiYear}` : `${monthNamesEn[monthNum - 1]} ${yearNum}`,
+      };
+    });
+  }, [requests, lang]);
+
+  // Requests filtered by Month first
+  const monthFilteredRequests = React.useMemo(() => {
+    if (selectedMonth === 'ALL') return requests;
+    return requests.filter((req) => {
+      const dateStr = req.createdAt || req.date || req.timestamp;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (isNaN(d)) return false;
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      return ym === selectedMonth;
+    });
+  }, [requests, selectedMonth]);
+
+  // Filter Requests by Search, Month and Status
+  const filteredRequests = monthFilteredRequests.filter((req) => {
     const matchSearch =
       !searchQuery ||
       req.refNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -79,12 +128,12 @@ export const ApprovalCenter = () => {
     return matchSearch && matchStatus;
   });
 
-  const pendingCount = requests.filter((r) => r.status === 'PENDING').length;
-  const preparingCount = requests.filter((r) => r.status === 'APPROVED').length;
-  const readyCount = requests.filter((r) => r.status === 'READY_FOR_PICKUP').length;
-  const advanceCount = requests.filter((r) => !!r.isAdvance).length;
-  const completedCount = requests.filter((r) => r.status === 'COMPLETED').length;
-  const rejectedCount = requests.filter((r) => r.status === 'REJECTED').length;
+  const pendingCount = monthFilteredRequests.filter((r) => r.status === 'PENDING').length;
+  const preparingCount = monthFilteredRequests.filter((r) => r.status === 'APPROVED').length;
+  const readyCount = monthFilteredRequests.filter((r) => r.status === 'READY_FOR_PICKUP').length;
+  const advanceCount = monthFilteredRequests.filter((r) => !!r.isAdvance).length;
+  const completedCount = monthFilteredRequests.filter((r) => r.status === 'COMPLETED').length;
+  const rejectedCount = monthFilteredRequests.filter((r) => r.status === 'REJECTED').length;
 
   const handleConfirmApprove = async () => {
     if (!approveModalReq) return;
@@ -227,16 +276,46 @@ export const ApprovalCenter = () => {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="toolbar-card card mb-6">
-        <div className="search-wrap flex-1">
-          <Search size={18} className="search-icon" />
-          <input
-            type="text"
-            className="form-control with-icon"
-            placeholder={lang === 'th' ? 'ค้นหาตามเลขที่คำขอ (REQ-...), ชื่อผู้ขอเบิก, แผนก, หรือชื่ออุปกรณ์...' : 'Search by Ref No, Requester, Department, or Asset...'}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <div className="toolbar-card card mb-6" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <div className="toolbar-top-filters" style={{ display: 'flex', gap: '0.75rem', width: '100%', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="search-wrap flex-1" style={{ minWidth: '240px' }}>
+            <Search size={18} className="search-icon" />
+            <input
+              type="text"
+              className="form-control with-icon"
+              placeholder={lang === 'th' ? 'ค้นหาตามเลขที่คำขอ (REQ-...), ชื่อผู้ขอเบิก, แผนก, หรือชื่ออุปกรณ์...' : 'Search by Ref No, Requester, Department, or Asset...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Month / Period Filter Dropdown */}
+          <div className="approval-month-filter" style={{ minWidth: '220px' }}>
+            <div className="filter-group" style={{ position: 'relative', width: '100%', margin: 0 }}>
+              <Calendar size={16} className="filter-icon" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#4f46e5', pointerEvents: 'none' }} />
+              <select
+                className="form-control filter-select"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{
+                  height: '42px',
+                  paddingLeft: '2.4rem',
+                  fontWeight: '700',
+                  borderRadius: 'var(--radius-sm)',
+                  borderColor: selectedMonth !== 'ALL' ? '#4f46e5' : 'var(--border-color)',
+                  background: selectedMonth !== 'ALL' ? '#eef2ff' : 'var(--bg-surface)',
+                  color: selectedMonth !== 'ALL' ? '#4338ca' : 'var(--text-primary)',
+                }}
+              >
+                <option value="ALL">{lang === 'th' ? '📅 ทุกช่วงเดือน (All Months)' : '📅 All Months'}</option>
+                {availableMonths.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         <div className="status-filter-tabs" style={{ flexWrap: 'wrap', gap: '0.35rem' }}>
@@ -244,7 +323,7 @@ export const ApprovalCenter = () => {
             className={`status-tab-btn ${statusFilter === 'ALL' ? 'active' : ''}`}
             onClick={() => setStatusFilter('ALL')}
           >
-            {lang === 'th' ? 'ทั้งหมด' : 'All'} ({requests.length})
+            {lang === 'th' ? 'ทั้งหมด' : 'All'} ({monthFilteredRequests.length})
           </button>
           <button
             className={`status-tab-btn ${statusFilter === 'PENDING' ? 'active active-amber' : ''}`}
