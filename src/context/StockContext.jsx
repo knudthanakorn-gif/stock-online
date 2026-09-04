@@ -563,7 +563,7 @@ export const StockProvider = ({ children }) => {
           localStorage.setItem(STORAGE_KEYS.REQUESTERS_LIST, JSON.stringify(mappedReqs));
         } catch (e) {}
       }
-      if (txRes.status === 'fulfilled' && txRes.value.data && txRes.value.data.length > 0) {
+      if (txRes.status === 'fulfilled' && txRes.value.data) {
         const prodList = prodRes.status === 'fulfilled' && prodRes.value.data ? prodRes.value.data.map(mapProductFromDb) : products;
         const mappedTxs = txRes.value.data.map((row) => {
           const t = mapTransactionFromDb(row);
@@ -574,9 +574,16 @@ export const StockProvider = ({ children }) => {
           return t;
         });
         setTransactions(mappedTxs);
+        try {
+          localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(mappedTxs));
+        } catch (e) {}
       }
-      if (requestsRes.status === 'fulfilled' && requestsRes.value.data && requestsRes.value.data.length > 0) {
-        setRequests(requestsRes.value.data.map(mapRequestFromDb));
+      if (requestsRes.status === 'fulfilled' && requestsRes.value.data) {
+        const mappedRequests = requestsRes.value.data.map(mapRequestFromDb);
+        setRequests(mappedRequests);
+        try {
+          localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(mappedRequests));
+        } catch (e) {}
       }
       if (notifRes.status === 'fulfilled' && notifRes.value.data) {
         const rawNotifs = notifRes.value.data;
@@ -595,6 +602,9 @@ export const StockProvider = ({ children }) => {
           .filter((n) => n.id !== '__SYSTEM_NOTIFICATION_SETTINGS__')
           .map(mapNotificationFromDb);
         setNotifications(userNotifs);
+        try {
+          localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(userNotifs));
+        } catch (e) {}
       }
     } catch (err) {
       console.warn('refreshDataFromSupabase error:', err);
