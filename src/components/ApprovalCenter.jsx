@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useStock } from '../context/StockContext';
 import {
   ClipboardList,
@@ -20,9 +20,19 @@ import {
   Trash2,
   Calendar,
   Zap,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  RotateCcw,
+  CalendarDays,
 } from 'lucide-react';
 import { renderQRCodeSVG } from '../utils/qrGenerator';
 import { RequisitionSlipModal } from './RequisitionSlipModal';
+
+const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+const THAI_MONTHS_FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+const ENG_MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const ENG_MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export const ApprovalCenter = () => {
   const {
@@ -44,7 +54,27 @@ export const ApprovalCenter = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'READY_FOR_PICKUP' | 'ADVANCE' | 'COMPLETED' | 'REJECTED'
-  const [selectedMonth, setSelectedMonth] = useState('ALL'); // 'ALL' | 'YYYY-MM'
+  
+  // Smart Month/Year Filter State
+  const [selectedMonth, setSelectedMonth] = useState('ALL'); // 'ALL' | 'YYYY-MM' (e.g. '2026-09')
+  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const pickerRef = useRef(null);
+
+  // Close popover when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+        setIsPickerOpen(false);
+      }
+    };
+    if (isPickerOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isPickerOpen]);
 
   // Rejection Modal State
   const [rejectModalReq, setRejectModalReq] = useState(null);
@@ -60,43 +90,82 @@ export const ApprovalCenter = () => {
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
 
-  // Extract all available months from existing requests
-  const availableMonths = React.useMemo(() => {
-    const monthSet = new Set();
+  // Compute how many requests exist per month in the currently viewed year
+  const yearMonthCounts = useMemo(() => {
+    const counts = {};
     requests.forEach((req) => {
       const dateStr = req.createdAt || req.date || req.timestamp;
       if (dateStr) {
         const d = new Date(dateStr);
-        if (!isNaN(d)) {
-          const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          monthSet.add(ym);
+        if (!isNaN(d) && d.getFullYear() === viewYear) {
+          const m = d.getMonth() + 1;
+          counts[m] = (counts[m] || 0) + 1;
         }
       }
     });
+    return counts;
+  }, [requests, viewYear]);
 
-    const sorted = Array.from(monthSet).sort().reverse();
-    return sorted.map((ym) => {
-      const [y, m] = ym.split('-');
-      const yearNum = parseInt(y, 10);
-      const monthNum = parseInt(m, 10);
-      const thaiYear = yearNum + 543;
-      const monthNamesTh = [
-        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
-      ];
-      const monthNamesEn = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December',
-      ];
-      return {
-        value: ym,
-        label: lang === 'th' ? `${monthNamesTh[monthNum - 1]} ${thaiYear}` : `${monthNamesEn[monthNum - 1]} ${yearNum}`,
-      };
-    });
-  }, [requests, lang]);
+  // Stepper Functions (‹ Month ›)
+  const handlePrevMonth = () => {
+    const now = new Date();
+    let y = viewYear;
+    let m = now.getMonth() + 1;
+
+    if (selectedMonth !== 'ALL') {
+      const parts = selectedMonth.split('-');
+      y = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10);
+    }
+
+    m -= 1;
+    if (m < 1) {
+      m = 12;
+      y -= 1;
+    }
+    const newYm = `${y}-${String(m).padStart(2, '0')}`;
+    setSelectedMonth(newYm);
+    setViewYear(y);
+  };
+
+  const handleNextMonth = () => {
+    const now = new Date();
+    let y = viewYear;
+    let m = now.getMonth() + 1;
+
+    if (selectedMonth !== 'ALL') {
+      const parts = selectedMonth.split('-');
+      y = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10);
+    }
+
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+    const newYm = `${y}-${String(m).padStart(2, '0')}`;
+    setSelectedMonth(newYm);
+    setViewYear(y);
+  };
+
+  // Label to show on the stepper button
+  const currentMonthLabel = useMemo(() => {
+    if (selectedMonth === 'ALL') {
+      return lang === 'th' ? 'ทุกช่วงเวลา (All Time)' : 'All Time';
+    }
+    const [yStr, mStr] = selectedMonth.split('-');
+    const yearNum = parseInt(yStr, 10);
+    const monthNum = parseInt(mStr, 10);
+    const thaiYear = yearNum + 543;
+    if (lang === 'th') {
+      return `${THAI_MONTHS_FULL[monthNum - 1]} ${thaiYear}`;
+    }
+    return `${ENG_MONTHS_FULL[monthNum - 1]} ${yearNum}`;
+  }, [selectedMonth, lang]);
 
   // Requests filtered by Month first
-  const monthFilteredRequests = React.useMemo(() => {
+  const monthFilteredRequests = useMemo(() => {
     if (selectedMonth === 'ALL') return requests;
     return requests.filter((req) => {
       const dateStr = req.createdAt || req.date || req.timestamp;
@@ -289,32 +358,231 @@ export const ApprovalCenter = () => {
             />
           </div>
 
-          {/* Month / Period Filter Dropdown */}
-          <div className="approval-month-filter" style={{ minWidth: '220px' }}>
-            <div className="filter-group" style={{ position: 'relative', width: '100%', margin: 0 }}>
-              <Calendar size={16} className="filter-icon" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#4f46e5', pointerEvents: 'none' }} />
-              <select
-                className="form-control filter-select"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
+          {/* Smart Month & Year Filter with Stepper & Matrix Popover */}
+          <div className="smart-month-filter-wrap" ref={pickerRef} style={{ position: 'relative' }}>
+            <div className="month-stepper-control" style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', height: '42px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+              <button
+                type="button"
+                className="stepper-arrow-btn"
+                onClick={handlePrevMonth}
+                title={lang === 'th' ? 'เดือนก่อนหน้า' : 'Previous Month'}
+                style={{ height: '100%', padding: '0 10px', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s' }}
+              >
+                <ChevronLeft size={17} />
+              </button>
+
+              <button
+                type="button"
+                className={`stepper-label-btn ${selectedMonth !== 'ALL' ? 'active' : ''}`}
+                onClick={() => setIsPickerOpen(!isPickerOpen)}
                 style={{
-                  height: '42px',
-                  paddingLeft: '2.4rem',
+                  height: '100%',
+                  padding: '0 14px',
+                  border: 'none',
+                  borderLeft: '1px solid var(--border-light)',
+                  borderRight: '1px solid var(--border-light)',
+                  background: selectedMonth !== 'ALL' ? '#eef2ff' : 'transparent',
+                  color: selectedMonth !== 'ALL' ? '#4f46e5' : 'var(--text-primary)',
                   fontWeight: '700',
-                  borderRadius: 'var(--radius-sm)',
-                  borderColor: selectedMonth !== 'ALL' ? '#4f46e5' : 'var(--border-color)',
-                  background: selectedMonth !== 'ALL' ? '#eef2ff' : 'var(--bg-surface)',
-                  color: selectedMonth !== 'ALL' ? '#4338ca' : 'var(--text-primary)',
+                  fontSize: '0.88rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <option value="ALL">{lang === 'th' ? 'ทุกช่วงเดือน (All Months)' : 'All Months'}</option>
-                {availableMonths.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
+                <Calendar size={16} color={selectedMonth !== 'ALL' ? '#4f46e5' : '#64748b'} />
+                <span>{currentMonthLabel}</span>
+                <ChevronDown size={14} style={{ transform: isPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              </button>
+
+              <button
+                type="button"
+                className="stepper-arrow-btn"
+                onClick={handleNextMonth}
+                title={lang === 'th' ? 'เดือนถัดไป' : 'Next Month'}
+                style={{ height: '100%', padding: '0 10px', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s' }}
+              >
+                <ChevronRight size={17} />
+              </button>
             </div>
+
+            {/* Smart Matrix Popover */}
+            {isPickerOpen && (
+              <div
+                className="smart-month-popover"
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  right: 0,
+                  width: '320px',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                  zIndex: 100,
+                  padding: '1rem',
+                  animation: 'fadeIn 0.15s ease-out',
+                }}
+              >
+                {/* Popover Year Navigation Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setViewYear((prev) => prev - 1)}
+                    className="btn-icon-sm"
+                    title="ปีก่อนหน้า"
+                    style={{ width: '32px', height: '32px' }}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  <div style={{ fontWeight: '800', fontSize: '1rem', color: 'var(--text-primary)' }}>
+                    {lang === 'th' ? `ปี พ.ศ. ${viewYear + 543}` : `Year ${viewYear}`}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setViewYear((prev) => prev + 1)}
+                    className="btn-icon-sm"
+                    title="ปีถัดไป"
+                    style={{ width: '32px', height: '32px' }}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+
+                {/* 12 Month Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.45rem', marginBottom: '0.85rem' }}>
+                  {THAI_MONTHS_SHORT.map((mShort, idx) => {
+                    const mNum = idx + 1;
+                    const ymKey = `${viewYear}-${String(mNum).padStart(2, '0')}`;
+                    const isSelected = selectedMonth === ymKey;
+                    const reqCount = yearMonthCounts[mNum] || 0;
+                    const label = lang === 'th' ? mShort : ENG_MONTHS_SHORT[idx];
+
+                    return (
+                      <button
+                        key={ymKey}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMonth(ymKey);
+                          setIsPickerOpen(false);
+                        }}
+                        style={{
+                          padding: '0.6rem 0.2rem',
+                          borderRadius: 'var(--radius-xs)',
+                          border: isSelected ? '1.5px solid #4f46e5' : '1px solid var(--border-color)',
+                          background: isSelected ? '#4f46e5' : reqCount > 0 ? '#f8faff' : 'var(--bg-surface)',
+                          color: isSelected ? '#ffffff' : reqCount > 0 ? '#1e293b' : 'var(--text-muted)',
+                          fontWeight: isSelected || reqCount > 0 ? '700' : '500',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '2px',
+                          position: 'relative',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <span>{label}</span>
+                        {reqCount > 0 && (
+                          <span
+                            style={{
+                              fontSize: '0.65rem',
+                              padding: '1px 5px',
+                              borderRadius: '10px',
+                              background: isSelected ? '#ffffff' : '#e0e7ff',
+                              color: isSelected ? '#4f46e5' : '#4338ca',
+                              fontWeight: '800',
+                            }}
+                          >
+                            {reqCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Quick Presets Footer */}
+                <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.4rem', justifyContent: 'space-between' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                      setSelectedMonth(currentYm);
+                      setViewYear(now.getFullYear());
+                      setIsPickerOpen(false);
+                    }}
+                    style={{
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: 'var(--radius-xs)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-main)',
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ⭐ {lang === 'th' ? 'เดือนปัจจุบัน' : 'This Month'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      let y = now.getFullYear();
+                      let m = now.getMonth();
+                      if (m < 1) {
+                        m = 12;
+                        y -= 1;
+                      }
+                      const lastYm = `${y}-${String(m).padStart(2, '0')}`;
+                      setSelectedMonth(lastYm);
+                      setViewYear(y);
+                      setIsPickerOpen(false);
+                    }}
+                    style={{
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: 'var(--radius-xs)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-main)',
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ⏮️ {lang === 'th' ? 'เดือนที่แล้ว' : 'Last Month'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMonth('ALL');
+                      setIsPickerOpen(false);
+                    }}
+                    style={{
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: 'var(--radius-xs)',
+                      border: selectedMonth === 'ALL' ? '1px solid #4f46e5' : '1px solid var(--border-color)',
+                      background: selectedMonth === 'ALL' ? '#eef2ff' : 'var(--bg-main)',
+                      color: selectedMonth === 'ALL' ? '#4f46e5' : 'var(--text-primary)',
+                      fontSize: '0.75rem',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🌐 {lang === 'th' ? 'ดูทั้งหมด' : 'All Time'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1083,6 +1351,30 @@ export const ApprovalCenter = () => {
             flex: 0 0 36px !important;
             width: 36px !important;
             padding: 0 !important;
+          }
+
+          .smart-month-filter-wrap {
+            width: 100% !important;
+          }
+
+          .month-stepper-control {
+            width: 100% !important;
+            display: flex !important;
+          }
+
+          .stepper-label-btn {
+            flex: 1 !important;
+            justify-content: center !important;
+            font-size: 0.82rem !important;
+            padding: 0 8px !important;
+          }
+
+          .smart-month-popover {
+            width: calc(100vw - 32px) !important;
+            max-width: 340px !important;
+            right: 0 !important;
+            left: 0 !important;
+            margin: 0 auto !important;
           }
         }
       `}</style>
