@@ -207,136 +207,253 @@ export const ProductList = ({
 
       {/* TABLE VIEW */}
       {viewMode === 'table' ? (
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th style={{ minWidth: '220px' }}>{lang === 'th' ? 'อุปกรณ์สำนักงาน' : 'Office Asset'}</th>
-                <th style={{ width: '130px', whiteSpace: 'nowrap' }}>{lang === 'th' ? 'ASSET TAG / QR' : 'Asset Tag / QR'}</th>
-                <th style={{ width: '140px', whiteSpace: 'nowrap' }}>{lang === 'th' ? 'หมวดหมู่' : 'Category'}</th>
-                <th style={{ width: '100px', whiteSpace: 'nowrap' }}>{lang === 'th' ? 'คงเหลือ' : 'Stock'}</th>
-                <th style={{ width: '110px', whiteSpace: 'nowrap' }}>{lang === 'th' ? 'ทำรายการ' : 'Actions'}</th>
-                {canManage && <th style={{ width: '120px', whiteSpace: 'nowrap' }} className="text-center">{lang === 'th' ? 'เครื่องมือ' : 'Tools'}</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedProducts.length === 0 ? (
+        <>
+          {/* DESKTOP TABLE VIEW */}
+          <div className="table-responsive desktop-table-view">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <td colSpan="6" className="text-center py-8 text-muted">
-                    <Package size={48} color="#cbd5e1" className="mb-2" />
-                    <div>{lang === 'th' ? 'ไม่พบรายการอุปกรณ์ตามเงื่อนไขที่เลือก' : 'No assets found'}</div>
-                  </td>
+                  <th style={{ minWidth: '220px' }}>{lang === 'th' ? 'อุปกรณ์สำนักงาน' : 'Office Asset'}</th>
+                  <th style={{ width: '130px', whiteSpace: 'nowrap' }}>{lang === 'th' ? 'ASSET TAG / QR' : 'Asset Tag / QR'}</th>
+                  <th style={{ width: '140px', whiteSpace: 'nowrap' }}>{lang === 'th' ? 'หมวดหมู่' : 'Category'}</th>
+                  <th style={{ width: '100px', whiteSpace: 'nowrap' }}>{lang === 'th' ? 'คงเหลือ' : 'Stock'}</th>
+                  <th style={{ width: '110px', whiteSpace: 'nowrap' }}>{lang === 'th' ? 'ทำรายการ' : 'Actions'}</th>
+                  {canManage && <th style={{ width: '120px', whiteSpace: 'nowrap' }} className="text-center">{lang === 'th' ? 'เครื่องมือ' : 'Tools'}</th>}
                 </tr>
-              ) : (
-                paginatedProducts.map((prod) => {
-                  const isLow = prod.quantity > 0 && prod.quantity <= (prod.minThreshold || 5);
-                  const isOut = prod.quantity === 0;
+              </thead>
+              <tbody>
+                {paginatedProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="text-center py-8 text-muted">
+                      <Package size={48} color="#cbd5e1" className="mb-2" />
+                      <div>{lang === 'th' ? 'ไม่พบรายการอุปกรณ์ตามเงื่อนไขที่เลือก' : 'No assets found'}</div>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedProducts.map((prod) => {
+                    const isLow = prod.quantity > 0 && prod.quantity <= (prod.minThreshold || 5);
+                    const isOut = prod.quantity === 0;
 
-                  return (
-                    <tr key={prod.id}>
-                      <td>
-                        <div className="product-info-cell">
-                          <div
-                            style={{ position: 'relative', cursor: 'pointer' }}
-                            onClick={() => setZoomProduct(prod)}
-                            title={lang === 'th' ? '🔍 คลิกเพื่อดูภาพขยาย' : 'Click to zoom image'}
-                          >
-                            <img
-                              src={prod.image || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80'}
-                              alt={prod.name}
-                              className="product-image-thumb"
-                              style={{ transition: 'transform 0.15s ease' }}
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80';
-                              }}
-                            />
+                    return (
+                      <tr key={prod.id}>
+                        <td>
+                          <div className="product-info-cell">
+                            <div
+                              style={{ position: 'relative', cursor: 'pointer' }}
+                              onClick={() => setZoomProduct(prod)}
+                              title={lang === 'th' ? '🔍 คลิกเพื่อดูภาพขยาย' : 'Click to zoom image'}
+                            >
+                              <img
+                                src={prod.image || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80'}
+                                alt={prod.name}
+                                className="product-image-thumb"
+                                style={{ transition: 'transform 0.15s ease' }}
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80';
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <div className="product-name font-bold">{prod.name}</div>
+                              {prod.description && <div className="product-desc">{prod.description}</div>}
+                            </div>
                           </div>
-                          <div>
-                            <div className="product-name font-bold">{prod.name}</div>
-                            {prod.description && <div className="product-desc">{prod.description}</div>}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <span className="sku-tag font-mono">{prod.sku}</span>
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <span className="badge badge-primary">{getCategoryName(prod.category)}</span>
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <span className={`badge ${isOut ? 'badge-danger' : isLow ? 'badge-warning' : 'badge-success'}`}>
-                          <span className="status-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: isOut ? '#e11d48' : isLow ? '#f59e0b' : '#10b981' }} />
-                          {prod.quantity} {prod.unit}
-                        </span>
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <div className="stock-btn-group">
-                          {user?.role !== 'user' && user?.role !== 'viewer' && (
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <span className="sku-tag font-mono">{prod.sku}</span>
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <span className="badge badge-primary">{getCategoryName(prod.category)}</span>
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <span className={`badge ${isOut ? 'badge-danger' : isLow ? 'badge-warning' : 'badge-success'}`}>
+                            <span className="status-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: isOut ? '#e11d48' : isLow ? '#f59e0b' : '#10b981' }} />
+                            {prod.quantity} {prod.unit}
+                          </span>
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <div className="stock-btn-group">
+                            {user?.role !== 'user' && user?.role !== 'viewer' && (
+                              <button
+                                className="btn btn-xs btn-success"
+                                title={lang === 'th' ? 'รับเข้าอุปกรณ์ (+)' : 'Restock (+)'}
+                                onClick={() => {
+                                  setSelectedProductId(prod.id);
+                                  onOpenStockIn();
+                                }}
+                              >
+                                <PlusCircle size={15} />
+                              </button>
+                            )}
                             <button
-                              className="btn btn-xs btn-success"
-                              title={lang === 'th' ? 'รับเข้าอุปกรณ์ (+)' : 'Restock (+)'}
+                              className="btn btn-xs btn-danger"
+                              title={lang === 'th' ? 'ขอเบิกอุปกรณ์ (-)' : 'Requisition (-)'}
                               onClick={() => {
                                 setSelectedProductId(prod.id);
-                                onOpenStockIn();
+                                onOpenStockOut();
                               }}
                             >
-                              <PlusCircle size={15} />
-                            </button>
-                          )}
-                          <button
-                            className="btn btn-xs btn-danger"
-                            title={lang === 'th' ? 'ขอเบิกอุปกรณ์ (-)' : 'Requisition (-)'}
-                            onClick={() => {
-                              setSelectedProductId(prod.id);
-                              onOpenStockOut();
-                            }}
-                          >
-                            <MinusCircle size={15} />
-                            {user?.role === 'user' || user?.role === 'viewer' ? (
-                              <span>{lang === 'th' ? ' ขอเบิก' : ' Requisition'}</span>
-                            ) : null}
-                          </button>
-                        </div>
-                      </td>
-                      {canManage && (
-                        <td className="text-center" style={{ whiteSpace: 'nowrap' }}>
-                          <div className="action-btns" style={{ justifyContent: 'center' }}>
-                            <button
-                              className="btn-icon-sm"
-                              title={lang === 'th' ? 'แก้ไขข้อมูล' : 'Edit Asset'}
-                              onClick={() => onOpenEditModal(prod)}
-                            >
-                              <Edit2 size={15} />
-                            </button>
-                            <button
-                              className="btn-icon-sm btn-qr-icon"
-                              title={lang === 'th' ? 'พิมพ์ป้าย QR Code' : 'Print QR'}
-                              onClick={() => onOpenBarcodeModal(prod)}
-                            >
-                              <QrCode size={15} color="#4f46e5" />
-                            </button>
-                            <button
-                              className="btn-icon-sm text-red"
-                              title={lang === 'th' ? 'ลบอุปกรณ์' : 'Delete Asset'}
-                              onClick={() => {
-                                if (window.confirm(lang === 'th' ? `ต้องการลบ "${prod.name}" หรือไม่?` : 'Delete this product?')) {
-                                  deleteProduct(prod.id);
-                                }
-                              }}
-                            >
-                              <Trash2 size={15} />
+                              <MinusCircle size={15} />
+                              {user?.role === 'user' || user?.role === 'viewer' ? (
+                                <span>{lang === 'th' ? ' ขอเบิก' : ' Requisition'}</span>
+                              ) : null}
                             </button>
                           </div>
                         </td>
+                        {canManage && (
+                          <td className="text-center" style={{ whiteSpace: 'nowrap' }}>
+                            <div className="action-btns" style={{ justifyContent: 'center' }}>
+                              <button
+                                className="btn-icon-sm"
+                                title={lang === 'th' ? 'แก้ไขข้อมูล' : 'Edit Asset'}
+                                onClick={() => onOpenEditModal(prod)}
+                              >
+                                <Edit2 size={15} />
+                              </button>
+                              <button
+                                className="btn-icon-sm btn-qr-icon"
+                                title={lang === 'th' ? 'พิมพ์ป้าย QR Code' : 'Print QR'}
+                                onClick={() => onOpenBarcodeModal(prod)}
+                              >
+                                <QrCode size={15} color="#4f46e5" />
+                              </button>
+                              <button
+                                className="btn-icon-sm text-red"
+                                title={lang === 'th' ? 'ลบอุปกรณ์' : 'Delete Asset'}
+                                onClick={() => {
+                                  if (window.confirm(lang === 'th' ? `ต้องการลบ "${prod.name}" หรือไม่?` : 'Delete this product?')) {
+                                    deleteProduct(prod.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* MOBILE CARDS VIEW (Responsive for Smartphone) */}
+          <div className="mobile-inventory-cards">
+            {paginatedProducts.length === 0 ? (
+              <div className="card text-center py-8 text-muted">
+                <Package size={40} color="#cbd5e1" className="mb-2 mx-auto" />
+                <div>{lang === 'th' ? 'ไม่พบรายการอุปกรณ์ตามเงื่อนไขที่เลือก' : 'No assets found'}</div>
+              </div>
+            ) : (
+              paginatedProducts.map((prod) => {
+                const isLow = prod.quantity > 0 && prod.quantity <= (prod.minThreshold || 5);
+                const isOut = prod.quantity === 0;
+
+                return (
+                  <div key={prod.id} className="mobile-prod-card card">
+                    <div className="mobile-prod-top">
+                      {/* Thumbnail (Click to zoom) */}
+                      <div
+                        className="mobile-prod-thumb-wrap clickable-zoom-trigger"
+                        onClick={() => setZoomProduct(prod)}
+                        title={lang === 'th' ? '🔍 แตะเพื่อดูภาพขยาย' : 'Tap to zoom'}
+                      >
+                        <img
+                          src={prod.image || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80'}
+                          alt={prod.name}
+                          className="mobile-prod-thumb"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80';
+                          }}
+                        />
+                        <div className="card-zoom-badge">
+                          <ZoomIn size={11} />
+                        </div>
+                      </div>
+
+                      {/* Details */}
+                      <div className="mobile-prod-info">
+                        <div className="mobile-prod-name">{prod.name}</div>
+                        <div className="mobile-prod-meta-row">
+                          <span className="sku-tag font-mono">{prod.sku}</span>
+                          <span className="badge badge-primary badge-xs">{getCategoryName(prod.category)}</span>
+                        </div>
+                        <div className="mobile-prod-stock-badge">
+                          <span className={`badge ${isOut ? 'badge-danger' : isLow ? 'badge-warning' : 'badge-success'}`}>
+                            <span className="status-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: isOut ? '#e11d48' : isLow ? '#f59e0b' : '#10b981' }} />
+                            {lang === 'th' ? `คงเหลือ: ${prod.quantity} ${prod.unit}` : `Stock: ${prod.quantity} ${prod.unit}`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Action Controls */}
+                    <div className="mobile-prod-actions">
+                      <div className="mobile-stock-btns">
+                        {user?.role !== 'user' && user?.role !== 'viewer' && (
+                          <button
+                            className="btn btn-sm btn-success mobile-action-btn"
+                            onClick={() => {
+                              setSelectedProductId(prod.id);
+                              onOpenStockIn();
+                            }}
+                          >
+                            <PlusCircle size={15} />
+                            <span>{lang === 'th' ? 'รับเข้า' : 'In'}</span>
+                          </button>
+                        )}
+                        <button
+                          className="btn btn-sm btn-danger mobile-action-btn"
+                          onClick={() => {
+                            setSelectedProductId(prod.id);
+                            onOpenStockOut();
+                          }}
+                        >
+                          <MinusCircle size={15} />
+                          <span>{lang === 'th' ? 'ขอเบิก' : 'Requisition'}</span>
+                        </button>
+                      </div>
+
+                      {canManage && (
+                        <div className="mobile-manage-btns">
+                          <button
+                            className="btn-icon-sm"
+                            title={lang === 'th' ? 'แก้ไข' : 'Edit'}
+                            onClick={() => onOpenEditModal(prod)}
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            className="btn-icon-sm btn-qr-icon"
+                            title={lang === 'th' ? 'พิมพ์ QR' : 'QR'}
+                            onClick={() => onOpenBarcodeModal(prod)}
+                          >
+                            <QrCode size={16} color="#4f46e5" />
+                          </button>
+                          <button
+                            className="btn-icon-sm text-red"
+                            title={lang === 'th' ? 'ลบ' : 'Delete'}
+                            onClick={() => {
+                              if (window.confirm(lang === 'th' ? `ต้องการลบ "${prod.name}" หรือไม่?` : 'Delete this product?')) {
+                                deleteProduct(prod.id);
+                              }
+                            }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       )}
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
       ) : (
         /* GRID VIEW */
         <div className="products-grid">
@@ -786,6 +903,199 @@ export const ProductList = ({
           background: var(--primary-600);
           border-color: var(--primary-600);
           color: #ffffff;
+        }
+
+        /* Mobile vs Desktop Display Logic */
+        .mobile-inventory-cards {
+          display: none;
+        }
+
+        .desktop-table-view {
+          display: block;
+        }
+
+        @media (max-width: 768px) {
+          .desktop-table-view {
+            display: none !important;
+          }
+
+          .mobile-inventory-cards {
+            display: flex !important;
+            flex-direction: column;
+            gap: 0.75rem;
+            width: 100%;
+          }
+
+          .mobile-prod-card {
+            padding: 0.85rem !important;
+            border-radius: var(--radius-md);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+          }
+
+          .mobile-prod-top {
+            display: flex;
+            gap: 0.85rem;
+            align-items: flex-start;
+          }
+
+          .mobile-prod-thumb-wrap {
+            width: 76px;
+            height: 76px;
+            min-width: 76px;
+            min-height: 76px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-main);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+          }
+
+          .mobile-prod-thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 4px;
+          }
+
+          .mobile-prod-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+          }
+
+          .mobile-prod-name {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.35;
+          }
+
+          .mobile-prod-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+          }
+
+          .badge-xs {
+            font-size: 0.68rem;
+            padding: 2px 6px;
+          }
+
+          .mobile-prod-stock-badge {
+            margin-top: 0.15rem;
+          }
+
+          .mobile-prod-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+            padding-top: 0.65rem;
+            border-top: 1px dashed var(--border-color);
+          }
+
+          .mobile-stock-btns {
+            display: flex;
+            gap: 0.4rem;
+            flex: 1;
+          }
+
+          .mobile-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            border-radius: var(--radius-xs);
+            border: none;
+            cursor: pointer;
+            flex: 1;
+          }
+
+          .mobile-manage-btns {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+          }
+
+          .page-header {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 0.75rem !important;
+            margin-bottom: 0.85rem !important;
+          }
+
+          .header-actions {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+            width: 100% !important;
+            gap: 0.5rem !important;
+          }
+
+          .header-actions .btn {
+            width: 100% !important;
+            justify-content: center !important;
+            padding: 0.55rem 0.4rem !important;
+            font-size: 0.82rem !important;
+          }
+
+          .toolbar-card {
+            padding: 0.85rem !important;
+            margin-bottom: 0.85rem !important;
+          }
+
+          .toolbar-left {
+            flex-direction: column !important;
+            width: 100% !important;
+            gap: 0.5rem !important;
+          }
+
+          .filter-group {
+            width: 100% !important;
+          }
+
+          .filter-select {
+            width: 100% !important;
+            height: 42px !important;
+            font-size: 0.85rem !important;
+          }
+
+          .view-toggle {
+            display: flex;
+            width: 100% !important;
+            justify-content: flex-end;
+            margin-top: 0.35rem;
+          }
+
+          .pagination-bar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+          }
+
+          .pagination-controls {
+            justify-content: space-between;
+            width: 100%;
+          }
+
+          .products-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.85rem !important;
+          }
         }
       `}</style>
 
