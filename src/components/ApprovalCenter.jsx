@@ -347,14 +347,15 @@ export const ApprovalCenter = () => {
       {/* Filter & Search Bar */}
       <div className="toolbar-card card mb-6" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
         <div className="toolbar-top-filters" style={{ display: 'flex', gap: '0.75rem', width: '100%', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div className="search-wrap flex-1" style={{ minWidth: '240px' }}>
-            <Search size={18} className="search-icon" />
+          <div className="search-wrap flex-1" style={{ position: 'relative', minWidth: '240px', display: 'flex', alignItems: 'center' }}>
+            <Search size={18} className="search-icon" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none', zIndex: 2 }} />
             <input
               type="text"
               className="form-control with-icon"
               placeholder={lang === 'th' ? 'ค้นหาตามเลขที่คำขอ (REQ-...), ชื่อผู้ขอเบิก, แผนก, หรือชื่ออุปกรณ์...' : 'Search by Ref No, Requester, Department, or Asset...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ height: '42px', paddingLeft: '2.6rem', width: '100%', borderRadius: 'var(--radius-sm)' }}
             />
           </div>
 
