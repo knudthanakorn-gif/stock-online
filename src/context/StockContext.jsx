@@ -1413,13 +1413,12 @@ export const StockProvider = ({ children }) => {
       return;
     }
     setProducts(prev => prev.filter(p => p.id !== id));
-    // Soft delete in Supabase to preserve historical movements, transactions, and audit records
     supabase
       .from('products')
-      .update({ is_deleted: true, status: 'archived', updated_at: new Date().toISOString() })
+      .delete()
       .eq('id', id)
       .then(({ error }) => {
-        if (error) console.error('Supabase soft deleteProduct error:', error);
+        if (error) console.error('Supabase deleteProduct error:', error);
       });
   };
 
