@@ -1,32 +1,160 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { useStock } from '../context/StockContext';
-import { X, Printer, QrCode, Building2 } from 'lucide-react';
+import { X, Printer, QrCode } from 'lucide-react';
 import { renderQRCodeSVG } from '../utils/qrGenerator';
 
 export const BarcodeModal = ({ isOpen, onClose, product }) => {
   const { lang, categories } = useStock();
   const printRef = useRef(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.classList.add('modal-open-print');
-    } else {
-      document.body.classList.remove('modal-open-print');
-    }
-    return () => {
-      document.body.classList.remove('modal-open-print');
-    };
-  }, [isOpen]);
-
   if (!isOpen || !product) return null;
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   const catObj = categories.find(c => c.id === product.category);
   const catName = catObj ? (lang === 'th' ? catObj.nameTh || catObj.name : catObj.name) : 'General';
   const qrSvgHtml = renderQRCodeSVG(product.sku || product.id, 180);
+
+  // Industry-Standard Isolated Iframe Printing: Guarantees exactly 1 single page tag
+  const handlePrint = () => {
+    const printContent = printRef.current;
+    if (!printContent) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.zIndex = '-1';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="th">
+        <head>
+          <meta charset="utf-8">
+          <title>Asset_QR_Tag_${product.sku || 'Tag'}</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=Prompt:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 10mm;
+            }
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            html, body {
+              margin: 0;
+              padding: 0;
+              background: #ffffff;
+              color: #0f172a;
+              font-family: 'Plus Jakarta Sans', 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            }
+            .tag-print-wrap {
+              width: 100%;
+              max-width: 120mm;
+              margin: 10mm auto;
+              border: 2.5px solid #0f172a;
+              border-radius: 12px;
+              padding: 10mm 8mm;
+              background: #ffffff;
+              color: #0f172a;
+              text-align: center;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .tag-header {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 10px;
+              margin-bottom: 10px;
+              padding-bottom: 6px;
+              border-bottom: 1px dashed #cbd5e1;
+            }
+            .tag-header img {
+              height: 32px;
+              width: auto;
+              object-fit: contain;
+            }
+            .tag-org-name {
+              font-size: 13px;
+              font-weight: 800;
+              color: #1e293b;
+              line-height: 1.2;
+            }
+            .tag-body {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 10px;
+            }
+            .qr-code-svg-wrap {
+              padding: 8px;
+              background: #ffffff;
+              border-radius: 10px;
+              border: 2px solid #0f172a;
+              display: inline-block;
+            }
+            .qr-code-svg-wrap svg {
+              display: block;
+              width: 160px;
+              height: 160px;
+            }
+            .tag-prod-name {
+              font-size: 14px;
+              font-weight: 800;
+              color: #0f172a;
+              margin-bottom: 4px;
+            }
+            .tag-sku-row {
+              font-size: 12px;
+              color: #334155;
+            }
+            .cat-chip {
+              display: inline-block;
+              margin-top: 4px;
+              padding: 3px 10px;
+              background: #eef2ff;
+              color: #4f46e5;
+              border-radius: 9999px;
+              font-size: 11px;
+              font-weight: 700;
+            }
+            .tag-footer {
+              margin-top: 10px;
+              padding-top: 6px;
+              border-top: 1px dashed #cbd5e1;
+              font-size: 10px;
+              color: #64748b;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="tag-print-wrap">
+            ${printContent.innerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => {
+        try {
+          document.body.removeChild(iframe);
+        } catch (e) {}
+      }, 2000);
+    }, 300);
+  };
 
   return (
     <div className="modal-overlay barcode-tag-overlay">
@@ -62,7 +190,7 @@ export const BarcodeModal = ({ isOpen, onClose, product }) => {
               <div className="tag-details">
                 <div className="tag-prod-name">{product.name}</div>
                 <div className="tag-sku-row">
-                  <span className="tag-label">Asset Tag:</span>
+                  <span className="tag-label">Asset Tag: </span>
                   <span className="tag-sku-val font-mono font-bold text-primary">{product.sku}</span>
                 </div>
                 <div className="tag-cat-row">
@@ -172,89 +300,6 @@ export const BarcodeModal = ({ isOpen, onClose, product }) => {
           border-top: 1px dashed #cbd5e1;
           font-size: 0.68rem;
           color: #64748b;
-        }
-
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 0 !important;
-          }
-
-          html, body {
-            height: auto !important;
-            min-height: 0 !important;
-            max-height: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            background: #ffffff !important;
-            color: #000000 !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-
-          body * {
-            visibility: hidden !important;
-          }
-
-          .barcode-tag-overlay,
-          .barcode-tag-modal,
-          .qr-tag-card,
-          .qr-tag-card * {
-            visibility: visible !important;
-          }
-
-          .barcode-tag-overlay {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            background: #ffffff !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            z-index: 999999 !important;
-          }
-
-          .barcode-tag-modal {
-            position: static !important;
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            margin: 0 auto !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            transform: none !important;
-          }
-
-          .modal-body {
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-
-          .qr-tag-card {
-            width: 120mm !important;
-            max-width: 120mm !important;
-            margin: 20mm auto !important;
-            padding: 12mm 10mm !important;
-            border: 2.5px solid #0f172a !important;
-            border-radius: 12px !important;
-            box-sizing: border-box !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            page-break-after: avoid !important;
-            page-break-before: avoid !important;
-            box-shadow: none !important;
-            background: #ffffff !important;
-          }
-
-          .no-print {
-            display: none !important;
-          }
         }
       `}</style>
     </div>

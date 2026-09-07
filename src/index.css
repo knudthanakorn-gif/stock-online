@@ -2954,3 +2954,34 @@ input[type="file"].hidden,
     opacity: 1;
   }
 }
+
+/* ===================================================
+   GLOBAL PRINT ISOLATION RULES
+   =================================================== */
+@media print {
+  body.modal-open-print {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  body.modal-open-print .navbar,
+  body.modal-open-print .sidebar,
+  body.modal-open-print .main-content,
+  body.modal-open-print .page-container,
+  body.modal-open-print .mobile-hamburger-btn,
+  body.modal-open-print .sidebar-backdrop,
+  body.modal-open-print .no-print {
+    display: none !important;
+  }
+
+  body.modal-open-print .app-layout {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+
