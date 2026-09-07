@@ -520,7 +520,7 @@ export const Login = () => {
                       onClick={() => {
                         setSelectedUser(u);
                         setUsername(u.name);
-                        setPassword(u.password || '1234');
+                        setPassword('');
                         setIsDirectoryOpen(false);
                         setErrorMsg('');
                         setTimeout(() => {
