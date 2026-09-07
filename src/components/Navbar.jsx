@@ -95,6 +95,22 @@ export const Navbar = ({
 
   const unreadCount = filteredNotifications.filter((n) => !n.read).length;
 
+  const searchInputRef = useRef(null);
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '');
+
+  // Global Keyboard Shortcut: Ctrl + K (Windows) / Cmd + K (Mac) to focus search
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -190,13 +206,21 @@ export const Navbar = ({
       <div className="navbar-search desktop-only">
         <Search size={18} className="search-icon" />
         <input
+          ref={searchInputRef}
           type="text"
           className="search-input"
           placeholder={lang === 'th' ? 'ค้นหาตามชื่ออุปกรณ์, Asset Tag, QR Code...' : 'Search by asset name, Asset Tag, QR...'}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <span className="search-shortcut-badge">⌘K</span>
+        <span
+          className="search-shortcut-badge"
+          onClick={() => searchInputRef.current?.focus()}
+          style={{ cursor: 'pointer' }}
+          title={isMac ? 'กด ⌘ + K เพื่อค้นหาทันที' : 'กด Ctrl + K เพื่อค้นหาทันที'}
+        >
+          {isMac ? '⌘K' : 'Ctrl K'}
+        </span>
       </div>
 
       {/* Action Controls Right */}
