@@ -11,7 +11,7 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
 
   // Generate URL for Opening Main Portal / Login Page
   const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/?action=login` : 'https://stock-online-mauve.vercel.app/?action=login';
-  const qrSvgHtml = renderQRCodeSVG(portalUrl, 240);
+  const qrSvgHtml = renderQRCodeSVG(portalUrl, 200);
 
   // Industry-Standard Isolated Iframe Printing: Guarantees 100% strictly 1 single A4 page
   const handlePrint = () => {
@@ -42,42 +42,49 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
           <style>
             @page {
               size: A4 portrait;
-              margin: 8mm;
+              margin: 0mm !important;
             }
-            * {
+            *, *::before, *::after {
               box-sizing: border-box;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
             html, body {
-              margin: 0;
-              padding: 0;
-              background: #ffffff;
-              color: #0f172a;
+              margin: 0 !important;
+              padding: 0 !important;
+              height: auto !important;
+              min-height: 0 !important;
+              max-height: 100% !important;
+              overflow: hidden !important;
+              background: #ffffff !important;
+              color: #0f172a !important;
               font-family: 'Plus Jakarta Sans', 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              height: 100%;
             }
             .poster-print-wrap {
-              width: 100%;
-              max-width: 185mm;
-              margin: 4mm auto;
-              padding: 10mm 14mm;
+              width: 175mm;
+              max-width: 175mm;
+              margin: 12mm auto 0 auto !important;
+              padding: 8mm 12mm;
               border: 3px solid #0f172a;
-              border-radius: 18px;
+              border-radius: 16px;
               text-align: center;
-              page-break-inside: avoid;
-              break-inside: avoid;
-              box-sizing: border-box;
+              background: #ffffff;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              page-break-after: avoid !important;
+              break-after: avoid !important;
+              page-break-before: avoid !important;
+              break-before: avoid !important;
             }
             .poster-header {
               display: flex;
               align-items: center;
               justify-content: center;
-              gap: 14px;
-              margin-bottom: 6px;
+              gap: 12px;
+              margin-bottom: 4px;
             }
             .poster-logo-img {
-              height: 48px;
+              height: 42px;
               width: auto;
               object-fit: contain;
             }
@@ -85,13 +92,13 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
               text-align: left;
             }
             .poster-company-name {
-              font-size: 15px;
+              font-size: 14px;
               font-weight: 900;
               color: #0f172a;
               line-height: 1.2;
             }
             .poster-portal-title {
-              font-size: 11px;
+              font-size: 10px;
               font-weight: 800;
               color: #4f46e5;
               letter-spacing: 0.5px;
@@ -99,109 +106,109 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
             .poster-divider {
               height: 2px;
               background: #4f46e5;
-              margin: 8px 0 12px 0;
+              margin: 6px 0 10px 0;
             }
             .poster-main-badge {
               display: inline-block;
               background: #4f46e5;
               color: #ffffff;
-              padding: 6px 18px;
+              padding: 5px 16px;
               border-radius: 9999px;
-              font-size: 14px;
+              font-size: 13px;
               font-weight: 800;
               letter-spacing: 0.3px;
               margin-bottom: 4px;
             }
             .poster-sub-desc {
-              font-size: 12px;
+              font-size: 11px;
               color: #64748b;
-              margin: 0 0 12px 0;
+              margin: 0 0 10px 0;
               font-weight: 600;
             }
             .poster-qr-container {
-              margin: 0 auto 12px auto;
+              margin: 0 auto 10px auto;
               display: flex;
               flex-direction: column;
               align-items: center;
             }
             .qr-code-svg-wrap {
-              padding: 10px;
+              padding: 8px;
               background: #ffffff;
-              border-radius: 14px;
-              border: 2.5px solid #0f172a;
+              border-radius: 12px;
+              border: 2px solid #0f172a;
               display: inline-block;
             }
             .qr-code-svg-wrap svg {
               display: block;
-              width: 230px;
-              height: 230px;
+              width: 190px;
+              height: 190px;
             }
             .qr-scan-hint {
-              font-size: 12px;
+              font-size: 11px;
               font-weight: 800;
               color: #4f46e5;
-              margin-top: 6px;
+              margin-top: 4px;
             }
             .poster-instructions {
               display: grid;
               grid-template-columns: repeat(3, 1fr);
-              gap: 8px;
+              gap: 6px;
               background: #f8fafc;
-              border: 1.5px solid #e2e8f0;
-              padding: 10px 8px;
-              border-radius: 10px;
-              margin-bottom: 10px;
+              border: 1px solid #e2e8f0;
+              padding: 8px 6px;
+              border-radius: 8px;
+              margin-bottom: 8px;
               text-align: center;
             }
             .instruction-step {
               display: flex;
               flex-direction: column;
               align-items: center;
-              gap: 3px;
+              gap: 2px;
             }
             .step-badge {
-              width: 22px;
-              height: 22px;
+              width: 20px;
+              height: 20px;
               border-radius: 50%;
               background: #4f46e5;
               color: #ffffff;
               display: flex;
               align-items: center;
               justify-content: center;
-              font-size: 12px;
+              font-size: 11px;
               font-weight: 800;
             }
             .step-text strong {
               display: block;
-              font-size: 11px;
+              font-size: 10.5px;
               color: #0f172a;
               font-weight: 800;
             }
             .step-text span {
               display: block;
-              font-size: 10px;
+              font-size: 9.5px;
               color: #64748b;
-              margin-top: 2px;
-              line-height: 1.25;
+              margin-top: 1px;
+              line-height: 1.2;
             }
             .poster-url-box {
               display: inline-block;
               background: #eef2ff;
               border: 1px dashed #a5b4fc;
-              padding: 4px 14px;
-              border-radius: 6px;
-              margin-bottom: 8px;
-              font-size: 11px;
+              padding: 3px 12px;
+              border-radius: 5px;
+              margin-bottom: 6px;
+              font-size: 10px;
               font-family: 'JetBrains Mono', monospace;
               color: #4338ca;
               font-weight: 700;
             }
             .poster-footer {
-              font-size: 11px;
+              font-size: 10px;
               font-weight: 600;
               color: #64748b;
               border-top: 1px solid #e2e8f0;
-              padding-top: 8px;
+              padding-top: 6px;
             }
           </style>
         </head>
@@ -214,7 +221,7 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
     `);
     doc.close();
 
-    // Ensure assets / fonts are ready before opening print dialog
+    // Ensure iframe document is rendered before triggering print
     setTimeout(() => {
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
@@ -223,7 +230,7 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
           document.body.removeChild(iframe);
         } catch (e) {}
       }, 2000);
-    }, 300);
+    }, 250);
   };
 
   return (
@@ -239,7 +246,7 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <div className="modal-body text-center" style={{ padding: '1rem' }}>
+        <div className="modal-body text-center" style={{ padding: '0.85rem' }}>
           {/* Printable QR Code Poster Card */}
           <div className="requisition-poster-card" ref={printRef}>
             {/* Poster Header */}
@@ -329,14 +336,14 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
       </div>
 
       <style>{`
-        .modal-md { max-width: 520px; }
+        .modal-md { max-width: 500px; }
 
         .requisition-poster-card {
           background: #ffffff;
           border: 2px solid #4f46e5;
-          border-radius: 16px;
-          padding: 1.25rem 1.1rem;
-          box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.15);
+          border-radius: 14px;
+          padding: 1.1rem 1rem;
+          box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.12);
           color: #0f172a;
           text-align: center;
         }
@@ -345,12 +352,12 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 1rem;
-          margin-bottom: 0.5rem;
+          gap: 0.85rem;
+          margin-bottom: 0.4rem;
         }
 
         .poster-logo-img {
-          height: 44px;
+          height: 40px;
           width: auto;
           object-fit: contain;
         }
@@ -360,7 +367,7 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
         }
 
         .poster-company-name {
-          font-size: 0.92rem;
+          font-size: 0.88rem;
           font-weight: 900;
           color: #0f172a;
           letter-spacing: -0.01em;
@@ -368,7 +375,7 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
         }
 
         .poster-portal-title {
-          font-size: 0.68rem;
+          font-size: 0.65rem;
           font-weight: 700;
           color: #4f46e5;
           letter-spacing: 0.04em;
@@ -377,7 +384,7 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
         .poster-divider {
           height: 2px;
           background: linear-gradient(90deg, #4f46e5 0%, #06b6d4 100%);
-          margin: 0.5rem 0 0.75rem 0;
+          margin: 0.4rem 0 0.65rem 0;
           border-radius: 2px;
         }
 
@@ -387,19 +394,19 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
           justify-content: center;
           background: #4f46e5;
           color: #ffffff;
-          padding: 0.4rem 1rem;
+          padding: 0.35rem 0.9rem;
           border-radius: 9999px;
-          font-size: 0.85rem;
+          font-size: 0.82rem;
           font-weight: 800;
           letter-spacing: 0.02em;
-          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-          margin-bottom: 0.35rem;
+          box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+          margin-bottom: 0.3rem;
         }
 
         .poster-sub-desc {
-          font-size: 0.74rem;
+          font-size: 0.72rem;
           color: #64748b;
-          margin: 0 0 0.75rem 0;
+          margin: 0 0 0.65rem 0;
           font-weight: 500;
         }
 
@@ -407,43 +414,43 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          margin: 0 auto 0.75rem auto;
+          margin: 0 auto 0.65rem auto;
         }
 
         .qr-code-svg-wrap {
           display: flex;
           justify-content: center;
           align-items: center;
-          padding: 0.65rem;
+          padding: 0.55rem;
           background: #ffffff;
-          border-radius: 14px;
+          border-radius: 12px;
           border: 2px solid #0f172a;
           width: fit-content;
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
         }
 
         .qr-code-svg-wrap svg {
           display: block;
-          width: 200px;
-          height: 200px;
+          width: 180px;
+          height: 180px;
         }
 
         .qr-scan-hint {
-          font-size: 0.74rem;
+          font-size: 0.72rem;
           font-weight: 700;
           color: #4f46e5;
-          margin-top: 0.35rem;
+          margin-top: 0.3rem;
         }
 
         .poster-instructions {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 0.4rem;
+          gap: 0.35rem;
           background: #f8fafc;
           border: 1px solid #e2e8f0;
-          padding: 0.65rem 0.5rem;
-          border-radius: 10px;
-          margin-bottom: 0.65rem;
+          padding: 0.55rem 0.45rem;
+          border-radius: 8px;
+          margin-bottom: 0.55rem;
           text-align: left;
         }
 
@@ -452,19 +459,19 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
           flex-direction: column;
           align-items: center;
           text-align: center;
-          gap: 0.25rem;
+          gap: 0.2rem;
         }
 
         .step-badge {
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
           border-radius: 50%;
           background: #4f46e5;
           color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.72rem;
+          font-size: 0.68rem;
           font-weight: 800;
           flex-shrink: 0;
         }
@@ -476,12 +483,12 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
         }
 
         .step-text strong {
-          font-size: 0.72rem;
+          font-size: 0.68rem;
           color: #0f172a;
         }
 
         .step-text span {
-          font-size: 0.62rem;
+          font-size: 0.58rem;
           color: #64748b;
           margin-top: 1px;
         }
@@ -492,20 +499,20 @@ export const RequisitionQRModal = ({ isOpen, onClose }) => {
           gap: 0.4rem;
           background: #eef2ff;
           border: 1px dashed #a5b4fc;
-          padding: 0.2rem 0.65rem;
-          border-radius: 6px;
-          margin-bottom: 0.5rem;
-          font-size: 0.68rem;
+          padding: 0.15rem 0.55rem;
+          border-radius: 5px;
+          margin-bottom: 0.4rem;
+          font-size: 0.65rem;
           font-family: var(--font-mono);
           color: #4338ca;
         }
 
         .poster-footer {
-          font-size: 0.68rem;
+          font-size: 0.65rem;
           font-weight: 600;
           color: #64748b;
           border-top: 1px solid #e2e8f0;
-          padding-top: 0.4rem;
+          padding-top: 0.35rem;
         }
       `}</style>
     </div>
