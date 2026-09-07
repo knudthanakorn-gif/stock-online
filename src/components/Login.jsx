@@ -244,9 +244,9 @@ export const Login = () => {
     <div className="login-wrapper">
       {/* Top Header Toolbar */}
       <div className="login-topbar">
-        <button className="topbar-btn" onClick={toggleLang}>
+        <button className="topbar-btn" onClick={toggleLang} title={lang === 'th' ? 'Switch to English' : 'เปลี่ยนเป็นภาษาไทย'}>
           <Globe size={16} />
-          <span>{lang === 'th' ? 'TH 🇹🇭' : 'EN 🇬🇧'}</span>
+          <span>{lang === 'th' ? 'TH' : 'EN'}</span>
         </button>
 
         <button className="topbar-btn" onClick={toggleTheme}>
