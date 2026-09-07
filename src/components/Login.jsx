@@ -311,7 +311,7 @@ export const Login = () => {
             /* Username Input */
             <div className="form-group mb-3">
               <label className="form-label font-semibold text-slate-700">
-                {lang === 'th' ? 'ชื่อจริงผู้เบิก' : 'First Name'}
+                {lang === 'th' ? 'ชื่อจริงผู้เบิก (ภาษาอังกฤษ)' : 'First Name (English)'}
               </label>
               <div className="input-icon-wrapper">
                 <User size={18} className="input-icon" />
