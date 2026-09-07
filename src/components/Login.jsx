@@ -77,8 +77,8 @@ export const Login = () => {
 
   const passwordInputRef = useRef(null);
 
-  // Helper to save recent login on this device
-  const saveRecentLogin = (u) => {
+  // Helper to save recent login on this device (including remembered password on this machine)
+  const saveRecentLogin = (u, currentPwd = '') => {
     if (!u) return;
     try {
       const existing = JSON.parse(localStorage.getItem(RECENT_LOGINS_KEY) || '[]');
@@ -92,6 +92,7 @@ export const Login = () => {
           department: u.department,
           company: u.company,
           role: u.role,
+          savedPassword: currentPwd || u.password || '1234',
           lastLoginAt: new Date().toISOString(),
         },
         ...filtered,
@@ -142,9 +143,12 @@ export const Login = () => {
         (u.username && r.username && u.username.toLowerCase() === r.username.toLowerCase()) ||
         (u.employeeCode && r.employeeCode && u.employeeCode.toLowerCase() === r.employeeCode.toLowerCase())
     );
-    setSelectedUser(matched || r);
-    setUsername(r.name || r.username);
-    setPassword('');
+    const target = matched || r;
+    setSelectedUser(target);
+    setUsername(target.name || target.username);
+    // Auto-fill password for previously logged in accounts on this device
+    const pwdToFill = r.savedPassword || target.password || '1234';
+    setPassword(pwdToFill);
     setErrorMsg('');
     setTimeout(() => {
       passwordInputRef.current?.focus();
@@ -229,7 +233,7 @@ export const Login = () => {
       }
 
       if (loggedInUser) {
-        saveRecentLogin(loggedInUser);
+        saveRecentLogin(loggedInUser, password);
       }
     } catch (err) {
       setErrorMsg(err.message);
