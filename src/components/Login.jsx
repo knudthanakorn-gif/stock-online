@@ -629,9 +629,6 @@ export const Login = () => {
               <button className="btn btn-secondary btn-sm" onClick={() => setDuplicateUsers(null)}>
                 {lang === 'th' ? 'ยกเลิก' : 'Cancel'}
               </button>
-              <div className="text-xs text-muted">
-                {lang === 'th' ? 'หรือพิมพ์รหัสพนักงาน (EMP Code) เพื่อล็อกอินโดยตรง' : 'Or use EMP code directly'}
-              </div>
             </div>
           </div>
         </div>
