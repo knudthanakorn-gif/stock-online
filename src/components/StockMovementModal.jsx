@@ -72,6 +72,8 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
   const csvInputRef = useRef(null);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     setType(initialType);
     setErrorMsg('');
     setImportStatusMsg('');
@@ -79,21 +81,19 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
     setInvoicePdf(null);
     setPreviewModalPdf(null);
 
-    if (isOpen) {
-      setRequesterCompany('EXION THAILAND');
-      setRequesterDept('');
-      setRequesterName('');
-      setRequesterPosition('');
-      setRefNo('');
-      setNote('');
+    setRequesterCompany('EXION THAILAND');
+    setRequesterDept('');
+    setRequesterName('');
+    setRequesterPosition('');
+    setRefNo('');
+    setNote('');
 
-      const defaultProdId = preselectedProductId || (products[0]?.id || '');
-      const defaultProd = products.find(p => p.id === defaultProdId);
-      setProductId(defaultProdId);
-      setOutUnitPrice((defaultProd?.costPrice || defaultProd?.sellingPrice || 0).toString());
-      setInItems([{ id: Date.now().toString(), productId: defaultProdId, quantity: 1, unitPrice: defaultProd?.costPrice || 0 }]);
-    }
-  }, [isOpen, initialType, preselectedProductId, products]);
+    const defaultProdId = preselectedProductId || (products[0]?.id || '');
+    const defaultProd = products.find(p => p.id === defaultProdId);
+    setProductId(defaultProdId);
+    setOutUnitPrice((defaultProd?.costPrice || defaultProd?.sellingPrice || 0).toString());
+    setInItems([{ id: Date.now().toString(), productId: defaultProdId, quantity: 1, unitPrice: defaultProd?.costPrice || 0 }]);
+  }, [isOpen, initialType, preselectedProductId]);
 
   if (!isOpen) return null;
 

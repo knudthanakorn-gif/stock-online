@@ -75,7 +75,7 @@ export const ScanRequisitionModal = ({ isOpen, onClose }) => {
         setSelectedProductId(products[0].id);
       }
     }
-  }, [isOpen, products, user]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

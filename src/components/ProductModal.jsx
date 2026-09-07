@@ -99,15 +99,17 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
   };
 
   useEffect(() => {
+    if (!isOpen) return;
+
     if (productToEdit) {
       setName(productToEdit.name || '');
       setSku(productToEdit.sku || '');
       setBarcode(productToEdit.barcode || '');
       setCategory(productToEdit.category || (categories[0]?.id || ''));
-      setCostPrice(productToEdit.costPrice || '');
-      setSellingPrice(productToEdit.sellingPrice || '');
-      setQuantity(productToEdit.quantity || '');
-      setMinThreshold(productToEdit.minThreshold || '5');
+      setCostPrice(productToEdit.costPrice !== undefined && productToEdit.costPrice !== null ? String(productToEdit.costPrice) : '0');
+      setSellingPrice(productToEdit.sellingPrice !== undefined && productToEdit.sellingPrice !== null ? String(productToEdit.sellingPrice) : '0');
+      setQuantity(productToEdit.quantity !== undefined && productToEdit.quantity !== null ? String(productToEdit.quantity) : '0');
+      setMinThreshold(productToEdit.minThreshold !== undefined && productToEdit.minThreshold !== null ? String(productToEdit.minThreshold) : '5');
       setUnit(productToEdit.unit || 'ชิ้น');
       setSupplierId(productToEdit.supplierId || '');
       setDescription(productToEdit.description || '');
@@ -126,7 +128,7 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
       setDescription('');
       setImage('https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80');
     }
-  }, [productToEdit, isOpen, categories]);
+  }, [isOpen, productToEdit?.id]);
 
   if (!isOpen) return null;
 

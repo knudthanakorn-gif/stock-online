@@ -85,7 +85,7 @@ export const DepartmentQuotaModal = ({ isOpen, onClose }) => {
       setLocalQuotas(initial);
       setSearchTerm('');
     }
-  }, [isOpen, allDepartments, departmentQuotas]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

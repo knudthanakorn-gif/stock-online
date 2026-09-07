@@ -45,7 +45,7 @@ export const ScannerModal = ({
     } else {
       stopCamera();
     }
-  }, [isOpen, products]);
+  }, [isOpen]);
 
   const stopCamera = () => {
     if (html5QrcodeScannerRef.current) {
