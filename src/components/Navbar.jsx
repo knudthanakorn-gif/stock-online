@@ -98,17 +98,31 @@ export const Navbar = ({
   const searchInputRef = useRef(null);
   const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '');
 
-  // Global Keyboard Shortcut: Ctrl + K (Windows) / Cmd + K (Mac) to focus search
+  // Global Keyboard Shortcut: '/' (Slash) or Ctrl+K / Cmd+K to focus search
   useEffect(() => {
     const handleKeyDown = (e) => {
+      const activeTag = document.activeElement?.tagName;
+      const isInputActive = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag) || document.activeElement?.isContentEditable;
+
+      // Press '/' to search (when not currently typing in a form field)
+      if (e.key === '/' && !isInputActive) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+
+      // Ctrl + K or Cmd + K
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
+        e.stopPropagation();
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    window.addEventListener('keydown', handleKeyDown, true); // Capture phase to prevent browser Omnibox hijack
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, []);
 
   // Close dropdowns on click outside
@@ -213,14 +227,37 @@ export const Navbar = ({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <span
-          className="search-shortcut-badge"
-          onClick={() => searchInputRef.current?.focus()}
-          style={{ cursor: 'pointer' }}
-          title={isMac ? 'กด ⌘ + K เพื่อค้นหาทันที' : 'กด Ctrl + K เพื่อค้นหาทันที'}
-        >
-          {isMac ? '⌘K' : 'Ctrl K'}
-        </span>
+        {searchQuery ? (
+          <button
+            type="button"
+            className="search-clear-btn"
+            onClick={() => {
+              setSearchQuery('');
+              searchInputRef.current?.focus();
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#94a3b8',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+            title="ล้างข้อความค้นหา"
+          >
+            <Trash2 size={15} />
+          </button>
+        ) : (
+          <span
+            className="search-shortcut-badge"
+            onClick={() => searchInputRef.current?.focus()}
+            style={{ cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, padding: '2px 7px' }}
+            title="กดปุ่ม / บนคีย์บอร์ด หรือคลิกเพื่อค้นหาทันที"
+          >
+            /
+          </span>
+        )}
       </div>
 
       {/* Action Controls Right */}
