@@ -2968,20 +2968,22 @@ input[type="file"].hidden,
 
   body.modal-open-print .navbar,
   body.modal-open-print .sidebar,
-  body.modal-open-print .main-content,
-  body.modal-open-print .page-container,
   body.modal-open-print .mobile-hamburger-btn,
   body.modal-open-print .sidebar-backdrop,
   body.modal-open-print .no-print {
     display: none !important;
   }
 
-  body.modal-open-print .app-layout {
+  body.modal-open-print .app-layout,
+  body.modal-open-print .main-content,
+  body.modal-open-print .page-container {
     display: block !important;
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
     height: auto !important;
+    background: transparent !important;
+    border: none !important;
   }
 }
 

@@ -59,7 +59,134 @@ export const RequisitionSlipModal = ({ isOpen, onClose, request }) => {
       : matchedUser?.position || '';
 
   const handlePrint = () => {
-    window.print();
+    const printContent = printContentRef.current;
+    if (!printContent) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.zIndex = '-1';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="th">
+        <head>
+          <meta charset="utf-8">
+          <title>Requisition_Slip_${request.refNo || 'Slip'}</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Prompt:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 10mm 12mm;
+            }
+            *, *::before, *::after {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #ffffff !important;
+              color: #0f172a !important;
+              font-family: 'Plus Jakarta Sans', 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              -webkit-font-smoothing: antialiased;
+            }
+            .slip-printable-area {
+              width: 100%;
+              max-width: 100%;
+              margin: 0 auto;
+              padding: 0;
+            }
+            .flex-between {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .flex-center {
+              display: flex;
+              align-items: center;
+            }
+            .gap-2 { gap: 0.5rem; }
+            .gap-3 { gap: 0.75rem; }
+            .mb-4 { margin-bottom: 1rem; }
+            .pb-3 { padding-bottom: 0.75rem; }
+            .text-xs { font-size: 0.75rem; }
+            .text-sm { font-size: 0.875rem; }
+            .text-base { font-size: 1rem; }
+            .font-bold { font-weight: 700; }
+            .font-extrabold { font-weight: 800; }
+            .font-mono { font-family: 'JetBrains Mono', monospace; }
+            .text-slate-500 { color: #64748b; }
+            .text-slate-700 { color: #334155; }
+            .text-slate-900 { color: #0f172a; }
+            .badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 0.25rem;
+              padding: 0.25rem 0.65rem;
+              border-radius: 9999px;
+              font-weight: 700;
+              font-size: 0.75rem;
+            }
+            .badge-info { background: #e0e7ff; color: #3730a3; }
+            .badge-success { background: #d1fae5; color: #065f46; }
+            .badge-secondary { background: #f3e8ff; color: #6b21a8; }
+            .badge-danger { background: #fee2e2; color: #991b1b; }
+            .badge-warning { background: #fef3c7; color: #92400e; }
+            .inline-icon { display: inline-block; vertical-align: middle; margin-right: 3px; }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              page-break-inside: auto;
+            }
+            tr {
+              page-break-inside: avoid;
+              page-break-after: auto;
+            }
+            th, td {
+              border: 1px solid #cbd5e1;
+            }
+            .slip-signatures-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 2rem;
+              margin-top: 1.5rem;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+            .no-print {
+              display: none !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="slip-printable-area">
+            ${printContent.innerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => {
+        try {
+          document.body.removeChild(iframe);
+        } catch (e) {}
+      }, 2000);
+    }, 250);
   };
 
   const getStatusBadge = (status) => {
