@@ -392,7 +392,13 @@ export const StockProvider = ({ children }) => {
 
   const [requests, setRequests] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.REQUESTS);
-    return saved !== null ? JSON.parse(saved) : INITIAL_REQUESTS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_REQUESTS || [];
   });
 
   // Notifications State
@@ -448,7 +454,9 @@ export const StockProvider = ({ children }) => {
   }, [transactions]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(requests));
+    if (requests && requests.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(requests));
+    }
   }, [requests]);
 
   useEffect(() => {
@@ -578,7 +586,7 @@ export const StockProvider = ({ children }) => {
           localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(mappedTxs));
         } catch (e) {}
       }
-      if (requestsRes.status === 'fulfilled' && requestsRes.value.data) {
+      if (requestsRes.status === 'fulfilled' && requestsRes.value.data && requestsRes.value.data.length > 0) {
         const mappedRequests = requestsRes.value.data.map(mapRequestFromDb);
         setRequests(mappedRequests);
         try {
