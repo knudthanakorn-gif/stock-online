@@ -17,7 +17,11 @@ import {
   Eye,
   ExternalLink,
   FileCheck2,
+  PackageCheck,
+  Search,
 } from 'lucide-react';
+import { SearchableProductSelect } from './SearchableProductSelect';
+import { MultiProductPickerModal } from './MultiProductPickerModal';
 
 const DEPARTMENT_PRESETS = [
   'แผนก IT / เทคโนโลยีสารสนเทศ',
@@ -59,8 +63,10 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
       unitPrice: products[0]?.costPrice || 0,
       totalPrice: products[0]?.costPrice || 0,
       lastEdited: 'unitPrice',
+      userModified: false,
     }
   ]);
+  const [isMultiPickerOpen, setIsMultiPickerOpen] = useState(false);
 
   // Requisitioner Cascading Hierarchy (for type === 'OUT')
   const [requesterCompany, setRequesterCompany] = useState('EXION THAILAND');
@@ -87,6 +93,7 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
     setSubmittedInTicket(null);
     setInvoicePdf(null);
     setPreviewModalPdf(null);
+    setIsMultiPickerOpen(false);
 
     setRequesterCompany('EXION THAILAND');
     setRequesterDept('');
@@ -108,6 +115,7 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
         unitPrice: defCost,
         totalPrice: defCost,
         lastEdited: 'unitPrice',
+        userModified: false,
       }
     ]);
   }, [isOpen, initialType, preselectedProductId]);
@@ -166,8 +174,47 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
         unitPrice: defCost,
         totalPrice: defCost,
         lastEdited: 'unitPrice',
+        userModified: true,
       }
     ]);
+  };
+
+  const handleBatchAddInItems = (selectedList) => {
+    if (!selectedList || selectedList.length === 0) return;
+
+    setInItems((prev) => {
+      // Check if current list only has the initial untouched placeholder row
+      const isInitialUntouched =
+        prev.length === 1 &&
+        (prev[0].userModified !== true && Number(prev[0].quantity) === 1);
+
+      if (isInitialUntouched) {
+        return selectedList.map(s => ({ ...s, userModified: true }));
+      }
+
+      // Merge: update quantities for existing, append new ones
+      const result = [...prev];
+      selectedList.forEach((newItem) => {
+        const existingIdx = result.findIndex((it) => it.productId === newItem.productId);
+        if (existingIdx >= 0) {
+          const updatedQty = newItem.quantity;
+          const uPrice = Number(result[existingIdx].unitPrice) >= 0
+            ? Number(result[existingIdx].unitPrice)
+            : newItem.unitPrice;
+          result[existingIdx] = {
+            ...result[existingIdx],
+            quantity: updatedQty,
+            totalPrice: Number.isInteger(uPrice * updatedQty)
+              ? uPrice * updatedQty
+              : Number((uPrice * updatedQty).toFixed(2)),
+            userModified: true,
+          };
+        } else {
+          result.push({ ...newItem, userModified: true });
+        }
+      });
+      return result;
+    });
   };
 
   const handleRemoveInRow = (id) => {
@@ -178,7 +225,7 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
   const handleUpdateInRow = (id, field, value) => {
     setInItems(prev => prev.map(item => {
       if (item.id === id) {
-        const updated = { ...item };
+        const updated = { ...item, userModified: true };
 
         if (field === 'productId') {
           updated.productId = value;
@@ -667,18 +714,36 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
 
                   {/* Multi-Item Data Table */}
                   <div className="card p-3 mb-4 border-primary">
-                    <div className="flex-between mb-3">
+                    <div className="flex-between mb-3" style={{ flexWrap: 'wrap', gap: '0.65rem' }}>
                       <span className="font-bold text-sm text-primary">
                         📦 {lang === 'th' ? `รายการอุปกรณ์ที่ต้องการรับเข้า (${inItems.length} รายการ)` : `Assets to Receive (${inItems.length} items)`}
                       </span>
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-xs"
-                        onClick={handleAddInRow}
-                      >
-                        <Plus size={14} />
-                        {lang === 'th' ? 'เพิ่มอุปกรณ์รับเข้าอีกรายการ' : 'Add Item'}
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-xs font-bold flex-center gap-1.5"
+                          style={{
+                            background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '0.35rem 0.8rem',
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)',
+                          }}
+                          onClick={() => setIsMultiPickerOpen(true)}
+                        >
+                          <PackageCheck size={15} />
+                          <span>{lang === 'th' ? '🔍 เลือกหลายรายการพร้อมกัน (+ แคตตาล็อก)' : '🔍 Select Multiple Items'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-xs font-semibold"
+                          onClick={handleAddInRow}
+                        >
+                          <Plus size={14} />
+                          {lang === 'th' ? '+ เพิ่มทีละแถว' : '+ Add Row'}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="table-responsive">
@@ -686,7 +751,7 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                         <thead>
                           <tr>
                             <th style={{ width: '35px' }}>#</th>
-                            <th style={{ minWidth: '280px' }}>{lang === 'th' ? 'อุปกรณ์สำนักงาน *' : 'Office Asset *'}</th>
+                            <th style={{ minWidth: '320px' }}>{lang === 'th' ? 'อุปกรณ์สำนักงาน (พิมพ์ค้นหาหรือคลิกเลือก) *' : 'Office Asset (Search or Select) *'}</th>
                             <th style={{ width: '130px' }}>{lang === 'th' ? 'จำนวนรับเข้า *' : 'Quantity *'}</th>
                             <th style={{ width: '135px' }}>{lang === 'th' ? 'ราคา/หน่วย (บาท) *' : 'Unit Cost (THB) *'}</th>
                             <th style={{ width: '145px' }} className="text-right">{lang === 'th' ? 'มูลค่ารวม (บาท) *' : 'Total (THB) *'}</th>
@@ -704,26 +769,14 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                             return (
                               <tr key={item.id}>
                                 <td className="font-bold text-muted text-xs">{index + 1}</td>
-                                <td>
-                                  <select
-                                    className="form-control font-bold text-xs"
-                                    style={{
-                                      width: '100%',
-                                      minWidth: '280px',
-                                      height: '42px',
-                                      fontSize: '0.85rem',
-                                      padding: '0.4rem 0.65rem',
-                                    }}
+                                <td style={{ minWidth: '320px' }}>
+                                  <SearchableProductSelect
+                                    products={products}
+                                    categories={categories}
                                     value={item.productId}
-                                    onChange={(e) => handleUpdateInRow(item.id, 'productId', e.target.value)}
-                                    required
-                                  >
-                                    {products.map(p => (
-                                      <option key={p.id} value={p.id}>
-                                        📦 {p.name} (Tag: {p.sku} | สต็อก: {p.quantity} {p.unit || 'ชิ้น'})
-                                      </option>
-                                    ))}
-                                  </select>
+                                    onChange={(newVal) => handleUpdateInRow(item.id, 'productId', newVal)}
+                                    lang={lang}
+                                  />
                                 </td>
                                 <td>
                                   <div className="shopee-qty-counter">
@@ -837,14 +890,34 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                       </table>
                     </div>
 
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-block mt-3"
-                      onClick={handleAddInRow}
-                    >
-                      <Plus size={16} />
-                      {lang === 'th' ? '+ เพิ่มอุปกรณ์รับเข้าอีกรายการ' : '+ Add Another Item'}
-                    </button>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginTop: '0.85rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary font-bold flex-center gap-2"
+                        style={{
+                          background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '0.65rem 1rem',
+                          borderRadius: '10px',
+                          boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)',
+                        }}
+                        onClick={() => setIsMultiPickerOpen(true)}
+                      >
+                        <PackageCheck size={18} />
+                        <span>{lang === 'th' ? '🔍 เลือกหลายรายการพร้อมกัน (เปิดแคตตาล็อก)' : '🔍 Select Multiple Items from Catalog'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-outline font-bold flex-center gap-1.5"
+                        style={{ padding: '0.65rem 1rem', borderRadius: '10px' }}
+                        onClick={handleAddInRow}
+                      >
+                        <Plus size={16} />
+                        <span>{lang === 'th' ? '+ เพิ่มอุปกรณ์รับเข้าทีละแถว' : '+ Add Another Item'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -855,19 +928,19 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                       📦 {lang === 'th' ? 'อุปกรณ์สำนักงานที่เลือกเบิก (Selected Equipment)' : 'Selected Equipment to Requisition'}
                     </label>
 
-                    <select
-                      className="form-control font-bold mb-3"
+                    <SearchableProductSelect
+                      products={products}
+                      categories={categories}
                       value={productId || (products[0]?.id || '')}
-                      onChange={(e) => setProductId(e.target.value)}
-                      required
-                    >
-                      <option value="">{lang === 'th' ? '-- เลือกอุปกรณ์สำนักงาน --' : '-- Select Office Equipment --'}</option>
-                      {products.map(p => (
-                        <option key={p.id} value={p.id}>
-                          📦 {p.name} (Asset Tag: {p.sku} | คงเหลือ: {p.quantity} {p.unit || 'ชิ้น'})
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(newVal) => {
+                        setProductId(newVal);
+                        const p = products.find((prod) => prod.id === newVal);
+                        setOutUnitPrice((p?.costPrice || p?.sellingPrice || 0).toString());
+                      }}
+                      placeholder={lang === 'th' ? '-- พิมพ์ค้นหาหรือเลือกอุปกรณ์ที่ต้องการเบิก --' : '-- Search or select asset to requisition --'}
+                      lang={lang}
+                      className="mb-3"
+                    />
 
                     {selectedProduct && (
                       <div className="exact-asset-card card border-primary mb-2">
@@ -1308,6 +1381,17 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
           </div>
         </div>
       )}
+
+      {/* MULTI-PRODUCT PICKER MODAL */}
+      <MultiProductPickerModal
+        isOpen={isMultiPickerOpen}
+        onClose={() => setIsMultiPickerOpen(false)}
+        products={products}
+        categories={categories}
+        currentItems={inItems}
+        onAddSelectedItems={handleBatchAddInItems}
+        lang={lang}
+      />
     </div>
   );
 };
