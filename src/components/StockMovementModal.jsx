@@ -52,7 +52,14 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
 
   // MULTI-ITEM RECEIVING STATE (for type === 'IN')
   const [inItems, setInItems] = useState([
-    { id: '1', productId: preselectedProductId || (products[0]?.id || ''), quantity: 1, unitPrice: products[0]?.costPrice || 0 }
+    {
+      id: '1',
+      productId: preselectedProductId || (products[0]?.id || ''),
+      quantity: 1,
+      unitPrice: products[0]?.costPrice || 0,
+      totalPrice: products[0]?.costPrice || 0,
+      lastEdited: 'unitPrice',
+    }
   ]);
 
   // Requisitioner Cascading Hierarchy (for type === 'OUT')
@@ -90,9 +97,19 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
 
     const defaultProdId = preselectedProductId || (products[0]?.id || '');
     const defaultProd = products.find(p => p.id === defaultProdId);
+    const defCost = defaultProd?.costPrice || 0;
     setProductId(defaultProdId);
     setOutUnitPrice((defaultProd?.costPrice || defaultProd?.sellingPrice || 0).toString());
-    setInItems([{ id: Date.now().toString(), productId: defaultProdId, quantity: 1, unitPrice: defaultProd?.costPrice || 0 }]);
+    setInItems([
+      {
+        id: Date.now().toString(),
+        productId: defaultProdId,
+        quantity: 1,
+        unitPrice: defCost,
+        totalPrice: defCost,
+        lastEdited: 'unitPrice',
+      }
+    ]);
   }, [isOpen, initialType, preselectedProductId]);
 
   if (!isOpen) return null;
@@ -139,9 +156,17 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
   // MULTI-ITEM RECEIVING HANDLERS
   const handleAddInRow = () => {
     const nextProd = products.find(p => !inItems.some(item => item.productId === p.id)) || products[0];
+    const defCost = nextProd?.costPrice || 0;
     setInItems(prev => [
       ...prev,
-      { id: Date.now().toString(), productId: nextProd?.id || '', quantity: 1, unitPrice: nextProd?.costPrice || 0 }
+      {
+        id: Date.now().toString(),
+        productId: nextProd?.id || '',
+        quantity: 1,
+        unitPrice: defCost,
+        totalPrice: defCost,
+        lastEdited: 'unitPrice',
+      }
     ]);
   };
 
@@ -153,13 +178,61 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
   const handleUpdateInRow = (id, field, value) => {
     setInItems(prev => prev.map(item => {
       if (item.id === id) {
-        const updated = { ...item, [field]: value };
+        const updated = { ...item };
+
         if (field === 'productId') {
+          updated.productId = value;
           const matchedProd = products.find(p => p.id === value);
-          if (matchedProd) {
-            updated.unitPrice = matchedProd.costPrice || 0;
+          const cost = matchedProd?.costPrice || 0;
+          updated.unitPrice = cost;
+          const qty = Number(updated.quantity) || 0;
+          const rawTotal = cost * qty;
+          updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
+          updated.lastEdited = 'unitPrice';
+        } else if (field === 'quantity') {
+          updated.quantity = value;
+          const qVal = Number(value);
+          if (value !== '' && !isNaN(qVal) && qVal > 0) {
+            if (updated.lastEdited === 'totalPrice') {
+              if (updated.totalPrice !== '' && updated.totalPrice !== undefined) {
+                const tVal = Number(updated.totalPrice) || 0;
+                const rawUnit = tVal / qVal;
+                updated.unitPrice = Number.isInteger(rawUnit) ? rawUnit : Number(rawUnit.toFixed(2));
+              }
+            } else {
+              const uVal = Number(updated.unitPrice) || 0;
+              const rawTotal = uVal * qVal;
+              updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
+            }
+          }
+        } else if (field === 'unitPrice') {
+          updated.unitPrice = value;
+          updated.lastEdited = 'unitPrice';
+          if (value === '') {
+            updated.totalPrice = '';
+          } else {
+            const uVal = Number(value);
+            const qVal = Number(updated.quantity) || 0;
+            if (!isNaN(uVal)) {
+              const rawTotal = uVal * qVal;
+              updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
+            }
+          }
+        } else if (field === 'totalPrice') {
+          updated.totalPrice = value;
+          updated.lastEdited = 'totalPrice';
+          if (value === '') {
+            updated.unitPrice = '';
+          } else {
+            const tVal = Number(value);
+            const qVal = Number(updated.quantity) || 1;
+            if (!isNaN(tVal) && qVal > 0) {
+              const rawUnit = tVal / qVal;
+              updated.unitPrice = Number.isInteger(rawUnit) ? rawUnit : Number(rawUnit.toFixed(2));
+            }
           }
         }
+
         return updated;
       }
       return item;
@@ -613,10 +686,10 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                         <thead>
                           <tr>
                             <th style={{ width: '35px' }}>#</th>
-                            <th style={{ minWidth: '320px' }}>{lang === 'th' ? 'อุปกรณ์สำนักงาน *' : 'Office Asset *'}</th>
+                            <th style={{ minWidth: '280px' }}>{lang === 'th' ? 'อุปกรณ์สำนักงาน *' : 'Office Asset *'}</th>
                             <th style={{ width: '130px' }}>{lang === 'th' ? 'จำนวนรับเข้า *' : 'Quantity *'}</th>
-                            <th style={{ width: '120px' }}>{lang === 'th' ? 'ราคา/หน่วย (บาท) *' : 'Unit Cost (THB) *'}</th>
-                            <th style={{ width: '110px' }} className="text-right">{lang === 'th' ? 'มูลค่ารวม' : 'Subtotal'}</th>
+                            <th style={{ width: '135px' }}>{lang === 'th' ? 'ราคา/หน่วย (บาท) *' : 'Unit Cost (THB) *'}</th>
+                            <th style={{ width: '145px' }} className="text-right">{lang === 'th' ? 'มูลค่ารวม (บาท) *' : 'Total (THB) *'}</th>
                             <th style={{ width: '40px' }} className="text-center"></th>
                           </tr>
                         </thead>
@@ -624,7 +697,9 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                           {inItems.map((item, index) => {
                             const prodObj = products.find(p => p.id === item.productId);
                             const itemPrice = Number(item.unitPrice) >= 0 ? Number(item.unitPrice) : (prodObj?.costPrice || 0);
-                            const itemSubtotal = (Number(item.quantity) || 0) * itemPrice;
+                            const itemSubtotal = item.totalPrice !== undefined && item.totalPrice !== ''
+                              ? Number(item.totalPrice)
+                              : (Number(item.quantity) || 0) * itemPrice;
 
                             return (
                               <tr key={item.id}>
@@ -634,7 +709,7 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                                     className="form-control font-bold text-xs"
                                     style={{
                                       width: '100%',
-                                      minWidth: '300px',
+                                      minWidth: '280px',
                                       height: '42px',
                                       fontSize: '0.85rem',
                                       padding: '0.4rem 0.65rem',
@@ -664,7 +739,12 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                                       className="qty-counter-input font-bold"
                                       min="1"
                                       value={item.quantity}
-                                      onChange={(e) => handleUpdateInRow(item.id, 'quantity', Math.max(1, Number(e.target.value) || 1))}
+                                      onChange={(e) => handleUpdateInRow(item.id, 'quantity', e.target.value)}
+                                      onBlur={(e) => {
+                                        if (!e.target.value || Number(e.target.value) < 1) {
+                                          handleUpdateInRow(item.id, 'quantity', 1);
+                                        }
+                                      }}
                                       required
                                     />
                                     <button
@@ -678,19 +758,42 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                                   </div>
                                 </td>
                                 <td>
-                                  <input
-                                    type="number"
-                                    className="form-control text-xs font-bold"
-                                    placeholder="0.00"
-                                    min="0"
-                                    step="any"
-                                    value={item.unitPrice !== undefined ? item.unitPrice : (prodObj?.costPrice || 0)}
-                                    onChange={(e) => handleUpdateInRow(item.id, 'unitPrice', e.target.value)}
-                                    required
-                                  />
+                                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                    <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', pointerEvents: 'none' }}>
+                                      ฿
+                                    </span>
+                                    <input
+                                      type="number"
+                                      className="form-control text-xs font-bold text-right"
+                                      style={{ paddingLeft: '22px' }}
+                                      placeholder="0.00"
+                                      min="0"
+                                      step="any"
+                                      value={item.unitPrice !== undefined ? item.unitPrice : (prodObj?.costPrice || 0)}
+                                      onChange={(e) => handleUpdateInRow(item.id, 'unitPrice', e.target.value)}
+                                      title={lang === 'th' ? 'ราคาต่อหน่วย (ใส่มูลค่าที่นี่ จะคูณจำนวนเป็นมูลค่ารวมให้อัตโนมัติ)' : 'Unit cost (multiplies by quantity to calculate total)'}
+                                      required
+                                    />
+                                  </div>
                                 </td>
-                                <td className="text-right font-mono font-bold text-slate-800 text-xs">
-                                  ฿{itemSubtotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                <td>
+                                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                    <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', pointerEvents: 'none' }}>
+                                      ฿
+                                    </span>
+                                    <input
+                                      type="number"
+                                      className="form-control text-xs font-bold text-right"
+                                      style={{ paddingLeft: '22px' }}
+                                      placeholder="0.00"
+                                      min="0"
+                                      step="any"
+                                      value={item.totalPrice !== undefined ? item.totalPrice : (itemSubtotal || 0)}
+                                      onChange={(e) => handleUpdateInRow(item.id, 'totalPrice', e.target.value)}
+                                      title={lang === 'th' ? 'มูลค่ารวม (ใส่มูลค่าที่นี่ จะหารจำนวนเป็นราคาต่อหน่วยให้อัตโนมัติ)' : 'Total cost (divides by quantity to calculate unit price)'}
+                                      required
+                                    />
+                                  </div>
                                 </td>
                                 <td className="text-center">
                                   {inItems.length > 1 && (
@@ -722,8 +825,10 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                             <td className="text-right font-mono font-extrabold text-sm text-emerald">
                               ฿{inItems.reduce((sum, it) => {
                                 const prodObj = products.find(p => p.id === it.productId);
-                                const uPrice = Number(it.unitPrice) >= 0 ? Number(it.unitPrice) : (prodObj?.costPrice || 0);
-                                return sum + ((Number(it.quantity) || 0) * uPrice);
+                                const itemSub = it.totalPrice !== undefined && it.totalPrice !== ''
+                                  ? Number(it.totalPrice)
+                                  : ((Number(it.quantity) || 0) * (Number(it.unitPrice) >= 0 ? Number(it.unitPrice) : (prodObj?.costPrice || 0)));
+                                return sum + (itemSub || 0);
                               }, 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                             </td>
                             <td></td>
