@@ -141,14 +141,29 @@ export const mapRequesterToDb = (r) => ({
 
 export const parseDualUnitFromNote = (note) => {
   if (!note || typeof note !== 'string') return null;
-  const match = note.match(/\[(?:รับเข้าตามบิล|ตามบิล|บิล):\s*([\d.]+)\s*([^(\s]+)(?:\s*\((?:แพ็คละ|บรรจุ|ต่อหน่วย)?\s*([\d.]+)\s*([^@\s)]+)?(?:\s*@\s*฿?([\d.,]+))?\s*\)?\s*\]/);
-  if (!match) return null;
+  const tagMatch = note.match(/\[(?:รับเข้าตามบิล|ตามบิล|บิล):\s*([^\]]+)\]/);
+  if (!tagMatch) return null;
+
+  const content = tagMatch[1];
+  const qtyUnitMatch = content.match(/^([\d.]+)\s*([^\s(]+)/);
+  if (!qtyUnitMatch) return null;
+
+  const invoiceQty = Number(qtyUnitMatch[1]) || null;
+  const invoiceUnit = qtyUnitMatch[2]?.trim() || '';
+
+  const packSizeMatch = content.match(/\((?:แพ็คละ|บรรจุ|ต่อหน่วย)?\s*([\d.]+)\s*([^\s@)]+)?/);
+  const packSize = packSizeMatch ? (Number(packSizeMatch[1]) || null) : null;
+  const baseUnit = packSizeMatch && packSizeMatch[2] ? packSizeMatch[2].trim() : '';
+
+  const priceMatch = content.match(/@\s*฿?([\d.,]+)/);
+  const invoiceUnitPrice = priceMatch ? (Number(priceMatch[1].replace(/,/g, '')) || null) : null;
+
   return {
-    invoiceQty: Number(match[1]) || null,
-    invoiceUnit: match[2]?.trim() || '',
-    packSize: match[3] ? Number(match[3]) : null,
-    baseUnit: match[4]?.trim() || '',
-    invoiceUnitPrice: match[5] ? Number(match[5].replace(/,/g, '')) : null,
+    invoiceQty,
+    invoiceUnit,
+    packSize,
+    baseUnit,
+    invoiceUnitPrice,
   };
 };
 
