@@ -237,6 +237,7 @@ const MainLayout = () => {
               onOpenStockIn={() => handleOpenStockIn()}
               onOpenStockOut={() => handleOpenStockOut()}
               onOpenScanner={() => setIsScannerModalOpen(true)}
+              onOpenRequisitionQR={() => setIsRequisitionQRModalOpen(true)}
               onOpenAddProduct={handleOpenAddProduct}
               onOpenDepartmentQuota={() => setIsDepartmentQuotaModalOpen(true)}
               onOpenBackupRestore={() => setIsBackupRestoreModalOpen(true)}

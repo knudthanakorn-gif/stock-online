@@ -35,6 +35,7 @@ export const AdminHome = ({
   onOpenStockIn,
   onOpenStockOut,
   onOpenScanner,
+  onOpenRequisitionQR,
   onOpenAddProduct,
   onOpenDepartmentQuota,
   onOpenBackupRestore,
@@ -181,13 +182,13 @@ export const AdminHome = ({
           <ArrowRight className="shortcut-arrow" size={20} />
         </div>
 
-        <div className="card shortcut-card card-hover" onClick={onOpenScanner}>
+        <div className="card shortcut-card card-hover" onClick={onOpenRequisitionQR || onOpenScanner}>
           <div className="shortcut-icon bg-indigo">
             <QrCode size={26} />
           </div>
           <div className="shortcut-info">
-            <h3>{lang === 'th' ? '📷 สแกน QR Code' : '📷 QR Code Scanner'}</h3>
-            <p>{lang === 'th' ? 'เปิดกล้อง หรือ ยิงสแกน QR Code ค้นหาด่วน' : 'Scan QR Code for rapid lookup'}</p>
+            <h3>{lang === 'th' ? '📱 ป้าย QR สแกนเข้าเบิก' : '📱 Requisition QR Poster'}</h3>
+            <p>{lang === 'th' ? 'พิมพ์ป้าย QR Code ให้พนักงานสแกน Login และขอเบิก' : 'Print QR poster for staff login & requisition'}</p>
           </div>
           <ArrowRight className="shortcut-arrow" size={20} />
         </div>

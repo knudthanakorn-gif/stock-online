@@ -312,13 +312,6 @@ export const ProductList = ({
                                 <Edit2 size={15} />
                               </button>
                               <button
-                                className="btn-icon-sm btn-qr-icon"
-                                title={lang === 'th' ? 'พิมพ์ป้าย QR Code' : 'Print QR'}
-                                onClick={() => onOpenBarcodeModal(prod)}
-                              >
-                                <QrCode size={15} color="#4f46e5" />
-                              </button>
-                              <button
                                 className="btn-icon-sm text-red"
                                 title={lang === 'th' ? 'ลบอุปกรณ์' : 'Delete Asset'}
                                 onClick={() => {
@@ -428,13 +421,6 @@ export const ProductList = ({
                             <Edit2 size={16} />
                           </button>
                           <button
-                            className="btn-icon-sm btn-qr-icon"
-                            title={lang === 'th' ? 'พิมพ์ QR' : 'QR'}
-                            onClick={() => onOpenBarcodeModal(prod)}
-                          >
-                            <QrCode size={16} color="#4f46e5" />
-                          </button>
-                          <button
                             className="btn-icon-sm text-red"
                             title={lang === 'th' ? 'ลบ' : 'Delete'}
                             onClick={() => {
@@ -521,13 +507,6 @@ export const ProductList = ({
                         <Edit2 size={15} />
                       </button>
                     )}
-                    <button
-                      className="btn-icon-sm btn-qr-icon"
-                      onClick={() => onOpenBarcodeModal(prod)}
-                      title="Print QR Code Tag"
-                    >
-                      <QrCode size={15} color="#4f46e5" />
-                    </button>
                     {canManage && (
                       <button
                         className="btn-icon-sm text-red"

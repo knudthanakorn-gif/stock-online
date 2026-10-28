@@ -266,10 +266,10 @@ export const Navbar = ({
           <button
             className="btn btn-sm btn-primary desktop-only"
             onClick={onOpenRequisitionQR}
-            title={lang === 'th' ? 'สร้าง/พิมพ์ ป้าย QR Code สำหรับแสกนเบิกอุปกรณ์' : 'Generate/Print Requisition QR Poster'}
+            title={lang === 'th' ? 'พิมพ์ป้าย QR Code ให้พนักงานสแกนเพื่อเข้าสู่ระบบและกดเบิกอุปกรณ์' : 'Print QR Poster for Staff Login & Requisition'}
           >
             <QrCode size={16} />
-            <span>{lang === 'th' ? 'ป้าย QR ขอเบิก' : 'Requisition QR'}</span>
+            <span>{lang === 'th' ? '📱 ป้าย QR สแกนเข้าเบิก' : '📱 Requisition QR'}</span>
           </button>
         )}
 
