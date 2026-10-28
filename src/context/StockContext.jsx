@@ -50,6 +50,7 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'stock_online_notifications_v2',
   NOTIF_SETTINGS: 'stock_online_notif_settings_v1',
   DEPT_QUOTAS: 'stock_online_dept_quotas_v1',
+  PACK_DEFAULTS: 'stock_pack_defaults_v1',
 };
 
 const DEFAULT_DEPARTMENT_QUOTAS = {
@@ -436,6 +437,15 @@ export const StockProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : DEFAULT_DEPARTMENT_QUOTAS;
   });
 
+  // Packaging Defaults State (Auto pack unit and size preference per product)
+  const [packDefaults, setPackDefaults] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.PACK_DEFAULTS)) || {};
+    } catch {
+      return {};
+    }
+  });
+
   // Sync to LocalStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
@@ -606,8 +616,21 @@ export const StockProvider = ({ children }) => {
             }));
           } catch (e) {}
         }
+        const packDefaultsRow = rawNotifs.find((n) => n.id === '__SYSTEM_PACK_DEFAULTS__');
+        if (packDefaultsRow && packDefaultsRow.message) {
+          try {
+            const parsedPacks = JSON.parse(packDefaultsRow.message);
+            setPackDefaults((prev) => {
+              const merged = { ...prev, ...parsedPacks };
+              try {
+                localStorage.setItem(STORAGE_KEYS.PACK_DEFAULTS, JSON.stringify(merged));
+              } catch (e) {}
+              return merged;
+            });
+          } catch (e) {}
+        }
         const userNotifs = rawNotifs
-          .filter((n) => n.id !== '__SYSTEM_NOTIFICATION_SETTINGS__')
+          .filter((n) => n.id !== '__SYSTEM_NOTIFICATION_SETTINGS__' && n.id !== '__SYSTEM_PACK_DEFAULTS__')
           .map(mapNotificationFromDb);
         setNotifications(userNotifs);
         try {
@@ -758,6 +781,19 @@ export const StockProvider = ({ children }) => {
             } catch (e) {}
             return;
           }
+          if (payload.new && payload.new.id === '__SYSTEM_PACK_DEFAULTS__') {
+            try {
+              const parsedPacks = JSON.parse(payload.new.message);
+              setPackDefaults((prev) => {
+                const merged = { ...prev, ...parsedPacks };
+                try {
+                  localStorage.setItem(STORAGE_KEYS.PACK_DEFAULTS, JSON.stringify(merged));
+                } catch (e) {}
+                return merged;
+              });
+            } catch (e) {}
+            return;
+          }
           if (payload.eventType === 'INSERT') {
             const item = mapNotificationFromDb(payload.new);
             setNotifications((prev) => (prev.some((n) => n.id === item.id) ? prev : [item, ...prev]));
@@ -884,6 +920,38 @@ export const StockProvider = ({ children }) => {
         .then(({ error }) => {
           if (error) console.error('Supabase settings sync error:', error);
           else console.log('✅ Real-time Notification Settings synced to Cloud');
+        });
+
+      return merged;
+    });
+  };
+
+  const savePackDefault = (prodId, config) => {
+    if (!prodId) return;
+    setPackDefaults((prev) => {
+      const merged = {
+        ...prev,
+        [prodId]: { ...(prev[prodId] || {}), ...config },
+      };
+      try {
+        localStorage.setItem(STORAGE_KEYS.PACK_DEFAULTS, JSON.stringify(merged));
+      } catch (e) {}
+
+      // Broadcast and persist packaging preferences across all devices via Supabase Cloud
+      supabase
+        .from('notifications')
+        .upsert({
+          id: '__SYSTEM_PACK_DEFAULTS__',
+          type: 'SYSTEM_CONFIG',
+          title: 'PACK_DEFAULTS',
+          message: JSON.stringify(merged),
+          link_tab: '',
+          read: true,
+          created_at: new Date().toISOString(),
+        })
+        .then(({ error }) => {
+          if (error) console.error('Supabase pack defaults sync error:', error);
+          else console.log('✅ Real-time Pack Defaults synced to Cloud');
         });
 
       return merged;
@@ -2333,6 +2401,8 @@ export const StockProvider = ({ children }) => {
         departmentQuotas,
         updateDepartmentQuota,
         getDepartmentUsageThisMonth,
+        packDefaults,
+        savePackDefault,
         exportSystemBackup,
         importSystemBackup,
         exportDataJSON: exportSystemBackup,

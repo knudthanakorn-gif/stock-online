@@ -41,7 +41,7 @@ const PURPOSE_PRESETS = [
 ];
 
 export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', preselectedProductId = null }) => {
-  const { products = [], categories = [], suppliers = [], requestersList = [], transactions = [], batchImportRequesters, recordStockMovement, lang, user } = useStock();
+  const { products = [], categories = [], suppliers = [], requestersList = [], transactions = [], packDefaults = {}, savePackDefault: savePackDefaultToStock, batchImportRequesters, recordStockMovement, lang, user } = useStock();
 
   const [type, setType] = useState(initialType); // 'IN' or 'OUT'
   const [productId, setProductId] = useState('');
@@ -70,14 +70,20 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
       cur[prodId] = { ...(cur[prodId] || {}), ...config };
       localStorage.setItem(PACK_DEFAULTS_KEY, JSON.stringify(cur));
     } catch {}
+    if (typeof savePackDefaultToStock === 'function') {
+      savePackDefaultToStock(prodId, config);
+    }
   };
 
-  // Helper to discover remembered pack preference (checks localStorage, master preset, or past transactions)
+  // Helper to discover remembered pack preference (checks Cloud sync, localStorage, or past transactions)
   const getProductPackPref = (prodId) => {
     if (!prodId) return null;
-    const defaults = getPackDefaults();
-    if (defaults[prodId] !== undefined) {
-      return defaults[prodId];
+    if (packDefaults && packDefaults[prodId] !== undefined) {
+      return packDefaults[prodId];
+    }
+    const localDefaults = getPackDefaults();
+    if (localDefaults[prodId] !== undefined) {
+      return localDefaults[prodId];
     }
     // Check if there is any past stock-in transaction with dual-unit for this product
     if (Array.isArray(transactions)) {
