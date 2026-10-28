@@ -1406,6 +1406,8 @@ export const StockProvider = ({ children }) => {
         performedBy: user ? user.name : 'System',
       });
     }
+
+    return newProduct;
   };
 
   const updateProduct = (id, updatedFields) => {
@@ -1464,6 +1466,10 @@ export const StockProvider = ({ children }) => {
     invoiceFile,
     note,
     performedBy,
+    invoiceQty,
+    invoiceUnit,
+    packSize,
+    invoiceUnitPrice,
   }) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
@@ -1523,6 +1529,10 @@ export const StockProvider = ({ children }) => {
       createdAt: nowIso,
       performedBy: performedBy || (user ? user.name : 'Admin'),
       createdBy: performedBy || (user ? user.name : 'Admin'),
+      invoiceQty: invoiceQty !== undefined && invoiceQty !== null && invoiceQty !== '' ? Number(invoiceQty) : null,
+      invoiceUnit: invoiceUnit || null,
+      packSize: packSize !== undefined && packSize !== null && packSize !== '' ? Number(packSize) : null,
+      invoiceUnitPrice: invoiceUnitPrice !== undefined && invoiceUnitPrice !== null && invoiceUnitPrice !== '' ? Number(invoiceUnitPrice) : null,
     };
 
     setTransactions(prev => [newTx, ...prev]);

@@ -139,23 +139,43 @@ export const mapRequesterToDb = (r) => ({
   avatar: r.avatar || null,
 });
 
-export const mapTransactionFromDb = (row) => ({
-  id: row.id,
-  productId: row.product_id || row.productId,
-  productName: row.product_name || row.productName || '',
-  type: row.type,
-  quantity: Number(row.quantity ?? 0),
-  unitPrice: Number(row.unit_price ?? row.unitPrice ?? 0),
-  totalAmount: Number(row.total_amount ?? row.totalAmount ?? 0),
-  date: row.timestamp || row.date || row.created_at,
-  timestamp: row.timestamp || row.date || row.created_at,
-  requesterName: row.requester_name || row.requesterName || '',
-  department: row.department || '',
-  approvedBy: row.approved_by || row.approvedBy || '',
-  status: row.status || 'COMPLETED',
-  note: row.note || '',
-  createdAt: row.created_at,
-});
+export const parseDualUnitFromNote = (note) => {
+  if (!note || typeof note !== 'string') return null;
+  const match = note.match(/\[(?:รับเข้าตามบิล|ตามบิล|บิล):\s*([\d.]+)\s*([^(\s]+)(?:\s*\((?:แพ็คละ|บรรจุ|ต่อหน่วย)?\s*([\d.]+)\s*([^@\s)]+)?(?:\s*@\s*฿?([\d.,]+))?\s*\)?\s*\]/);
+  if (!match) return null;
+  return {
+    invoiceQty: Number(match[1]) || null,
+    invoiceUnit: match[2]?.trim() || '',
+    packSize: match[3] ? Number(match[3]) : null,
+    baseUnit: match[4]?.trim() || '',
+    invoiceUnitPrice: match[5] ? Number(match[5].replace(/,/g, '')) : null,
+  };
+};
+
+export const mapTransactionFromDb = (row) => {
+  const parsedDual = parseDualUnitFromNote(row.note);
+  return {
+    id: row.id,
+    productId: row.product_id || row.productId,
+    productName: row.product_name || row.productName || '',
+    type: row.type,
+    quantity: Number(row.quantity ?? 0),
+    unitPrice: Number(row.unit_price ?? row.unitPrice ?? 0),
+    totalAmount: Number(row.total_amount ?? row.totalAmount ?? 0),
+    date: row.timestamp || row.date || row.created_at,
+    timestamp: row.timestamp || row.date || row.created_at,
+    requesterName: row.requester_name || row.requesterName || '',
+    department: row.department || '',
+    approvedBy: row.approved_by || row.approvedBy || '',
+    status: row.status || 'COMPLETED',
+    note: row.note || '',
+    createdAt: row.created_at,
+    invoiceQty: row.invoice_qty ?? row.invoiceQty ?? parsedDual?.invoiceQty ?? null,
+    invoiceUnit: row.invoice_unit ?? row.invoiceUnit ?? parsedDual?.invoiceUnit ?? null,
+    packSize: row.pack_size ?? row.packSize ?? parsedDual?.packSize ?? null,
+    invoiceUnitPrice: row.invoice_unit_price ?? row.invoiceUnitPrice ?? parsedDual?.invoiceUnitPrice ?? null,
+  };
+};
 
 export const mapTransactionToDb = (tx) => ({
   id: tx.id,

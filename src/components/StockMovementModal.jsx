@@ -54,6 +54,23 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
   const [previewModalPdf, setPreviewModalPdf] = useState(null);
   const pdfInputRef = useRef(null);
 
+  // PACKAGING DEFAULTS STORAGE HELPER
+  const PACK_DEFAULTS_KEY = 'stock_pack_defaults_v1';
+  const getPackDefaults = () => {
+    try {
+      return JSON.parse(localStorage.getItem(PACK_DEFAULTS_KEY)) || {};
+    } catch {
+      return {};
+    }
+  };
+  const savePackDefault = (prodId, config) => {
+    try {
+      const cur = getPackDefaults();
+      cur[prodId] = { ...(cur[prodId] || {}), ...config };
+      localStorage.setItem(PACK_DEFAULTS_KEY, JSON.stringify(cur));
+    } catch {}
+  };
+
   // MULTI-ITEM RECEIVING STATE (for type === 'IN')
   const [inItems, setInItems] = useState([
     {
@@ -64,6 +81,11 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
       totalPrice: products[0]?.costPrice || 0,
       lastEdited: 'unitPrice',
       userModified: false,
+      isPack: false,
+      invoiceQty: 1,
+      invoiceUnit: 'แพ็ค',
+      packSize: 10,
+      invoiceUnitPrice: (products[0]?.costPrice || 0) * 10,
     }
   ]);
   const [isMultiPickerOpen, setIsMultiPickerOpen] = useState(false);
@@ -105,6 +127,10 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
     const defaultProdId = preselectedProductId || (products[0]?.id || '');
     const defaultProd = products.find(p => p.id === defaultProdId);
     const defCost = defaultProd?.costPrice || 0;
+    const remembered = defaultProdId ? getPackDefaults()[defaultProdId] : null;
+    const pSize = remembered?.packSize || 10;
+    const invUnit = remembered?.invoiceUnit || 'แพ็ค';
+
     setProductId(defaultProdId);
     setOutUnitPrice((defaultProd?.costPrice || defaultProd?.sellingPrice || 0).toString());
     setInItems([
@@ -116,6 +142,11 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
         totalPrice: defCost,
         lastEdited: 'unitPrice',
         userModified: false,
+        isPack: false,
+        invoiceQty: 1,
+        invoiceUnit: invUnit,
+        packSize: pSize,
+        invoiceUnitPrice: defCost * pSize,
       }
     ]);
   }, [isOpen, initialType, preselectedProductId]);
@@ -165,6 +196,9 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
   const handleAddInRow = () => {
     const nextProd = products.find(p => !inItems.some(item => item.productId === p.id)) || products[0];
     const defCost = nextProd?.costPrice || 0;
+    const remembered = nextProd ? getPackDefaults()[nextProd.id] : null;
+    const pSize = remembered?.packSize || 10;
+    const invUnit = remembered?.invoiceUnit || 'แพ็ค';
     setInItems(prev => [
       ...prev,
       {
@@ -175,6 +209,11 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
         totalPrice: defCost,
         lastEdited: 'unitPrice',
         userModified: true,
+        isPack: false,
+        invoiceQty: 1,
+        invoiceUnit: invUnit,
+        packSize: pSize,
+        invoiceUnitPrice: defCost * pSize,
       }
     ]);
   };
@@ -189,7 +228,20 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
         (prev[0].userModified !== true && Number(prev[0].quantity) === 1);
 
       if (isInitialUntouched) {
-        return selectedList.map(s => ({ ...s, userModified: true }));
+        return selectedList.map(s => {
+          const remembered = getPackDefaults()[s.productId];
+          const pSize = remembered?.packSize || 10;
+          const invUnit = remembered?.invoiceUnit || 'แพ็ค';
+          return {
+            ...s,
+            isPack: false,
+            invoiceQty: 1,
+            invoiceUnit: invUnit,
+            packSize: pSize,
+            invoiceUnitPrice: (Number(s.unitPrice) || 0) * pSize,
+            userModified: true,
+          };
+        });
       }
 
       // Merge: update quantities for existing, append new ones
@@ -210,7 +262,18 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
             userModified: true,
           };
         } else {
-          result.push({ ...newItem, userModified: true });
+          const remembered = getPackDefaults()[newItem.productId];
+          const pSize = remembered?.packSize || 10;
+          const invUnit = remembered?.invoiceUnit || 'แพ็ค';
+          result.push({
+            ...newItem,
+            isPack: false,
+            invoiceQty: 1,
+            invoiceUnit: invUnit,
+            packSize: pSize,
+            invoiceUnitPrice: (Number(newItem.unitPrice) || 0) * pSize,
+            userModified: true,
+          });
         }
       });
       return result;
@@ -220,6 +283,51 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
   const handleRemoveInRow = (id) => {
     if (inItems.length <= 1) return;
     setInItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleTogglePack = (id) => {
+    setInItems(prev => prev.map(item => {
+      if (item.id === id) {
+        const nextIsPack = !item.isPack;
+        const prodObj = products.find(p => p.id === item.productId);
+        const cost = Number(item.unitPrice) >= 0 ? Number(item.unitPrice) : (prodObj?.costPrice || 0);
+        const remembered = item.productId ? getPackDefaults()[item.productId] : null;
+        const pSize = Number(item.packSize) || remembered?.packSize || 10;
+        const invUnit = item.invoiceUnit || remembered?.invoiceUnit || 'แพ็ค';
+
+        let invQty = Number(item.invoiceQty) || 1;
+        let baseQty = Number(item.quantity) || 1;
+        let invUnitPrice = Number(item.invoiceUnitPrice) || (cost * pSize);
+
+        if (nextIsPack) {
+          if (baseQty > 1 && baseQty % pSize === 0) {
+            invQty = baseQty / pSize;
+          } else {
+            baseQty = invQty * pSize;
+          }
+          invUnitPrice = Number((cost * pSize).toFixed(2));
+          const total = Number((invQty * invUnitPrice).toFixed(2));
+          return {
+            ...item,
+            isPack: true,
+            invoiceQty: invQty,
+            invoiceUnit: invUnit,
+            packSize: pSize,
+            invoiceUnitPrice: invUnitPrice,
+            quantity: baseQty,
+            totalPrice: total,
+            userModified: true,
+          };
+        } else {
+          return {
+            ...item,
+            isPack: false,
+            userModified: true,
+          };
+        }
+      }
+      return item;
+    }));
   };
 
   const handleUpdateInRow = (id, field, value) => {
@@ -232,19 +340,101 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
           const matchedProd = products.find(p => p.id === value);
           const cost = matchedProd?.costPrice || 0;
           updated.unitPrice = cost;
-          const qty = Number(updated.quantity) || 0;
-          const rawTotal = cost * qty;
-          updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
+
+          const remembered = getPackDefaults()[value];
+          if (remembered) {
+            updated.packSize = remembered.packSize || 10;
+            updated.invoiceUnit = remembered.invoiceUnit || 'แพ็ค';
+          }
+
+          if (updated.isPack) {
+            const pSize = Number(updated.packSize) || 10;
+            const invQ = Number(updated.invoiceQty) || 1;
+            updated.quantity = invQ * pSize;
+            updated.invoiceUnitPrice = Number((cost * pSize).toFixed(2));
+            const rawTotal = invQ * updated.invoiceUnitPrice;
+            updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
+          } else {
+            const qty = Number(updated.quantity) || 1;
+            const rawTotal = cost * qty;
+            updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
+          }
           updated.lastEdited = 'unitPrice';
+
+        } else if (field === 'invoiceQty') {
+          updated.invoiceQty = value;
+          const invQ = Number(value);
+          const pSize = Number(updated.packSize) || 10;
+          if (value !== '' && !isNaN(invQ) && invQ > 0) {
+            updated.quantity = invQ * pSize;
+            if (updated.invoiceUnitPrice !== undefined && updated.invoiceUnitPrice !== '') {
+              const rawTotal = invQ * Number(updated.invoiceUnitPrice);
+              updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
+            } else if (updated.unitPrice !== undefined && updated.unitPrice !== '') {
+              const rawTotal = updated.quantity * Number(updated.unitPrice);
+              updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
+            }
+          }
+
+        } else if (field === 'invoiceUnit') {
+          updated.invoiceUnit = value;
+          if (updated.productId) {
+            savePackDefault(updated.productId, { invoiceUnit: value, packSize: updated.packSize || 10 });
+          }
+
+        } else if (field === 'packSize') {
+          updated.packSize = value;
+          const pSize = Number(value);
+          const invQ = Number(updated.invoiceQty) || 1;
+          if (value !== '' && !isNaN(pSize) && pSize > 0) {
+            updated.quantity = invQ * pSize;
+            if (updated.invoiceUnitPrice !== undefined && updated.invoiceUnitPrice !== '') {
+              const rawUnit = Number(updated.invoiceUnitPrice) / pSize;
+              updated.unitPrice = Number.isInteger(rawUnit) ? rawUnit : Number(rawUnit.toFixed(2));
+            } else if (updated.unitPrice !== undefined && updated.unitPrice !== '') {
+              updated.invoiceUnitPrice = Number((Number(updated.unitPrice) * pSize).toFixed(2));
+            }
+            if (updated.productId) {
+              savePackDefault(updated.productId, { invoiceUnit: updated.invoiceUnit || 'แพ็ค', packSize: pSize });
+            }
+          }
+
+        } else if (field === 'invoiceUnitPrice') {
+          updated.invoiceUnitPrice = value;
+          updated.lastEdited = 'invoiceUnitPrice';
+          if (value === '') {
+            updated.unitPrice = '';
+            updated.totalPrice = '';
+          } else {
+            const invPrice = Number(value);
+            const pSize = Number(updated.packSize) || 10;
+            const invQ = Number(updated.invoiceQty) || 1;
+            if (!isNaN(invPrice)) {
+              const rawUnit = invPrice / pSize;
+              updated.unitPrice = Number.isInteger(rawUnit) ? rawUnit : Number(rawUnit.toFixed(2));
+              const rawTotal = invQ * invPrice;
+              updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
+            }
+          }
+
         } else if (field === 'quantity') {
           updated.quantity = value;
           const qVal = Number(value);
           if (value !== '' && !isNaN(qVal) && qVal > 0) {
+            if (updated.isPack) {
+              const pSize = Number(updated.packSize) || 10;
+              const calcInv = qVal / pSize;
+              updated.invoiceQty = Number.isInteger(calcInv) ? calcInv : Number(calcInv.toFixed(2));
+            }
             if (updated.lastEdited === 'totalPrice') {
               if (updated.totalPrice !== '' && updated.totalPrice !== undefined) {
                 const tVal = Number(updated.totalPrice) || 0;
                 const rawUnit = tVal / qVal;
                 updated.unitPrice = Number.isInteger(rawUnit) ? rawUnit : Number(rawUnit.toFixed(2));
+                if (updated.isPack) {
+                  const pSize = Number(updated.packSize) || 10;
+                  updated.invoiceUnitPrice = Number((rawUnit * pSize).toFixed(2));
+                }
               }
             } else {
               const uVal = Number(updated.unitPrice) || 0;
@@ -252,30 +442,43 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
               updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
             }
           }
+
         } else if (field === 'unitPrice') {
           updated.unitPrice = value;
           updated.lastEdited = 'unitPrice';
           if (value === '') {
             updated.totalPrice = '';
+            if (updated.isPack) updated.invoiceUnitPrice = '';
           } else {
             const uVal = Number(value);
             const qVal = Number(updated.quantity) || 0;
             if (!isNaN(uVal)) {
               const rawTotal = uVal * qVal;
               updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
+              if (updated.isPack) {
+                const pSize = Number(updated.packSize) || 10;
+                updated.invoiceUnitPrice = Number((uVal * pSize).toFixed(2));
+              }
             }
           }
+
         } else if (field === 'totalPrice') {
           updated.totalPrice = value;
           updated.lastEdited = 'totalPrice';
           if (value === '') {
             updated.unitPrice = '';
+            if (updated.isPack) updated.invoiceUnitPrice = '';
           } else {
             const tVal = Number(value);
             const qVal = Number(updated.quantity) || 1;
             if (!isNaN(tVal) && qVal > 0) {
               const rawUnit = tVal / qVal;
               updated.unitPrice = Number.isInteger(rawUnit) ? rawUnit : Number(rawUnit.toFixed(2));
+              if (updated.isPack) {
+                const invQ = Number(updated.invoiceQty) || 1;
+                const rawInvPrice = tVal / invQ;
+                updated.invoiceUnitPrice = Number.isInteger(rawInvPrice) ? rawInvPrice : Number(rawInvPrice.toFixed(2));
+              }
             }
           }
         }
@@ -350,6 +553,17 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
         inItems.forEach((item) => {
           const prodObj = products.find(p => p.id === item.productId);
           const uPrice = Number(item.unitPrice) >= 0 ? Number(item.unitPrice) : (prodObj?.costPrice || 0);
+
+          let dualTag = '';
+          if (item.isPack && item.invoiceQty) {
+            const pSize = Number(item.packSize) || 10;
+            const invUnit = item.invoiceUnit || 'แพ็ค';
+            const invUnitPrice = item.invoiceUnitPrice !== undefined && item.invoiceUnitPrice !== '' ? Number(item.invoiceUnitPrice) : (uPrice * pSize);
+            dualTag = `[ตามบิล: ${item.invoiceQty} ${invUnit} (แพ็คละ ${pSize} ${prodObj?.unit || 'ชิ้น'} @ ฿${invUnitPrice})] `;
+          }
+
+          const txNote = `${dualTag}${note.trim() ? `[รับเข้าอุปกรณ์] ${note.trim()}` : `[รับเข้าอุปกรณ์]`}`;
+
           recordStockMovement({
             productId: item.productId,
             type: 'IN',
@@ -358,12 +572,22 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
             supplierId: supplierId || null,
             refNo: invoiceNumber,
             invoiceFile: invoicePdf ? { name: invoicePdf.name, size: invoicePdf.size, data: invoicePdf.data, type: invoicePdf.type } : null,
-            note: note.trim() ? `[รับเข้าสินค้า] ${note.trim()}` : `[รับเข้าอุปกรณ์]`,
+            note: txNote,
+            invoiceQty: item.isPack ? Number(item.invoiceQty) : null,
+            invoiceUnit: item.isPack ? (item.invoiceUnit || 'แพ็ค') : null,
+            packSize: item.isPack ? Number(item.packSize || 10) : null,
+            invoiceUnitPrice: item.isPack && item.invoiceUnitPrice !== undefined && item.invoiceUnitPrice !== '' ? Number(item.invoiceUnitPrice) : null,
           });
+
           receivedItemsSummary.push({
             product: prodObj,
             quantity: Number(item.quantity),
             unitPrice: uPrice,
+            isPack: item.isPack,
+            invoiceQty: item.isPack ? item.invoiceQty : null,
+            invoiceUnit: item.isPack ? (item.invoiceUnit || 'แพ็ค') : null,
+            packSize: item.isPack ? (item.packSize || 10) : null,
+            invoiceUnitPrice: item.isPack ? item.invoiceUnitPrice : null,
           });
         });
 
@@ -484,8 +708,15 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                         <div className="text-xs text-muted font-mono">Asset Tag: {item.product?.sku}</div>
                       </div>
                     </div>
-                    <div className="font-bold text-emerald text-base">
-                      +{item.quantity} {item.product?.unit || 'ชิ้น'}
+                    <div className="text-right">
+                      <div className="font-bold text-emerald text-base">
+                        +{item.quantity} {item.product?.unit || 'ชิ้น'}
+                      </div>
+                      {item.isPack && item.invoiceQty && (
+                        <div className="text-xs font-semibold mt-0.5" style={{ color: '#1d4ed8' }}>
+                          📦 ตามบิล: {item.invoiceQty} {item.invoiceUnit || 'แพ็ค'} (แพ็คละ {item.packSize || 10} @ ฿{Number(item.invoiceUnitPrice || (item.unitPrice * (item.packSize || 10))).toLocaleString()})
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -768,8 +999,10 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
 
                             return (
                               <tr key={item.id}>
-                                <td className="font-bold text-muted text-xs">{index + 1}</td>
-                                <td style={{ minWidth: '320px' }}>
+                                <td className="font-bold text-muted text-xs" style={{ verticalAlign: 'top', paddingTop: '14px' }}>
+                                  {index + 1}
+                                </td>
+                                <td style={{ minWidth: '320px', verticalAlign: 'top' }}>
                                   <SearchableProductSelect
                                     products={products}
                                     categories={categories}
@@ -777,13 +1010,158 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                                     onChange={(newVal) => handleUpdateInRow(item.id, 'productId', newVal)}
                                     lang={lang}
                                   />
+
+                                  {/* Dual-Unit Packaging Bar */}
+                                  <div style={{ marginTop: '6px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                      <button
+                                        type="button"
+                                        className={`btn btn-xs ${item.isPack ? 'btn-primary' : 'btn-outline'}`}
+                                        style={{
+                                          padding: '2px 8px',
+                                          fontSize: '0.72rem',
+                                          borderRadius: '6px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px',
+                                          fontWeight: item.isPack ? '700' : '500',
+                                          borderColor: item.isPack ? '#4f46e5' : '#cbd5e1',
+                                          background: item.isPack ? '#4f46e5' : '#f8fafc',
+                                          color: item.isPack ? '#ffffff' : '#475569',
+                                        }}
+                                        onClick={() => handleTogglePack(item.id)}
+                                      >
+                                        <span>📦 {item.isPack ? (lang === 'th' ? 'โหมดรับตามบิล (เปิดอยู่)' : 'Dual-Unit Active') : (lang === 'th' ? '+ รับตามบิล (แพ็ค/ลัง)' : '+ Invoice Unit (Pack/Box)')}</span>
+                                      </button>
+                                      {item.isPack && (
+                                        <span
+                                          style={{
+                                            fontSize: '0.7rem',
+                                            fontWeight: '700',
+                                            color: '#1e40af',
+                                            background: '#dbeafe',
+                                            padding: '2px 8px',
+                                            borderRadius: '9999px',
+                                          }}
+                                        >
+                                          {item.invoiceQty || 1} {item.invoiceUnit || 'แพ็ค'} × {item.packSize || 10} = เข้าคลัง {item.quantity} {prodObj?.unit || 'ชิ้น'}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {item.isPack && (
+                                      <div
+                                        style={{
+                                          marginTop: '8px',
+                                          padding: '8px 10px',
+                                          borderRadius: '8px',
+                                          border: '1px solid #bfdbfe',
+                                          background: '#f8fafc',
+                                          boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)',
+                                        }}
+                                      >
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))', gap: '8px' }}>
+                                          <div>
+                                            <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#475569', marginBottom: '2px' }}>
+                                              {lang === 'th' ? 'จำนวนตามบิล:' : 'Invoice Qty:'}
+                                            </label>
+                                            <div className="shopee-qty-counter" style={{ height: '30px' }}>
+                                              <button
+                                                type="button"
+                                                className="qty-counter-btn"
+                                                style={{ width: '28px', height: '30px', fontSize: '0.85rem' }}
+                                                onClick={() => handleUpdateInRow(item.id, 'invoiceQty', Math.max(1, (Number(item.invoiceQty) || 1) - 1))}
+                                              >
+                                                -
+                                              </button>
+                                              <input
+                                                type="number"
+                                                min="1"
+                                                className="qty-counter-input font-bold"
+                                                style={{ width: '45px', height: '30px', fontSize: '0.85rem' }}
+                                                value={item.invoiceQty ?? 1}
+                                                onChange={(e) => handleUpdateInRow(item.id, 'invoiceQty', e.target.value)}
+                                              />
+                                              <button
+                                                type="button"
+                                                className="qty-counter-btn"
+                                                style={{ width: '28px', height: '30px', fontSize: '0.85rem' }}
+                                                onClick={() => handleUpdateInRow(item.id, 'invoiceQty', (Number(item.invoiceQty) || 0) + 1)}
+                                              >
+                                                +
+                                              </button>
+                                            </div>
+                                          </div>
+
+                                          <div>
+                                            <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#475569', marginBottom: '2px' }}>
+                                              {lang === 'th' ? 'หน่วยตามบิล:' : 'Invoice Unit:'}
+                                            </label>
+                                            <select
+                                              className="form-control text-xs font-bold"
+                                              style={{ height: '30px', padding: '0 6px' }}
+                                              value={item.invoiceUnit || 'แพ็ค'}
+                                              onChange={(e) => handleUpdateInRow(item.id, 'invoiceUnit', e.target.value)}
+                                            >
+                                              <option value="แพ็ค">แพ็ค</option>
+                                              <option value="ลัง">ลัง</option>
+                                              <option value="กล่อง">กล่อง</option>
+                                              <option value="โหล">โหล (12)</option>
+                                              <option value="รีม">รีม</option>
+                                              <option value="ชุด">ชุด</option>
+                                              <option value="ม้วน">ม้วน</option>
+                                              <option value="มัด">มัด</option>
+                                            </select>
+                                          </div>
+
+                                          <div>
+                                            <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#475569', marginBottom: '2px' }}>
+                                              {lang === 'th' ? `บรรจุ/${item.invoiceUnit || 'แพ็ค'}:` : `Size/${item.invoiceUnit || 'Pack'}:`}
+                                            </label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                              <input
+                                                type="number"
+                                                min="1"
+                                                className="form-control text-xs font-bold text-center"
+                                                style={{ height: '30px', padding: '0 4px', width: '55px' }}
+                                                value={item.packSize ?? 10}
+                                                onChange={(e) => handleUpdateInRow(item.id, 'packSize', e.target.value)}
+                                              />
+                                              <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#64748b' }}>
+                                                {prodObj?.unit || 'ชิ้น'}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          <div>
+                                            <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: '700', color: '#475569', marginBottom: '2px' }}>
+                                              {lang === 'th' ? `ราคาบิล/${item.invoiceUnit || 'แพ็ค'}:` : `Bill Price:`}
+                                            </label>
+                                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                              <span style={{ position: 'absolute', left: '6px', fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b' }}>฿</span>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                step="any"
+                                                className="form-control text-xs font-bold text-right"
+                                                style={{ height: '30px', paddingLeft: '18px', paddingRight: '6px' }}
+                                                value={item.invoiceUnitPrice ?? ''}
+                                                placeholder="0.00"
+                                                onChange={(e) => handleUpdateInRow(item.id, 'invoiceUnitPrice', e.target.value)}
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
                                 </td>
-                                <td>
+                                <td style={{ verticalAlign: 'top', paddingTop: '10px' }}>
                                   <div className="shopee-qty-counter">
                                     <button
                                       type="button"
                                       className="qty-counter-btn"
-                                      onClick={() => handleUpdateInRow(item.id, 'quantity', Math.max(1, (Number(item.quantity) || 1) - 1))}
+                                      onClick={() => handleUpdateInRow(item.id, 'quantity', Math.max(1, (Number(item.quantity) || 1) - (item.isPack ? (Number(item.packSize) || 1) : 1)))}
                                     >
                                       -
                                     </button>
@@ -803,14 +1181,19 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                                     <button
                                       type="button"
                                       className="qty-counter-btn"
-                                      onClick={() => handleUpdateInRow(item.id, 'quantity', (Number(item.quantity) || 0) + 1)}
+                                      onClick={() => handleUpdateInRow(item.id, 'quantity', (Number(item.quantity) || 0) + (item.isPack ? (Number(item.packSize) || 1) : 1))}
                                     >
                                       +
                                     </button>
                                     <span className="text-xxs font-semibold text-muted ml-1">{prodObj?.unit || 'ชิ้น'}</span>
                                   </div>
+                                  {item.isPack && (
+                                    <div className="text-xxs font-bold text-center mt-1" style={{ color: '#4f46e5' }}>
+                                      (= {item.invoiceQty} {item.invoiceUnit || 'แพ็ค'})
+                                    </div>
+                                  )}
                                 </td>
-                                <td>
+                                <td style={{ verticalAlign: 'top', paddingTop: '10px' }}>
                                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                     <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', pointerEvents: 'none' }}>
                                       ฿
@@ -824,12 +1207,17 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                                       step="any"
                                       value={item.unitPrice !== undefined ? item.unitPrice : (prodObj?.costPrice || 0)}
                                       onChange={(e) => handleUpdateInRow(item.id, 'unitPrice', e.target.value)}
-                                      title={lang === 'th' ? 'ราคาต่อหน่วย (ใส่มูลค่าที่นี่ จะคูณจำนวนเป็นมูลค่ารวมให้อัตโนมัติ)' : 'Unit cost (multiplies by quantity to calculate total)'}
+                                      title={lang === 'th' ? 'ราคาทุนต่อหน่วยย่อยที่เข้าสต็อก' : 'Unit cost per stock piece'}
                                       required
                                     />
                                   </div>
+                                  {item.isPack && (
+                                    <div className="text-xxs text-slate-500 font-medium text-right mt-1">
+                                      ต่อ 1 {prodObj?.unit || 'ชิ้น'}
+                                    </div>
+                                  )}
                                 </td>
-                                <td>
+                                <td style={{ verticalAlign: 'top', paddingTop: '10px' }}>
                                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                     <span style={{ position: 'absolute', left: '8px', fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', pointerEvents: 'none' }}>
                                       ฿
@@ -843,12 +1231,17 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                                       step="any"
                                       value={item.totalPrice !== undefined ? item.totalPrice : (itemSubtotal || 0)}
                                       onChange={(e) => handleUpdateInRow(item.id, 'totalPrice', e.target.value)}
-                                      title={lang === 'th' ? 'มูลค่ารวม (ใส่มูลค่าที่นี่ จะหารจำนวนเป็นราคาต่อหน่วยให้อัตโนมัติ)' : 'Total cost (divides by quantity to calculate unit price)'}
+                                      title={lang === 'th' ? 'มูลค่ารวมตามใบแจ้งหนี้ / Invoice' : 'Total cost on invoice'}
                                       required
                                     />
                                   </div>
+                                  {item.isPack && (
+                                    <div className="text-xxs font-bold text-right mt-1" style={{ color: '#059669' }}>
+                                      ✓ ตรงยอดบิล
+                                    </div>
+                                  )}
                                 </td>
-                                <td className="text-center">
+                                <td className="text-center" style={{ verticalAlign: 'top', paddingTop: '14px' }}>
                                   {inItems.length > 1 && (
                                     <button
                                       type="button"

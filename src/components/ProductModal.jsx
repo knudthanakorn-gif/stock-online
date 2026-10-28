@@ -14,10 +14,28 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
   const [quantity, setQuantity] = useState('');
   const [minThreshold, setMinThreshold] = useState('5');
   const [unit, setUnit] = useState('ชิ้น');
+  const [defaultPurchaseUnit, setDefaultPurchaseUnit] = useState('แพ็ค');
+  const [defaultPackSize, setDefaultPackSize] = useState('10');
   const [supplierId, setSupplierId] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
   const [isConverting, setIsConverting] = useState(false);
+
+  const PACK_DEFAULTS_KEY = 'stock_pack_defaults_v1';
+  const getPackDefaults = () => {
+    try {
+      return JSON.parse(localStorage.getItem(PACK_DEFAULTS_KEY)) || {};
+    } catch {
+      return {};
+    }
+  };
+  const savePackDefault = (prodId, config) => {
+    try {
+      const cur = getPackDefaults();
+      cur[prodId] = { ...(cur[prodId] || {}), ...config };
+      localStorage.setItem(PACK_DEFAULTS_KEY, JSON.stringify(cur));
+    } catch {}
+  };
 
   // Helper to compress any image into lightweight permanent WebP/JPEG data URL
   const compressImage = (imgSrc, maxWidth = 500, maxHeight = 500, quality = 0.88) => {
@@ -111,6 +129,11 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
       setQuantity(productToEdit.quantity !== undefined && productToEdit.quantity !== null ? String(productToEdit.quantity) : '0');
       setMinThreshold(productToEdit.minThreshold !== undefined && productToEdit.minThreshold !== null ? String(productToEdit.minThreshold) : '5');
       setUnit(productToEdit.unit || 'ชิ้น');
+
+      const packDef = getPackDefaults()[productToEdit.id];
+      setDefaultPurchaseUnit(packDef?.invoiceUnit || 'แพ็ค');
+      setDefaultPackSize(packDef?.packSize ? String(packDef.packSize) : '10');
+
       setSupplierId(productToEdit.supplierId || '');
       setDescription(productToEdit.description || '');
       setImage(productToEdit.image || '');
@@ -124,6 +147,8 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
       setQuantity('0');
       setMinThreshold('5');
       setUnit('ชิ้น');
+      setDefaultPurchaseUnit('แพ็ค');
+      setDefaultPackSize('10');
       setSupplierId('');
       setDescription('');
       setImage('https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80');
@@ -152,8 +177,18 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
 
     if (productToEdit) {
       updateProduct(productToEdit.id, productData);
+      savePackDefault(productToEdit.id, {
+        invoiceUnit: defaultPurchaseUnit || 'แพ็ค',
+        packSize: Number(defaultPackSize) || 10,
+      });
     } else {
-      addProduct(productData);
+      const created = addProduct(productData);
+      if (created?.id) {
+        savePackDefault(created.id, {
+          invoiceUnit: defaultPurchaseUnit || 'แพ็ค',
+          packSize: Number(defaultPackSize) || 10,
+        });
+      }
     }
 
     onClose();
@@ -252,14 +287,50 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
 
               {/* Unit */}
               <div className="form-group">
-                <label className="form-label">{lang === 'th' ? 'หน่วยนับ' : 'Unit'}</label>
+                <label className="form-label">{lang === 'th' ? 'หน่วยนับในคลัง/หน่วยเบิก *' : 'Stock Unit *'}</label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="ชิ้น, เครื่อง, กล่อง..."
+                  placeholder="ชิ้น, ด้าม, เล่ม, เครื่อง..."
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
+                  required
                 />
+              </div>
+
+              {/* Packaging Defaults (Optional) */}
+              <div className="form-group col-span-2" style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                <div className="font-bold text-xs text-primary mb-2 flex items-center gap-1.5">
+                  <span>📦 {lang === 'th' ? 'การตั้งค่าหน่วยซื้อ/รับเข้าเริ่มต้น (ตามบิล Invoice)' : 'Default Invoice Packaging Setting'}</span>
+                  <span className="text-xxs font-normal text-muted">({lang === 'th' ? 'ช่วยให้ไม่ต้องกรอกขนาดบรรจุใหม่ทุกครั้งที่รับของ' : 'Optional'})</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label className="text-xxs font-bold text-slate-600 block mb-1">
+                      {lang === 'th' ? 'หน่วยซื้อตามบิล (เช่น แพ็ค, ลัง, กล่อง)' : 'Purchase Unit:'}
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control text-xs"
+                      placeholder="แพ็ค, ลัง, กล่อง, โหล..."
+                      value={defaultPurchaseUnit}
+                      onChange={(e) => setDefaultPurchaseUnit(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xxs font-bold text-slate-600 block mb-1">
+                      {lang === 'th' ? `อัตราส่วนบรรจุ (1 ${defaultPurchaseUnit || 'แพ็ค'} = กี่${unit || 'ชิ้น'})` : 'Pack Size (pieces per pack):'}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="form-control text-xs"
+                      placeholder="10"
+                      value={defaultPackSize}
+                      onChange={(e) => setDefaultPackSize(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Image URL & Permanent Storage */}

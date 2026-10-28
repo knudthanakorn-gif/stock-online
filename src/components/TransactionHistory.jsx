@@ -219,12 +219,42 @@ export const TransactionHistory = () => {
                     </td>
                     <td className="font-semibold">{tx.productName || prodObj?.name || '-'}</td>
                     <td>
-                      <span className={`font-mono font-bold ${isAudit ? 'text-amber-600' : isIn ? 'text-emerald' : 'text-red'}`}>
-                        {isAudit ? (tx.quantity > 0 ? `-${tx.quantity}` : `${tx.quantity}`) : isIn ? `+${tx.quantity}` : `-${tx.quantity}`}
-                      </span>
+                      <div className="flex flex-col items-start">
+                        <span className={`font-mono font-bold ${isAudit ? 'text-amber-600' : isIn ? 'text-emerald' : 'text-red'}`}>
+                          {isAudit ? (tx.quantity > 0 ? `-${tx.quantity}` : `${tx.quantity}`) : isIn ? `+${tx.quantity}` : `-${tx.quantity}`} {prodObj?.unit || tx.unit || 'ชิ้น'}
+                        </span>
+                        {isIn && tx.invoiceQty && (
+                          <div
+                            className="text-xxs font-semibold mt-1 px-1.5 py-0.5 rounded border"
+                            style={{
+                              background: '#eff6ff',
+                              borderColor: '#bfdbfe',
+                              color: '#1d4ed8',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              width: 'fit-content',
+                            }}
+                            title={`หน่วยรับเข้าตามบิล Invoice: ${tx.invoiceQty} ${tx.invoiceUnit || 'แพ็ค'}`}
+                          >
+                            <span>📦 ตามบิล:</span>
+                            <strong>{tx.invoiceQty} {tx.invoiceUnit || 'แพ็ค'}</strong>
+                            {tx.packSize && (
+                              <span style={{ color: '#64748b', fontWeight: 'normal' }}>
+                                (x{tx.packSize})
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="font-mono text-xs font-bold text-slate-800">
-                      {formatCurrency((tx.unitPrice || prodObj?.costPrice || 0) * (tx.quantity || 0))}
+                      <div>{formatCurrency((tx.unitPrice || prodObj?.costPrice || 0) * (tx.quantity || 0))}</div>
+                      {isIn && tx.invoiceUnitPrice && (
+                        <div className="text-xxs font-normal text-muted mt-0.5">
+                          @฿{formatCurrency(tx.invoiceUnitPrice)}/{tx.invoiceUnit || 'แพ็ค'}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <span className="stock-balance-chip font-mono font-bold">
