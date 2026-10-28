@@ -41,7 +41,7 @@ const PURPOSE_PRESETS = [
 ];
 
 export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', preselectedProductId = null }) => {
-  const { products = [], categories = [], suppliers = [], requestersList = [], batchImportRequesters, recordStockMovement, lang, user } = useStock();
+  const { products = [], categories = [], suppliers = [], requestersList = [], transactions = [], batchImportRequesters, recordStockMovement, lang, user } = useStock();
 
   const [type, setType] = useState(initialType); // 'IN' or 'OUT'
   const [productId, setProductId] = useState('');
@@ -64,6 +64,7 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
     }
   };
   const savePackDefault = (prodId, config) => {
+    if (!prodId) return;
     try {
       const cur = getPackDefaults();
       cur[prodId] = { ...(cur[prodId] || {}), ...config };
@@ -71,22 +72,63 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
     } catch {}
   };
 
+  // Helper to discover remembered pack preference (checks localStorage, master preset, or past transactions)
+  const getProductPackPref = (prodId) => {
+    if (!prodId) return null;
+    const defaults = getPackDefaults();
+    if (defaults[prodId] !== undefined) {
+      return defaults[prodId];
+    }
+    // Check if there is any past stock-in transaction with dual-unit for this product
+    if (Array.isArray(transactions)) {
+      const pastTx = transactions.find(t => (t.productId === prodId || t.productSku === prodId) && t.type === 'IN' && (t.invoiceQty || t.packSize));
+      if (pastTx) {
+        const pref = {
+          isPack: true,
+          invoiceUnit: pastTx.invoiceUnit || 'แพ็ค',
+          packSize: Number(pastTx.packSize) || 10,
+        };
+        savePackDefault(prodId, pref);
+        return pref;
+      }
+    }
+    return null;
+  };
+
+  const buildInitialInItem = (prodId, rowId = Date.now().toString() + Math.random().toString(36).substr(2, 4), overrideQty = null, overrideUnitPrice = null) => {
+    const prodObj = products.find(p => p.id === prodId);
+    const defCost = overrideUnitPrice !== null && Number(overrideUnitPrice) >= 0 ? Number(overrideUnitPrice) : (prodObj?.costPrice || 0);
+    const pref = getProductPackPref(prodId);
+
+    // Auto-activate pack mode if user has ever used pack mode or saved pack settings for this product
+    const isPack = Boolean(pref && pref.isPack !== false && (pref.isPack === true || Number(pref.packSize) > 1));
+    const pSize = Number(pref?.packSize) || 10;
+    const invUnit = pref?.invoiceUnit || 'แพ็ค';
+
+    const invQty = overrideQty !== null && overrideQty !== undefined ? Number(overrideQty) : 1;
+    const baseQty = isPack ? (invQty * pSize) : (overrideQty !== null && overrideQty !== undefined ? Number(overrideQty) : 1);
+    const invUnitPrice = Number((defCost * pSize).toFixed(2));
+    const total = isPack ? Number((invQty * invUnitPrice).toFixed(2)) : Number((baseQty * defCost).toFixed(2));
+
+    return {
+      id: rowId,
+      productId: prodId || '',
+      quantity: baseQty,
+      unitPrice: defCost,
+      totalPrice: total,
+      lastEdited: 'unitPrice',
+      userModified: overrideQty !== null,
+      isPack,
+      invoiceQty: invQty,
+      invoiceUnit: invUnit,
+      packSize: pSize,
+      invoiceUnitPrice: invUnitPrice,
+    };
+  };
+
   // MULTI-ITEM RECEIVING STATE (for type === 'IN')
   const [inItems, setInItems] = useState([
-    {
-      id: '1',
-      productId: preselectedProductId || (products[0]?.id || ''),
-      quantity: 1,
-      unitPrice: products[0]?.costPrice || 0,
-      totalPrice: products[0]?.costPrice || 0,
-      lastEdited: 'unitPrice',
-      userModified: false,
-      isPack: false,
-      invoiceQty: 1,
-      invoiceUnit: 'แพ็ค',
-      packSize: 10,
-      invoiceUnitPrice: (products[0]?.costPrice || 0) * 10,
-    }
+    buildInitialInItem(preselectedProductId || (products[0]?.id || ''), '1')
   ]);
   const [isMultiPickerOpen, setIsMultiPickerOpen] = useState(false);
 
@@ -126,29 +168,10 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
 
     const defaultProdId = preselectedProductId || (products[0]?.id || '');
     const defaultProd = products.find(p => p.id === defaultProdId);
-    const defCost = defaultProd?.costPrice || 0;
-    const remembered = defaultProdId ? getPackDefaults()[defaultProdId] : null;
-    const pSize = remembered?.packSize || 10;
-    const invUnit = remembered?.invoiceUnit || 'แพ็ค';
 
     setProductId(defaultProdId);
     setOutUnitPrice((defaultProd?.costPrice || defaultProd?.sellingPrice || 0).toString());
-    setInItems([
-      {
-        id: Date.now().toString(),
-        productId: defaultProdId,
-        quantity: 1,
-        unitPrice: defCost,
-        totalPrice: defCost,
-        lastEdited: 'unitPrice',
-        userModified: false,
-        isPack: false,
-        invoiceQty: 1,
-        invoiceUnit: invUnit,
-        packSize: pSize,
-        invoiceUnitPrice: defCost * pSize,
-      }
-    ]);
+    setInItems([buildInitialInItem(defaultProdId, Date.now().toString())]);
   }, [isOpen, initialType, preselectedProductId]);
 
   if (!isOpen) return null;
@@ -195,26 +218,9 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
   // MULTI-ITEM RECEIVING HANDLERS
   const handleAddInRow = () => {
     const nextProd = products.find(p => !inItems.some(item => item.productId === p.id)) || products[0];
-    const defCost = nextProd?.costPrice || 0;
-    const remembered = nextProd ? getPackDefaults()[nextProd.id] : null;
-    const pSize = remembered?.packSize || 10;
-    const invUnit = remembered?.invoiceUnit || 'แพ็ค';
     setInItems(prev => [
       ...prev,
-      {
-        id: Date.now().toString(),
-        productId: nextProd?.id || '',
-        quantity: 1,
-        unitPrice: defCost,
-        totalPrice: defCost,
-        lastEdited: 'unitPrice',
-        userModified: true,
-        isPack: false,
-        invoiceQty: 1,
-        invoiceUnit: invUnit,
-        packSize: pSize,
-        invoiceUnitPrice: defCost * pSize,
-      }
+      buildInitialInItem(nextProd?.id, Date.now().toString())
     ]);
   };
 
@@ -225,23 +231,10 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
       // Check if current list only has the initial untouched placeholder row
       const isInitialUntouched =
         prev.length === 1 &&
-        (prev[0].userModified !== true && Number(prev[0].quantity) === 1);
+        (prev[0].userModified !== true && Number(prev[0].quantity) === 1 && !prev[0].isPack);
 
       if (isInitialUntouched) {
-        return selectedList.map(s => {
-          const remembered = getPackDefaults()[s.productId];
-          const pSize = remembered?.packSize || 10;
-          const invUnit = remembered?.invoiceUnit || 'แพ็ค';
-          return {
-            ...s,
-            isPack: false,
-            invoiceQty: 1,
-            invoiceUnit: invUnit,
-            packSize: pSize,
-            invoiceUnitPrice: (Number(s.unitPrice) || 0) * pSize,
-            userModified: true,
-          };
-        });
+        return selectedList.map(s => buildInitialInItem(s.productId, s.id || (Date.now().toString() + Math.random().toString(36).substr(2, 4)), s.quantity, s.unitPrice));
       }
 
       // Merge: update quantities for existing, append new ones
@@ -262,18 +255,7 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
             userModified: true,
           };
         } else {
-          const remembered = getPackDefaults()[newItem.productId];
-          const pSize = remembered?.packSize || 10;
-          const invUnit = remembered?.invoiceUnit || 'แพ็ค';
-          result.push({
-            ...newItem,
-            isPack: false,
-            invoiceQty: 1,
-            invoiceUnit: invUnit,
-            packSize: pSize,
-            invoiceUnitPrice: (Number(newItem.unitPrice) || 0) * pSize,
-            userModified: true,
-          });
+          result.push(buildInitialInItem(newItem.productId, newItem.id || (Date.now().toString() + Math.random().toString(36).substr(2, 4)), newItem.quantity, newItem.unitPrice));
         }
       });
       return result;
@@ -291,13 +273,22 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
         const nextIsPack = !item.isPack;
         const prodObj = products.find(p => p.id === item.productId);
         const cost = Number(item.unitPrice) >= 0 ? Number(item.unitPrice) : (prodObj?.costPrice || 0);
-        const remembered = item.productId ? getPackDefaults()[item.productId] : null;
-        const pSize = Number(item.packSize) || remembered?.packSize || 10;
-        const invUnit = item.invoiceUnit || remembered?.invoiceUnit || 'แพ็ค';
+        const pref = getProductPackPref(item.productId);
+        const pSize = Number(item.packSize) || Number(pref?.packSize) || 10;
+        const invUnit = item.invoiceUnit || pref?.invoiceUnit || 'แพ็ค';
+
+        // PERSIST USER CHOICE IMMEDIATELY TO LOCALSTORAGE
+        if (item.productId) {
+          savePackDefault(item.productId, {
+            isPack: nextIsPack,
+            invoiceUnit: invUnit,
+            packSize: pSize,
+          });
+        }
 
         let invQty = Number(item.invoiceQty) || 1;
         let baseQty = Number(item.quantity) || 1;
-        let invUnitPrice = Number(item.invoiceUnitPrice) || (cost * pSize);
+        let invUnitPrice = Number(item.invoiceUnitPrice) || Number((cost * pSize).toFixed(2));
 
         if (nextIsPack) {
           if (baseQty > 1 && baseQty % pSize === 0) {
@@ -333,35 +324,14 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
   const handleUpdateInRow = (id, field, value) => {
     setInItems(prev => prev.map(item => {
       if (item.id === id) {
+        if (field === 'productId') {
+          const freshItem = buildInitialInItem(value, item.id);
+          return { ...freshItem, userModified: true };
+        }
+
         const updated = { ...item, userModified: true };
 
-        if (field === 'productId') {
-          updated.productId = value;
-          const matchedProd = products.find(p => p.id === value);
-          const cost = matchedProd?.costPrice || 0;
-          updated.unitPrice = cost;
-
-          const remembered = getPackDefaults()[value];
-          if (remembered) {
-            updated.packSize = remembered.packSize || 10;
-            updated.invoiceUnit = remembered.invoiceUnit || 'แพ็ค';
-          }
-
-          if (updated.isPack) {
-            const pSize = Number(updated.packSize) || 10;
-            const invQ = Number(updated.invoiceQty) || 1;
-            updated.quantity = invQ * pSize;
-            updated.invoiceUnitPrice = Number((cost * pSize).toFixed(2));
-            const rawTotal = invQ * updated.invoiceUnitPrice;
-            updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
-          } else {
-            const qty = Number(updated.quantity) || 1;
-            const rawTotal = cost * qty;
-            updated.totalPrice = Number.isInteger(rawTotal) ? rawTotal : Number(rawTotal.toFixed(2));
-          }
-          updated.lastEdited = 'unitPrice';
-
-        } else if (field === 'invoiceQty') {
+        if (field === 'invoiceQty') {
           updated.invoiceQty = value;
           const invQ = Number(value);
           const pSize = Number(updated.packSize) || 10;
@@ -553,6 +523,15 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
         inItems.forEach((item) => {
           const prodObj = products.find(p => p.id === item.productId);
           const uPrice = Number(item.unitPrice) >= 0 ? Number(item.unitPrice) : (prodObj?.costPrice || 0);
+
+          // Save preference for this product for future receipts
+          if (item.productId) {
+            savePackDefault(item.productId, {
+              isPack: Boolean(item.isPack),
+              invoiceUnit: item.invoiceUnit || 'แพ็ค',
+              packSize: Number(item.packSize) || 10,
+            });
+          }
 
           let dualTag = '';
           if (item.isPack && item.invoiceQty) {
@@ -1031,7 +1010,7 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
                                         }}
                                         onClick={() => handleTogglePack(item.id)}
                                       >
-                                        <span>📦 {item.isPack ? (lang === 'th' ? 'โหมดรับตามบิล (เปิดอยู่)' : 'Dual-Unit Active') : (lang === 'th' ? '+ รับตามบิล (แพ็ค/ลัง)' : '+ Invoice Unit (Pack/Box)')}</span>
+                                        <span>📦 {item.isPack ? (lang === 'th' ? 'โหมดรับตามบิล (จำค่าเปิดอัตโนมัติ ✓)' : 'Dual-Unit Active (Auto ✓)') : (lang === 'th' ? '+ รับตามบิล (แพ็ค/ลัง)' : '+ Invoice Unit (Pack/Box)')}</span>
                                       </button>
                                       {item.isPack && (
                                         <span
