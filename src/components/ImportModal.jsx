@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useStock } from '../context/StockContext';
 import { X, Upload, Download, CheckCircle2, AlertCircle, FileSpreadsheet, Package, Users } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 export const ImportModal = ({ isOpen, onClose }) => {
   const { categories, addProduct, batchImportRequesters, lang } = useStock();
@@ -14,58 +15,64 @@ export const ImportModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  // Download Sample CSV Template
-  const handleDownloadTemplate = () => {
+  // Download Sample Template (Excel .xlsx) without Barcode
+  const handleDownloadTemplate = (format = 'xlsx') => {
     if (importType === 'products') {
-      const headers = ['name', 'sku', 'barcode', 'category', 'costPrice', 'sellingPrice', 'quantity', 'minThreshold', 'unit', 'description'];
-      const sampleRow1 = ['เมาส์ไร้สาย Ergonomic', 'SKU-MOUSE-01', '885123456001', 'IT & Electronics', 850, 1490, 20, 5, 'ชิ้น', 'เมาส์ไร้สายบลูทูธ'];
-      const sampleRow2 = ['กระดาษ A4 80GSM', 'SKU-PAPER-A4', '885123456002', 'Office Supplies', 110, 165, 50, 10, 'รีม', 'กระดาษถ่ายเอกสาร A4'];
+      const headers = ['name', 'sku', 'category', 'costPrice', 'sellingPrice', 'quantity', 'minThreshold', 'unit', 'description'];
+      const sampleRow1 = ['เมาส์ไร้สาย Ergonomic', 'SKU-MOUSE-01', 'IT & Electronics', 850, 1490, 20, 5, 'ชิ้น', 'เมาส์ไร้สายบลูทูธ'];
+      const sampleRow2 = ['กระดาษ A4 80GSM', 'SKU-PAPER-A4', 'Office Supplies', 110, 165, 50, 10, 'รีม', 'กระดาษถ่ายเอกสาร A4'];
 
-      const csvContent = '\uFEFF' + [headers.join(','), sampleRow1.join(','), sampleRow2.join(',')].join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'products_import_template.csv';
-      a.click();
-      URL.revokeObjectURL(url);
+      if (format === 'xlsx') {
+        const ws = XLSX.utils.aoa_to_sheet([headers, sampleRow1, sampleRow2]);
+        ws['!cols'] = [
+          { wch: 30 },
+          { wch: 18 },
+          { wch: 22 },
+          { wch: 12 },
+          { wch: 12 },
+          { wch: 12 },
+          { wch: 14 },
+          { wch: 10 },
+          { wch: 35 },
+        ];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'products_template');
+        XLSX.writeFile(wb, 'products_import_template.xlsx');
+      } else {
+        const csvContent = '\uFEFF' + [headers.join(','), sampleRow1.join(','), sampleRow2.join(',')].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'products_import_template.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     } else {
       const headers = ['name', 'department', 'position'];
       const sample1 = ['คุณสมชาย มั่นคง', 'แผนก IT / เทคโนโลยีสารสนเทศ', 'Senior System Engineer'];
       const sample2 = ['คุณวิภาวรรณ สุขเจริญ', 'ฝ่ายขายและการตลาด', 'เจ้าหน้าที่ฝ่ายขายอาวุโส'];
 
-      const csvContent = '\uFEFF' + [headers.join(','), sample1.join(','), sample2.join(',')].join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'requesters_import_template.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-  };
-
-  // Helper to parse CSV line respecting quotes
-  const parseCSVLine = (line) => {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
+      if (format === 'xlsx') {
+        const ws = XLSX.utils.aoa_to_sheet([headers, sample1, sample2]);
+        ws['!cols'] = [{ wch: 25 }, { wch: 35 }, { wch: 30 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'requesters_template');
+        XLSX.writeFile(wb, 'requesters_import_template.xlsx');
       } else {
-        current += char;
+        const csvContent = '\uFEFF' + [headers.join(','), sample1.join(','), sample2.join(',')].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'requesters_import_template.csv';
+        a.click();
+        URL.revokeObjectURL(url);
       }
     }
-    result.push(current.trim());
-    return result;
   };
 
-  // Handle File Select & CSV Parse
+  // Handle File Select & Parse (supports both .xlsx, .xls, and .csv)
   const handleFileChange = (e) => {
     setErrorMsg('');
     setSuccessMsg('');
@@ -78,63 +85,72 @@ export const ImportModal = ({ isOpen, onClose }) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const text = event.target.result;
-        const lines = text.split(/\r\n|\n/).filter(l => l.trim().length > 0);
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
-        if (lines.length <= 1) {
-          setErrorMsg(lang === 'th' ? 'ไฟล์ไม่มีข้อมูล' : 'File contains no data rows');
+        if (!rawRows || rawRows.length === 0) {
+          setErrorMsg(lang === 'th' ? 'ไฟล์ไม่มีข้อมูลแถวสินค้า' : 'File contains no data rows');
           return;
         }
 
-        const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
         const items = [];
-
-        for (let i = 1; i < lines.length; i++) {
-          const values = parseCSVLine(lines[i]).map(v => v.replace(/^"|"$/g, '').trim());
-          if (values.length < 1 || !values[0]) continue;
-
-          const row = {};
-          headers.forEach((h, idx) => {
-            row[h] = values[idx] || '';
+        for (let i = 0; i < rawRows.length; i++) {
+          const raw = rawRows[i];
+          const cleanRow = {};
+          Object.keys(raw).forEach(k => {
+            cleanRow[k.trim().toLowerCase()] = raw[k];
           });
 
           if (importType === 'products') {
-            const catStr = (row.category || '').toLowerCase();
+            const catStr = String(cleanRow.category || cleanRow['หมวดหมู่'] || '').toLowerCase();
             const matchedCat = categories.find(
               c => c.name.toLowerCase().includes(catStr) || (c.nameTh && c.nameTh.toLowerCase().includes(catStr))
             );
 
+            const prodName = String(cleanRow.name || cleanRow['product name'] || cleanRow['ชื่อสินค้า'] || '').trim();
+            if (!prodName && !cleanRow.sku) continue;
+
             items.push({
-              name: row.name || row['product name'] || row['ชื่อสินค้า'] || `สินค้า #${i}`,
-              sku: row.sku || `SKU-${Math.floor(100000 + Math.random() * 900000)}`,
-              barcode: row.barcode || `885${Math.floor(100000000 + Math.random() * 900000000)}`,
+              name: prodName || `สินค้า #${i + 1}`,
+              sku: String(cleanRow.sku || cleanRow['รหัสสินค้า'] || `SKU-${Math.floor(100000 + Math.random() * 900000)}`).trim(),
+              barcode: String(cleanRow.barcode || cleanRow['บาร์โค้ด'] || `885${Math.floor(100000000 + Math.random() * 900000000)}`).trim(),
               category: matchedCat ? matchedCat.id : (categories[0]?.id || ''),
               categoryName: matchedCat ? (matchedCat.nameTh || matchedCat.name) : (categories[0]?.name || 'General'),
-              costPrice: Number(row.costprice || row['cost price'] || row['ราคาทุน'] || 0),
-              sellingPrice: Number(row.sellingprice || row['selling price'] || row['ราคาขาย'] || 0),
-              quantity: Number(row.quantity || row['จำนวน'] || 0),
-              minThreshold: Number(row.minthreshold || row['ขั้นต่ำ'] || 5),
-              unit: row.unit || row['หน่วย'] || 'ชิ้น',
+              costPrice: Number(cleanRow.costprice || cleanRow['cost price'] || cleanRow['ราคาทุน'] || 0),
+              sellingPrice: Number(cleanRow.sellingprice || cleanRow['selling price'] || cleanRow['ราคาขาย'] || 0),
+              quantity: Number(cleanRow.quantity || cleanRow['จำนวน'] || 0),
+              minThreshold: Number(cleanRow.minthreshold || cleanRow['ขั้นต่ำ'] || 5),
+              unit: String(cleanRow.unit || cleanRow['หน่วย'] || 'ชิ้น').trim(),
               image: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80',
-              description: row.description || row['รายละเอียด'] || '',
+              description: String(cleanRow.description || cleanRow['รายละเอียด'] || '').trim(),
             });
           } else {
-            // Requesters import
+            const reqName = String(cleanRow.name || cleanRow['ชื่อ'] || cleanRow['ชื่อผู้เบิก'] || '').trim();
+            if (!reqName) continue;
             items.push({
-              name: row.name || row['ชื่อ'] || row['ชื่อผู้เบิก'] || `ผู้เบิก #${i}`,
-              company: row.company || row['บริษัท'] || 'EXION (THAILAND) COMPANY LIMITED',
-              department: row.department || row['แผนก'] || row['ฝ่าย'] || '',
-              position: row.position || row['ตำแหน่ง'] || '',
+              name: reqName,
+              company: String(cleanRow.company || cleanRow['บริษัท'] || 'EXION (THAILAND) COMPANY LIMITED').trim(),
+              department: String(cleanRow.department || cleanRow['แผนก'] || cleanRow['ฝ่าย'] || '').trim(),
+              position: String(cleanRow.position || cleanRow['ตำแหน่ง'] || '').trim(),
             });
           }
         }
 
+        if (items.length === 0) {
+          setErrorMsg(lang === 'th' ? 'ไม่พบข้อมูลที่ถูกต้องในไฟล์' : 'No valid records found in file');
+          return;
+        }
+
         setParsedItems(items);
       } catch (err) {
-        setErrorMsg(lang === 'th' ? 'เกิดข้อผิดพลาดในการอ่านไฟล์ CSV' : 'Failed to parse CSV file');
+        console.error('File parse error:', err);
+        setErrorMsg(lang === 'th' ? 'เกิดข้อผิดพลาดในการอ่านไฟล์ กรุณาตรวจสอบรูปแบบไฟล์ Excel / CSV' : 'Failed to parse Excel / CSV file');
       }
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   };
 
   // Confirm Import
@@ -223,32 +239,37 @@ export const ImportModal = ({ isOpen, onClose }) => {
             <div className="step-content">
               <h4>
                 {importType === 'products'
-                  ? (lang === 'th' ? 'ดาวน์โหลดแม่แบบ CSV รายการสินค้า' : 'Download Products CSV Template')
-                  : (lang === 'th' ? 'ดาวน์โหลดแม่แบบ CSV รายชื่อผู้เบิก' : 'Download Requesters CSV Template')}
+                  ? (lang === 'th' ? 'ดาวน์โหลดแม่แบบ Excel / CSV รายการสินค้า (ไม่มีบาร์โค้ด)' : 'Download Products Template (No Barcode)')
+                  : (lang === 'th' ? 'ดาวน์โหลดแม่แบบ Excel / CSV รายชื่อผู้เบิก' : 'Download Requesters Template')}
               </h4>
-              <p>{lang === 'th' ? 'จัดโครงสร้างคอลัมน์มาตรฐานเพื่อการนำเข้าที่สมบูรณ์' : 'Standard column structure for clean importing'}</p>
+              <p>{lang === 'th' ? 'โครงสร้างคอลัมน์มาตรฐานสำหรับอุปกรณ์สำนักงาน' : 'Standard column structure for office assets'}</p>
             </div>
-            <button className="btn btn-outline btn-sm" onClick={handleDownloadTemplate}>
-              <Download size={15} />
-              {lang === 'th' ? 'โหลดตัวอย่าง CSV' : 'Download Template'}
-            </button>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <button className="btn btn-outline btn-sm font-bold" onClick={() => handleDownloadTemplate('xlsx')}>
+                <Download size={15} />
+                <span>{lang === 'th' ? 'โหลดแม่แบบ Excel (.xlsx)' : 'Download Excel'}</span>
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => handleDownloadTemplate('csv')} title="ดาวน์โหลดไฟล์ CSV">
+                <span>.csv</span>
+              </button>
+            </div>
           </div>
 
-          {/* Step 2: Upload CSV */}
+          {/* Step 2: Upload Excel / CSV */}
           <div className="import-step-card card mb-4">
             <div className="step-num">2</div>
             <div className="step-content">
-              <h4>{lang === 'th' ? 'เลือกไฟล์ CSV เพื่ออัปโหลด' : 'Upload CSV File'}</h4>
-              <p>{fileName ? `ไฟล์ที่เลือก: ${fileName}` : (lang === 'th' ? 'รองรับไฟล์ .csv (UTF-8)' : 'Supports .csv UTF-8 files')}</p>
+              <h4>{lang === 'th' ? 'เลือกไฟล์ Excel หรือ CSV เพื่ออัปโหลด' : 'Upload Excel or CSV File'}</h4>
+              <p>{fileName ? `ไฟล์ที่เลือก: ${fileName}` : (lang === 'th' ? 'รองรับไฟล์ .xlsx, .xls และ .csv' : 'Supports .xlsx, .xls, and .csv')}</p>
             </div>
-            <button className="btn btn-primary btn-sm" onClick={() => fileInputRef.current?.click()}>
+            <button className="btn btn-primary btn-sm font-bold" onClick={() => fileInputRef.current?.click()}>
               <FileSpreadsheet size={15} />
-              {lang === 'th' ? 'เลือกไฟล์ CSV' : 'Choose CSV File'}
+              <span>{lang === 'th' ? 'เลือกไฟล์ Excel / CSV' : 'Choose File'}</span>
             </button>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv"
+              accept=".xlsx,.xls,.csv"
               style={{ display: 'none' }}
               onChange={handleFileChange}
             />
