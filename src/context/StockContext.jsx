@@ -119,7 +119,7 @@ const INITIAL_USERS = [
   {
     id: 'usr-1',
     username: 'admin',
-    password: '1234',
+    password: '12354',
     name: 'ผู้ดูแลระบบ (Admin)',
     role: 'admin',
     company: 'EXION (THAILAND) COMPANY LIMITED',
@@ -955,12 +955,7 @@ export const StockProvider = ({ children }) => {
     const checkPassword = (uObj, pwdInput) => {
       const uPwd = String(uObj?.password || '').trim();
       const input = String(pwdInput || '').trim();
-      if (uPwd === input) return true;
-      const isAdmin = uObj?.id === 'usr-1' || (uObj?.username || '').toLowerCase() === 'admin' || uObj?.role === 'admin';
-      if (isAdmin && (input === '123' || input === '1234')) {
-        return true;
-      }
-      return false;
+      return uPwd === input;
     };
 
     let matchedUser = null;
