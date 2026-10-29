@@ -262,7 +262,7 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
 
               {/* Initial Quantity */}
               <div className="form-group">
-                <label className="form-label">{lang === 'th' ? 'จำนวนคงเหลือในคลัง *' : 'Stock Quantity *'}</label>
+                <label className="form-label">{lang === 'th' ? 'จำนวนคงเหลือเริ่มต้น (ไม่บังคับ - เริ่มต้น 0)' : 'Initial Quantity (Optional - default 0)'}</label>
                 <input
                   type="number"
                   className="form-control"
@@ -270,7 +270,6 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
                   min="0"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
-                  required
                 />
               </div>
 

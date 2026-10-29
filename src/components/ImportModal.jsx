@@ -18,9 +18,9 @@ export const ImportModal = ({ isOpen, onClose }) => {
   // Download Sample Template (Excel .xlsx) without Barcode
   const handleDownloadTemplate = (format = 'xlsx') => {
     if (importType === 'products') {
-      const headers = ['name', 'sku', 'category', 'quantity', 'minThreshold', 'unit', 'description'];
-      const sampleRow1 = ['เมาส์ไร้สาย Ergonomic', 'SKU-MOUSE-01', 'IT & Electronics', 20, 5, 'ชิ้น', 'เมาส์ไร้สายบลูทูธ'];
-      const sampleRow2 = ['กระดาษ A4 80GSM', 'SKU-PAPER-A4', 'Office Supplies', 50, 10, 'รีม', 'กระดาษถ่ายเอกสาร A4'];
+      const headers = ['name', 'sku', 'category', 'minThreshold', 'unit', 'description'];
+      const sampleRow1 = ['เมาส์ไร้สาย Ergonomic', 'SKU-MOUSE-01', 'IT & Electronics', 5, 'ชิ้น', 'เมาส์ไร้สายบลูทูธ'];
+      const sampleRow2 = ['กระดาษ A4 80GSM', 'SKU-PAPER-A4', 'Office Supplies', 10, 'รีม', 'กระดาษถ่ายเอกสาร A4'];
 
       if (format === 'xlsx') {
         const ws = XLSX.utils.aoa_to_sheet([headers, sampleRow1, sampleRow2]);
@@ -28,9 +28,8 @@ export const ImportModal = ({ isOpen, onClose }) => {
           { wch: 30 },
           { wch: 18 },
           { wch: 22 },
-          { wch: 12 },
           { wch: 16 },
-          { wch: 10 },
+          { wch: 12 },
           { wch: 35 },
         ];
         const wb = XLSX.utils.book_new();
@@ -242,7 +241,7 @@ export const ImportModal = ({ isOpen, onClose }) => {
               </h4>
               <p>
                 {importType === 'products'
-                  ? (lang === 'th' ? 'โครงสร้างมาตรฐาน (เฉพาะข้อมูลอุปกรณ์ ไม่ต้องใส่ราคาขาย/ราคาทุน — ราคาทุนระบุได้ตอนรับเข้าตามใบเสร็จ)' : 'Standard structure without prices (cost price can be specified during stock-in)')
+                  ? (lang === 'th' ? 'โครงสร้างมาตรฐานสำหรับขึ้นทะเบียนพัสดุ (เฉพาะข้อมูลอุปกรณ์ ไม่ต้องใส่ราคาและจำนวน — ระบบตั้งต้นเป็น 0 เพื่อรอรับเข้าตามจริง)' : 'Standard catalog structure without prices and quantity (defaults to 0, received via stock-in)')
                   : (lang === 'th' ? 'โครงสร้างคอลัมน์มาตรฐานสำหรับรายชื่อพนักงานผู้เบิก' : 'Standard column structure for requesters')}
               </p>
             </div>
@@ -296,7 +295,7 @@ export const ImportModal = ({ isOpen, onClose }) => {
                           <th>SKU</th>
                           <th>{lang === 'th' ? 'ชื่ออุปกรณ์' : 'Asset Name'}</th>
                           <th>{lang === 'th' ? 'หมวดหมู่' : 'Category'}</th>
-                          <th>{lang === 'th' ? 'จำนวนคงเหลือ' : 'Stock Qty'}</th>
+                          <th>{lang === 'th' ? 'หน่วยนับ' : 'Unit'}</th>
                           <th>{lang === 'th' ? 'จุดเตือนใกล้หมด' : 'Min Alert'}</th>
                           <th>{lang === 'th' ? 'รายละเอียด' : 'Description'}</th>
                         </tr>
@@ -308,7 +307,7 @@ export const ImportModal = ({ isOpen, onClose }) => {
                             <td className="font-mono text-xs">{item.sku}</td>
                             <td className="font-semibold">{item.name}</td>
                             <td><span className="cat-chip">{item.categoryName}</span></td>
-                            <td><span className="badge badge-success">{item.quantity} {item.unit}</span></td>
+                            <td><span className="badge badge-secondary">{item.unit || 'ชิ้น'}</span></td>
                             <td className="text-muted">{item.minThreshold} {item.unit}</td>
                             <td className="text-xs text-muted" style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {item.description || '-'}
