@@ -18,9 +18,9 @@ export const ImportModal = ({ isOpen, onClose }) => {
   // Download Sample Template (Excel .xlsx) without Barcode
   const handleDownloadTemplate = (format = 'xlsx') => {
     if (importType === 'products') {
-      const headers = ['name', 'sku', 'category', 'costPrice', 'sellingPrice', 'quantity', 'minThreshold', 'unit', 'description'];
-      const sampleRow1 = ['เมาส์ไร้สาย Ergonomic', 'SKU-MOUSE-01', 'IT & Electronics', 850, 1490, 20, 5, 'ชิ้น', 'เมาส์ไร้สายบลูทูธ'];
-      const sampleRow2 = ['กระดาษ A4 80GSM', 'SKU-PAPER-A4', 'Office Supplies', 110, 165, 50, 10, 'รีม', 'กระดาษถ่ายเอกสาร A4'];
+      const headers = ['name', 'sku', 'category', 'quantity', 'minThreshold', 'unit', 'description'];
+      const sampleRow1 = ['เมาส์ไร้สาย Ergonomic', 'SKU-MOUSE-01', 'IT & Electronics', 20, 5, 'ชิ้น', 'เมาส์ไร้สายบลูทูธ'];
+      const sampleRow2 = ['กระดาษ A4 80GSM', 'SKU-PAPER-A4', 'Office Supplies', 50, 10, 'รีม', 'กระดาษถ่ายเอกสาร A4'];
 
       if (format === 'xlsx') {
         const ws = XLSX.utils.aoa_to_sheet([headers, sampleRow1, sampleRow2]);
@@ -29,9 +29,7 @@ export const ImportModal = ({ isOpen, onClose }) => {
           { wch: 18 },
           { wch: 22 },
           { wch: 12 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 14 },
+          { wch: 16 },
           { wch: 10 },
           { wch: 35 },
         ];
@@ -239,10 +237,14 @@ export const ImportModal = ({ isOpen, onClose }) => {
             <div className="step-content">
               <h4>
                 {importType === 'products'
-                  ? (lang === 'th' ? 'ดาวน์โหลดแม่แบบ Excel / CSV รายการสินค้า (ไม่มีบาร์โค้ด)' : 'Download Products Template (No Barcode)')
+                  ? (lang === 'th' ? 'ดาวน์โหลดแม่แบบ Excel / CSV สำหรับอุปกรณ์สำนักงาน' : 'Download Office Assets Template')
                   : (lang === 'th' ? 'ดาวน์โหลดแม่แบบ Excel / CSV รายชื่อผู้เบิก' : 'Download Requesters Template')}
               </h4>
-              <p>{lang === 'th' ? 'โครงสร้างคอลัมน์มาตรฐานสำหรับอุปกรณ์สำนักงาน' : 'Standard column structure for office assets'}</p>
+              <p>
+                {importType === 'products'
+                  ? (lang === 'th' ? 'โครงสร้างมาตรฐาน (เฉพาะข้อมูลอุปกรณ์ ไม่ต้องใส่ราคาขาย/ราคาทุน — ราคาทุนระบุได้ตอนรับเข้าตามใบเสร็จ)' : 'Standard structure without prices (cost price can be specified during stock-in)')
+                  : (lang === 'th' ? 'โครงสร้างคอลัมน์มาตรฐานสำหรับรายชื่อพนักงานผู้เบิก' : 'Standard column structure for requesters')}
+              </p>
             </div>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               <button className="btn btn-outline btn-sm font-bold" onClick={() => handleDownloadTemplate('xlsx')}>
@@ -292,11 +294,11 @@ export const ImportModal = ({ isOpen, onClose }) => {
                         <tr>
                           <th>#</th>
                           <th>SKU</th>
-                          <th>{lang === 'th' ? 'ชื่อสินค้า' : 'Product Name'}</th>
+                          <th>{lang === 'th' ? 'ชื่ออุปกรณ์' : 'Asset Name'}</th>
                           <th>{lang === 'th' ? 'หมวดหมู่' : 'Category'}</th>
-                          <th>{lang === 'th' ? 'ราคาทุน' : 'Cost'}</th>
-                          <th>{lang === 'th' ? 'ราคาขาย' : 'Price'}</th>
-                          <th>{lang === 'th' ? 'จำนวน' : 'Qty'}</th>
+                          <th>{lang === 'th' ? 'จำนวนคงเหลือ' : 'Stock Qty'}</th>
+                          <th>{lang === 'th' ? 'จุดเตือนใกล้หมด' : 'Min Alert'}</th>
+                          <th>{lang === 'th' ? 'รายละเอียด' : 'Description'}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -306,9 +308,11 @@ export const ImportModal = ({ isOpen, onClose }) => {
                             <td className="font-mono text-xs">{item.sku}</td>
                             <td className="font-semibold">{item.name}</td>
                             <td><span className="cat-chip">{item.categoryName}</span></td>
-                            <td>{item.costPrice} ฿</td>
-                            <td>{item.sellingPrice} ฿</td>
                             <td><span className="badge badge-success">{item.quantity} {item.unit}</span></td>
+                            <td className="text-muted">{item.minThreshold} {item.unit}</td>
+                            <td className="text-xs text-muted" style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {item.description || '-'}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

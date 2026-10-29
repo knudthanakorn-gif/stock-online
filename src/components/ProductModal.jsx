@@ -246,11 +246,13 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
 
               {/* Cost Price */}
               <div className="form-group">
-                <label className="form-label">{lang === 'th' ? 'ราคาต้นทุน / มูลค่าต่อหน่วย (บาท)' : 'Cost Price / Unit Valuation (THB)'}</label>
+                <label className="form-label">
+                  {lang === 'th' ? 'ราคาต้นทุน / มูลค่าต่อหน่วย (บาท) (ไม่บังคับ - ระบุตอนรับเข้าได้)' : 'Cost Price / Valuation (Optional - can set on stock-in)'}
+                </label>
                 <input
                   type="number"
                   className="form-control"
-                  placeholder="0.00"
+                  placeholder="0.00 (ไม่บังคับ)"
                   min="0"
                   step="any"
                   value={costPrice}

@@ -56,7 +56,7 @@ export const Reports = () => {
 
   // CSV Export Functions
   const exportProductsCSV = () => {
-    const headers = ['SKU', 'Product Name', 'Category', 'Cost Price (THB)', 'Selling Price (THB)', 'Quantity', 'Unit', 'Total Valuation (Cost)'];
+    const headers = ['SKU', 'Product Name', 'Category', 'Cost Price / Unit Valuation (THB)', 'Quantity', 'Unit', 'Total Valuation (Cost)'];
     const rows = products.map(p => {
       const catObj = categories.find(c => c.id === p.category);
       const catName = catObj ? catObj.name : 'General';
@@ -64,11 +64,10 @@ export const Reports = () => {
         `"${p.sku}"`,
         `"${p.name.replace(/"/g, '""')}"`,
         `"${catName}"`,
-        p.costPrice,
-        p.sellingPrice,
+        p.costPrice || 0,
         p.quantity,
         `"${p.unit}"`,
-        p.quantity * p.costPrice,
+        p.quantity * (p.costPrice || 0),
       ].join(',');
     });
 
