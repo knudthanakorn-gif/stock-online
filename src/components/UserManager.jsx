@@ -62,6 +62,7 @@ export const UserManager = () => {
     toggleUserStatus,
     adminResetUserPassword,
     lang,
+    user,
   } = useStock();
 
   const [searchQuery, setSearchQuery] = useState('');
