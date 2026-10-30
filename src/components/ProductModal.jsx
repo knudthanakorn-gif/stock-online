@@ -139,7 +139,7 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
       setImage(productToEdit.image || '');
     } else {
       setName('');
-      setSku(`AST-${Math.floor(100000 + Math.random() * 900000)}`);
+      setSku('');
       setBarcode(`QR885${Math.floor(100000000 + Math.random() * 900000000)}`);
       setCategory(categories[0]?.id || '');
       setCostPrice('0');
@@ -220,10 +220,34 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="เช่น โน้ตบุ๊ก Dell Latitude, กระดาษ A4..."
+                  placeholder="เช่น โน้ตบุ๊ก Dell Latitude, กระดาษ A4, เครื่องคิดเลข..."
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                />
+              </div>
+
+              {/* SKU / Product Code */}
+              <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="form-label">{lang === 'th' ? 'รหัสสินค้า / รหัสพัสดุ (SKU)' : 'Product Code / SKU'}</label>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs text-xs"
+                    style={{ padding: '0 4px', height: 'auto', color: '#4f46e5', fontWeight: 600 }}
+                    onClick={() => setSku(`AST-${Math.floor(100000 + Math.random() * 900000)}`)}
+                    title="สุ่มสร้างรหัสพัสดุอัตโนมัติ"
+                  >
+                    <Sparkles size={12} style={{ marginRight: 3, display: 'inline' }} />
+                    {lang === 'th' ? 'สุ่มรหัส' : 'Auto'}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  className="form-control font-mono font-bold"
+                  placeholder={lang === 'th' ? 'เช่น 8002384, OFM-101 (เว้นว่างไว้จะสุ่มสร้างให้อัตโนมัติ)' : 'e.g. 8002384, OFM-101...'}
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
                 />
               </div>
 
@@ -242,6 +266,19 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Unit */}
+              <div className="form-group">
+                <label className="form-label">{lang === 'th' ? 'หน่วยนับในคลัง/หน่วยเบิก *' : 'Stock Unit *'}</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="ชิ้น, ด้าม, เล่ม, เครื่อง, รีม..."
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  required
+                />
               </div>
 
               {/* Cost Price */}
@@ -283,19 +320,6 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
                   min="1"
                   value={minThreshold}
                   onChange={(e) => setMinThreshold(e.target.value)}
-                />
-              </div>
-
-              {/* Unit */}
-              <div className="form-group">
-                <label className="form-label">{lang === 'th' ? 'หน่วยนับในคลัง/หน่วยเบิก *' : 'Stock Unit *'}</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="ชิ้น, ด้าม, เล่ม, เครื่อง..."
-                  value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
-                  required
                 />
               </div>
 
