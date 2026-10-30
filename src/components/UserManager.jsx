@@ -205,6 +205,11 @@ export const UserManager = () => {
     e.preventDefault();
     if (!targetUser || !newPassword.trim()) return;
 
+    if (user?.role !== 'admin' && targetUser.role === 'admin') {
+      setErrorMsg(lang === 'th' ? 'พนักงานคลังไม่สามารถรีเซ็ตรหัสผ่านของผู้ดูแลระบบ (Admin) ได้' : 'Staff cannot reset Admin password');
+      return;
+    }
+
     try {
       adminResetUserPassword(targetUser.id, newPassword.trim(), forceMustChange);
       setFeedbackMsg(
@@ -224,6 +229,17 @@ export const UserManager = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.username.trim() || !formData.name.trim()) return;
+
+    if (user?.role !== 'admin') {
+      if (formData.role === 'admin') {
+        alert(lang === 'th' ? 'พนักงานคลังไม่มีสิทธิ์กำหนดบทบาทเป็นผู้ดูแลระบบ (Admin)' : 'Staff cannot assign Admin role');
+        return;
+      }
+      if (editingUser && editingUser.role === 'admin') {
+        alert(lang === 'th' ? 'พนักงานคลังไม่สามารถแก้ไขข้อมูลของผู้ดูแลระบบ (Admin) ได้' : 'Staff cannot modify Admin accounts');
+        return;
+      }
+    }
 
     if (editingUser) {
       updateUser(editingUser.id, formData);
@@ -467,6 +483,7 @@ export const UserManager = () => {
             const isActive = u.status === 'active';
             const isAdmin = u.role === 'admin';
             const isViewer = u.role === 'viewer';
+            const canModifyThisUser = user?.role === 'admin' || !isAdmin;
 
             return (
               <div key={u.id} className="card user-card">
@@ -479,28 +496,36 @@ export const UserManager = () => {
                   </div>
 
                   <div className="user-card-actions">
-                    <button
-                      className="btn-action-sm"
-                      style={{ color: '#4f46e5', background: 'rgba(99, 102, 241, 0.12)' }}
-                      onClick={() => handleOpenPasswordModal(u)}
-                      title={lang === 'th' ? '🔑 เปลี่ยน / รีเซ็ตรหัสผ่าน' : 'Reset Password'}
-                    >
-                      <KeyRound size={14} />
-                    </button>
-                    <button className="btn-action-sm" onClick={() => handleOpenEdit(u)} title="Edit">
-                      <Edit2 size={14} />
-                    </button>
-                    <button
-                      className="btn-action-sm danger"
-                      onClick={() => {
-                        if (window.confirm(lang === 'th' ? `ลบบัญชี "${u.name}" หรือไม่?` : `Delete user "${u.name}"?`)) {
-                          deleteUser(u.id);
-                        }
-                      }}
-                      title="Delete"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {!canModifyThisUser ? (
+                      <span className="badge badge-warning text-xxs flex-center gap-1 font-bold" title={lang === 'th' ? '🔒 สงวนสิทธิ์ Admin เท่านั้น' : 'Admin Only'}>
+                        <ShieldCheck size={12} /> {lang === 'th' ? 'สงวนสิทธิ์ Admin' : 'Admin Only'}
+                      </span>
+                    ) : (
+                      <>
+                        <button
+                          className="btn-action-sm"
+                          style={{ color: '#4f46e5', background: 'rgba(99, 102, 241, 0.12)' }}
+                          onClick={() => handleOpenPasswordModal(u)}
+                          title={lang === 'th' ? '🔑 เปลี่ยน / รีเซ็ตรหัสผ่าน' : 'Reset Password'}
+                        >
+                          <KeyRound size={14} />
+                        </button>
+                        <button className="btn-action-sm" onClick={() => handleOpenEdit(u)} title="Edit">
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          className="btn-action-sm danger"
+                          onClick={() => {
+                            if (window.confirm(lang === 'th' ? `ลบบัญชี "${u.name}" หรือไม่?` : `Delete user "${u.name}"?`)) {
+                              deleteUser(u.id);
+                            }
+                          }}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -637,6 +662,9 @@ export const UserManager = () => {
                 paginatedUsers.map((u, idx) => {
                   const itemIndex = pageSize === 'ALL' ? idx + 1 : (currentPage - 1) * Number(pageSize) + idx + 1;
                   const isActive = u.status === 'active';
+                  const isAdmin = u.role === 'admin';
+                  const canModifyThisUser = user?.role === 'admin' || !isAdmin;
+
                   return (
                     <tr key={u.id}>
                       <td className="text-muted text-xs text-center">{itemIndex}</td>
@@ -673,38 +701,48 @@ export const UserManager = () => {
                         </div>
                       </td>
                       <td className="text-center">
-                        <button
-                          className={`btn btn-xs ${isActive ? 'btn-outline' : 'btn-success'}`}
-                          onClick={() => toggleUserStatus(u.id)}
-                        >
-                          {isActive ? 'Active' : 'Suspended'}
-                        </button>
+                        {!canModifyThisUser ? (
+                          <span className="badge badge-success text-xxs font-bold">Active</span>
+                        ) : (
+                          <button
+                            className={`btn btn-xs ${isActive ? 'btn-outline' : 'btn-success'}`}
+                            onClick={() => toggleUserStatus(u.id)}
+                          >
+                            {isActive ? 'Active' : 'Suspended'}
+                          </button>
+                        )}
                       </td>
                       <td className="text-center">
-                        <div className="flex-center gap-1 justify-center" style={{ display: 'inline-flex' }}>
-                          <button
-                            className="btn-action-sm"
-                            style={{ color: '#4f46e5', background: 'rgba(99, 102, 241, 0.12)' }}
-                            onClick={() => handleOpenPasswordModal(u)}
-                            title={lang === 'th' ? '🔑 เปลี่ยน / รีเซ็ตรหัสผ่าน' : 'Reset Password'}
-                          >
-                            <KeyRound size={14} />
-                          </button>
-                          <button className="btn-action-sm" onClick={() => handleOpenEdit(u)} title="Edit">
-                            <Edit2 size={14} />
-                          </button>
-                          <button
-                            className="btn-action-sm danger"
-                            onClick={() => {
-                              if (window.confirm(lang === 'th' ? `ลบบัญชี "${u.name}" หรือไม่?` : `Delete user "${u.name}"?`)) {
-                                deleteUser(u.id);
-                              }
-                            }}
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                        {!canModifyThisUser ? (
+                          <span className="badge badge-warning text-xxs flex-center gap-1 font-bold" title={lang === 'th' ? '🔒 สงวนสิทธิ์ Admin เท่านั้น' : 'Admin Only'}>
+                            <ShieldCheck size={12} /> {lang === 'th' ? 'สงวนสิทธิ์ Admin' : 'Admin Only'}
+                          </span>
+                        ) : (
+                          <div className="flex-center gap-1 justify-center" style={{ display: 'inline-flex' }}>
+                            <button
+                              className="btn-action-sm"
+                              style={{ color: '#4f46e5', background: 'rgba(99, 102, 241, 0.12)' }}
+                              onClick={() => handleOpenPasswordModal(u)}
+                              title={lang === 'th' ? '🔑 เปลี่ยน / รีเซ็ตรหัสผ่าน' : 'Reset Password'}
+                            >
+                              <KeyRound size={14} />
+                            </button>
+                            <button className="btn-action-sm" onClick={() => handleOpenEdit(u)} title="Edit">
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              className="btn-action-sm danger"
+                              onClick={() => {
+                                if (window.confirm(lang === 'th' ? `ลบบัญชี "${u.name}" หรือไม่?` : `Delete user "${u.name}"?`)) {
+                                  deleteUser(u.id);
+                                }
+                              }}
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
@@ -1084,7 +1122,9 @@ export const UserManager = () => {
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   >
-                    <option value="admin">🛡️ ผู้ดูแลระบบ (Admin)</option>
+                    {user?.role === 'admin' && (
+                      <option value="admin">🛡️ ผู้ดูแลระบบ (Admin)</option>
+                    )}
                     <option value="staff">📦 พนักงานคลังสินค้า (Staff)</option>
                     <option value="user">👤 พนักงานทั่วไป (User - เบิกอุปกรณ์)</option>
                     <option value="viewer">👁️ ผู้เข้าชม/ดูประวัติ (Viewer)</option>

@@ -1129,7 +1129,11 @@ export const StockProvider = ({ children }) => {
   // User Management
   const createNewUser = (userData) => {
     const empCode = userData.employeeCode ? userData.employeeCode.trim() : `EMP-${1001 + usersList.length}`;
-    const cleanRole = sanitizeRole(userData.role || 'user');
+    let cleanRole = sanitizeRole(userData.role || 'user');
+    // Staff cannot create an admin user
+    if (user?.role !== 'admin' && cleanRole === 'admin') {
+      cleanRole = 'staff';
+    }
     const cleanUsername = userData.username ? userData.username.trim() : extractCleanUsername(userData.name) || empCode;
     const initialPwd = userData.password ? userData.password.trim() : '1234';
     const newUser = {
@@ -1170,10 +1174,20 @@ export const StockProvider = ({ children }) => {
   };
 
   const updateUser = (id, updatedFields) => {
+    const targetUser = usersList.find(u => u.id === id);
+    if (user?.role !== 'admin' && targetUser?.role === 'admin') {
+      alert(lang === 'th' ? 'พนักงานคลังไม่สามารถแก้ไขข้อมูลของผู้ดูแลระบบ (Admin) ได้' : 'Staff cannot modify Admin accounts');
+      return;
+    }
+
     let updatedUserObj = null;
     const sanitizedFields = { ...updatedFields };
     if (sanitizedFields.role) {
       sanitizedFields.role = sanitizeRole(sanitizedFields.role);
+      // Staff cannot promote any user to admin
+      if (user?.role !== 'admin' && sanitizedFields.role === 'admin') {
+        delete sanitizedFields.role;
+      }
     }
     setUsersList(prev =>
       prev.map(u => {
@@ -1224,6 +1238,10 @@ export const StockProvider = ({ children }) => {
       alert(lang === 'th' ? 'ไม่สามารถลบบัญชีผู้ดูแลระบบหลัก (Admin) ได้' : 'Cannot delete primary admin');
       return;
     }
+    if (user?.role !== 'admin' && targetUser?.role === 'admin') {
+      alert(lang === 'th' ? 'พนักงานคลังไม่สามารถลบบัญชีผู้ดูแลระบบ (Admin) ได้' : 'Staff cannot delete Admin accounts');
+      return;
+    }
     // Soft Delete: Mark as inactive and archived to preserve historical audits & requests
     const updatedUser = { ...targetUser, status: 'inactive', isDeleted: true };
     setUsersList(prev => prev.filter(u => u.id !== id));
@@ -1237,6 +1255,11 @@ export const StockProvider = ({ children }) => {
   };
 
   const toggleUserStatus = (id) => {
+    const target = usersList.find(u => u.id === id);
+    if (user?.role !== 'admin' && target?.role === 'admin') {
+      alert(lang === 'th' ? 'พนักงานคลังไม่สามารถระงับการใช้งานบัญชีผู้ดูแลระบบ (Admin) ได้' : 'Staff cannot suspend Admin accounts');
+      return;
+    }
     let targetObj = null;
     setUsersList(prev =>
       prev.map(u => {
@@ -1289,6 +1312,11 @@ export const StockProvider = ({ children }) => {
   };
 
   const adminResetUserPassword = (userId, newPassword, forceMustChange = true) => {
+    const target = usersList.find(u => u.id === userId || u.username === userId);
+    if (user?.role !== 'admin' && target?.role === 'admin') {
+      throw new Error(lang === 'th' ? 'พนักงานคลังไม่สามารถรีเซ็ตรหัสผ่านของผู้ดูแลระบบ (Admin) ได้' : 'Staff cannot reset Admin password');
+    }
+
     const trimmed = String(newPassword).trim();
     let updatedUserObj = null;
     setUsersList(prev => {

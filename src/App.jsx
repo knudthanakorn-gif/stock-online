@@ -245,9 +245,9 @@ const MainLayout = () => {
             />
           )}
 
-          {activeTab === 'users' && user.role === 'admin' && <UserManager />}
+          {activeTab === 'users' && (user.role === 'admin' || user.role === 'staff') && <UserManager />}
 
-          {activeTab === 'requesters' && user.role === 'admin' && <RequesterManager />}
+          {activeTab === 'requesters' && (user.role === 'admin' || user.role === 'staff') && <RequesterManager />}
 
           {(activeTab === 'dashboard' || (user.role !== 'user' && !['admin-home', 'users', 'requesters', 'request-qr', 'approvals', 'audit', 'inventory', 'history', 'categories', 'suppliers', 'reports'].includes(activeTab))) && (
             <Dashboard

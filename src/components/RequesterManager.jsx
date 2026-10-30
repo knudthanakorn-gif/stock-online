@@ -91,18 +91,20 @@ export const RequesterManager = () => {
   const [errorMsg, setErrorMsg] = useState('');
 
   const isAdmin = user?.role === 'admin';
+  const isStaff = user?.role === 'staff';
+  const canManage = isAdmin || isStaff;
 
-  if (!isAdmin) {
+  if (!canManage) {
     return (
       <div className="card text-center py-8">
         <ShieldCheck color="#ef4444" size={48} className="mx-auto mb-2" />
         <h2 className="text-lg font-bold text-red">
-          {lang === 'th' ? 'จำกัดสิทธิ์เฉพาะ Admin เท่านั้น' : 'Access Restricted to Admin Only'}
+          {lang === 'th' ? 'จำกัดสิทธิ์เฉพาะเจ้าหน้าที่คลังและ Admin เท่านั้น' : 'Access Restricted to Admin & Staff Only'}
         </h2>
         <p className="text-sm text-muted">
           {lang === 'th'
-            ? 'เมนูดูกิจกรรมและรายชื่อผู้เบิกสงวนสิทธิ์เฉพาะผู้ดูแลระบบ'
-            : 'Only system administrators can access the Requesters Directory.'}
+            ? 'เมนูดูกิจกรรมและรายชื่อผู้เบิกสงวนสิทธิ์เฉพาะเจ้าหน้าที่คลังและผู้ดูแลระบบ'
+            : 'Only warehouse staff and system administrators can access the Requesters Directory.'}
         </p>
       </div>
     );
@@ -206,6 +208,12 @@ export const RequesterManager = () => {
   };
 
   const handleDeleteRequester = (req) => {
+    const linkedUser = getLinkedUser(req);
+    if (!isAdmin && linkedUser?.role === 'admin') {
+      alert(lang === 'th' ? 'พนักงานคลังไม่สามารถลบข้อมูลของผู้ดูแลระบบ (Admin) ได้' : 'Staff cannot delete Admin accounts');
+      return;
+    }
+
     const confirmDelete = window.confirm(
       lang === 'th'
         ? `⚠️ ยืนยันการลบรายชื่อผู้เบิก "${req.name}" [${req.employeeCode || '-'}] ออกจากระบบหรือไม่?`
@@ -219,6 +227,11 @@ export const RequesterManager = () => {
 
   const handleOpenPasswordModal = (req) => {
     const linkedUser = getLinkedUser(req);
+    if (!isAdmin && linkedUser?.role === 'admin') {
+      alert(lang === 'th' ? 'พนักงานคลังไม่สามารถเปลี่ยนรหัสผ่านของผู้ดูแลระบบ (Admin) ได้' : 'Staff cannot reset Admin password');
+      return;
+    }
+
     setTargetRequester(req);
     setNewPassword(linkedUser?.password || '1234');
     setForceMustChange(Boolean(linkedUser?.mustChangePassword));

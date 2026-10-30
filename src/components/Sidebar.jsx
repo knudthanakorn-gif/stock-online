@@ -53,11 +53,11 @@ export const Sidebar = ({
     if (onClose) onClose();
   };
 
-  // Section 1: Main Admin
+  // Section 1: Main Admin & Management
   const adminNavItems = [
     { id: 'admin-home', labelTh: 'Admin Portal', labelEn: 'Admin Portal', icon: ShieldCheck, adminOnly: true },
-    { id: 'users', labelTh: 'จัดการผู้ใช้งาน (Users)', labelEn: 'User Management', icon: UserPlus, badge: usersList.length ? usersList.length : null, adminOnly: true },
-    { id: 'requesters', labelTh: 'รายชื่อผู้เบิก (Requesters)', labelEn: 'Requesters Directory', icon: UserCheck, badge: requestersList.length ? requestersList.length : null, adminOnly: true },
+    { id: 'users', labelTh: 'จัดการผู้ใช้งาน (Users)', labelEn: 'User Management', icon: UserPlus, badge: usersList.length ? usersList.length : null, staffOrAdmin: true },
+    { id: 'requesters', labelTh: 'รายชื่อผู้เบิก (Requesters)', labelEn: 'Requesters Directory', icon: UserCheck, badge: requestersList.length ? requestersList.length : null, staffOrAdmin: true },
   ];
 
   // Section 2: Daily Operations & Requisition
@@ -80,6 +80,7 @@ export const Sidebar = ({
   const filterItems = (list) => {
     return list.filter(item => {
       if (item.adminOnly && !isAdmin) return false;
+      if (item.staffOrAdmin && !isAdmin && !isStaff) return false;
       if (item.staffOnly && (isViewer || isUser)) return false;
       if (item.hideForViewer && isViewer) return false;
       if (item.hideForUser && isUser) return false;
@@ -143,10 +144,12 @@ export const Sidebar = ({
 
       {/* Main Navigation List */}
       <nav className="sidebar-nav">
-        {/* Section 1: Admin */}
+        {/* Section 1: Admin & Management */}
         {visibleAdmin.length > 0 && (
           <div className="nav-section mb-3">
-            <div className="menu-label">{lang === 'th' ? 'ผู้ดูแลระบบ (ADMIN)' : 'ADMINISTRATION'}</div>
+            <div className="menu-label">
+              {lang === 'th' ? (isAdmin ? 'ผู้ดูแลระบบ (ADMIN)' : 'จัดการระบบ (MANAGEMENT)') : (isAdmin ? 'ADMINISTRATION' : 'MANAGEMENT')}
+            </div>
             {visibleAdmin.map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -209,10 +212,10 @@ export const Sidebar = ({
         )}
       </nav>
 
-      {/* Admin Quick Tools in Sidebar Footer */}
-      {isAdmin && (
+      {/* Admin & Staff Quick Tools in Sidebar Footer */}
+      {(isAdmin || isStaff) && (
         <div className="card p-2 mb-2" style={{ background: 'var(--bg-main)', border: '1px dashed var(--border-color)' }}>
-          <div className="text-xxs font-bold text-muted mb-1 px-1">เครื่องมือองค์กร:</div>
+          <div className="text-xxs font-bold text-muted mb-1 px-1">{lang === 'th' ? 'เครื่องมือองค์กร:' : 'Management Tools:'}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {onOpenDepartmentQuota && (
               <button
@@ -222,7 +225,7 @@ export const Sidebar = ({
                 onClick={() => { onOpenDepartmentQuota(); if (onClose) onClose(); }}
               >
                 <PieChart size={13} color="#6366f1" />
-                <span>โควตาเบิกตามแผนก</span>
+                <span>{lang === 'th' ? 'โควตาเบิกตามแผนก' : 'Department Quota'}</span>
               </button>
             )}
             {onOpenBackupRestore && (
@@ -233,7 +236,7 @@ export const Sidebar = ({
                 onClick={() => { onOpenBackupRestore(); if (onClose) onClose(); }}
               >
                 <Database size={13} color="#10b981" />
-                <span>สำรอง & กู้คืนข้อมูล</span>
+                <span>{lang === 'th' ? 'สำรอง & กู้คืนข้อมูล' : 'Backup & Restore'}</span>
               </button>
             )}
           </div>
