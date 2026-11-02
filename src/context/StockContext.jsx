@@ -536,7 +536,26 @@ export const StockProvider = ({ children }) => {
         setSuppliers(supRes.value.data.map(mapSupplierFromDb));
       }
       if (prodRes.status === 'fulfilled' && prodRes.value.data && prodRes.value.data.length > 0) {
-        const mappedProds = prodRes.value.data.map(mapProductFromDb);
+        const rawPacks = (() => {
+          try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEYS.PACK_DEFAULTS)) || {};
+          } catch {
+            return {};
+          }
+        })();
+        const mappedProds = prodRes.value.data.map(row => {
+          const p = mapProductFromDb(row);
+          const pref = rawPacks[p.id] || (p.sku && rawPacks[p.sku]);
+          if (!p.defaultPurchaseUnit && pref?.invoiceUnit) {
+            p.defaultPurchaseUnit = pref.invoiceUnit;
+            p.invoiceUnit = pref.invoiceUnit;
+          }
+          if (!p.defaultPackSize && pref?.packSize) {
+            p.defaultPackSize = Number(pref.packSize);
+            p.packSize = Number(pref.packSize);
+          }
+          return p;
+        });
         setProducts(mappedProds);
         try {
           localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(mappedProds));
@@ -627,6 +646,21 @@ export const StockProvider = ({ children }) => {
               } catch (e) {}
               return merged;
             });
+            setProducts((prev) =>
+              prev.map((p) => {
+                const pref = parsedPacks[p.id] || (p.sku && parsedPacks[p.sku]);
+                if (pref && (!p.defaultPurchaseUnit || !p.defaultPackSize)) {
+                  return {
+                    ...p,
+                    defaultPurchaseUnit: p.defaultPurchaseUnit || pref.invoiceUnit || 'แพ็ค',
+                    defaultPackSize: p.defaultPackSize || Number(pref.packSize) || 10,
+                    invoiceUnit: p.invoiceUnit || pref.invoiceUnit || 'แพ็ค',
+                    packSize: p.packSize || Number(pref.packSize) || 10,
+                  };
+                }
+                return p;
+              })
+            );
           } catch (e) {}
         }
         const userNotifs = rawNotifs
@@ -791,6 +825,21 @@ export const StockProvider = ({ children }) => {
                 } catch (e) {}
                 return merged;
               });
+              setProducts((prev) =>
+                prev.map((p) => {
+                  const pref = parsedPacks[p.id] || (p.sku && parsedPacks[p.sku]);
+                  if (pref) {
+                    return {
+                      ...p,
+                      defaultPurchaseUnit: pref.invoiceUnit || p.defaultPurchaseUnit || 'แพ็ค',
+                      defaultPackSize: Number(pref.packSize) || p.defaultPackSize || 10,
+                      invoiceUnit: pref.invoiceUnit || p.invoiceUnit || 'แพ็ค',
+                      packSize: Number(pref.packSize) || p.packSize || 10,
+                    };
+                  }
+                  return p;
+                })
+              );
             } catch (e) {}
             return;
           }
@@ -1493,6 +1542,18 @@ export const StockProvider = ({ children }) => {
       if (error) console.error('Supabase addProduct error:', error);
     });
 
+    if (newProduct.defaultPurchaseUnit || newProduct.defaultPackSize) {
+      const pConfig = {
+        isPack: true,
+        invoiceUnit: newProduct.defaultPurchaseUnit || 'แพ็ค',
+        packSize: Number(newProduct.defaultPackSize) || 10,
+      };
+      savePackDefault(newProduct.id, pConfig);
+      if (newProduct.sku) {
+        savePackDefault(newProduct.sku, pConfig);
+      }
+    }
+
     if (newProduct.quantity > 0) {
       recordStockMovement({
         productId: newProduct.id,
@@ -1518,6 +1579,21 @@ export const StockProvider = ({ children }) => {
             sellingPrice: updatedFields.sellingPrice !== undefined ? Number(updatedFields.sellingPrice) : p.sellingPrice,
             minThreshold: updatedFields.minThreshold !== undefined ? Number(updatedFields.minThreshold) : p.minThreshold,
           };
+
+          const pUnit = updated.defaultPurchaseUnit || updated.invoiceUnit;
+          const pSize = updated.defaultPackSize || updated.packSize;
+          if (pUnit || pSize) {
+            const pConfig = {
+              isPack: true,
+              invoiceUnit: pUnit || 'แพ็ค',
+              packSize: Number(pSize) || 10,
+            };
+            savePackDefault(updated.id, pConfig);
+            if (updated.sku) {
+              savePackDefault(updated.sku, pConfig);
+            }
+          }
+
           // Persist to Supabase
           supabase.from('products').upsert(mapProductToDb(updated)).then(({ error }) => {
             if (error) console.error('Supabase updateProduct error:', error);

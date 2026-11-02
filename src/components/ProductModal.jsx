@@ -3,7 +3,7 @@ import { useStock } from '../context/StockContext';
 import { X, Package, QrCode, Upload, Sparkles, CheckCircle2, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
 
 export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
-  const { categories, suppliers, addProduct, updateProduct, lang } = useStock();
+  const { categories, suppliers, addProduct, updateProduct, packDefaults = {}, savePackDefault: savePackDefaultToStock, transactions = [], lang } = useStock();
 
   const [name, setName] = useState('');
   const [sku, setSku] = useState('');
@@ -29,12 +29,23 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
       return {};
     }
   };
-  const savePackDefault = (prodId, config) => {
+  const savePackDefault = (prodId, skuId, config) => {
+    if (!prodId) return;
     try {
       const cur = getPackDefaults();
       cur[prodId] = { ...(cur[prodId] || {}), ...config };
+      if (skuId) {
+        cur[skuId] = { ...(cur[skuId] || {}), ...config };
+      }
       localStorage.setItem(PACK_DEFAULTS_KEY, JSON.stringify(cur));
     } catch {}
+
+    if (typeof savePackDefaultToStock === 'function') {
+      savePackDefaultToStock(prodId, config);
+      if (skuId) {
+        savePackDefaultToStock(skuId, config);
+      }
+    }
   };
 
   // Helper to compress any image into lightweight permanent WebP/JPEG data URL
@@ -130,12 +141,63 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
       setMinThreshold(productToEdit.minThreshold !== undefined && productToEdit.minThreshold !== null ? String(productToEdit.minThreshold) : '5');
       setUnit(productToEdit.unit || 'ชิ้น');
 
-      const packDef = getPackDefaults()[productToEdit.id];
-      setDefaultPurchaseUnit(packDef?.invoiceUnit || 'แพ็ค');
-      setDefaultPackSize(packDef?.packSize ? String(packDef.packSize) : '10');
+      // Resolve saved pack defaults from all possible sources
+      const localPacks = getPackDefaults();
+      const pId = productToEdit.id;
+      const pSku = productToEdit.sku;
+
+      let descPack = null;
+      if (productToEdit.description) {
+        const m = productToEdit.description.match(/<!--pack:({.*?})-->/);
+        if (m) {
+          try {
+            descPack = JSON.parse(m[1]);
+          } catch (e) {}
+        }
+      }
+
+      const packDef =
+        (packDefaults && (packDefaults[pId] || (pSku && packDefaults[pSku]))) ||
+        localPacks[pId] ||
+        (pSku && localPacks[pSku]) ||
+        (productToEdit.defaultPackSettings || {}) ||
+        {};
+
+      let pastTxPref = null;
+      if (!packDef.invoiceUnit && !productToEdit.defaultPurchaseUnit && !descPack && Array.isArray(transactions)) {
+        const pastTx = transactions.find(t => (t.productId === pId || t.productSku === pSku) && t.type === 'IN' && (t.invoiceUnit || t.packSize));
+        if (pastTx) {
+          pastTxPref = {
+            invoiceUnit: pastTx.invoiceUnit,
+            packSize: pastTx.packSize,
+          };
+        }
+      }
+
+      const resolvedUnit =
+        productToEdit.defaultPurchaseUnit ||
+        productToEdit.invoiceUnit ||
+        descPack?.invoiceUnit ||
+        descPack?.unit ||
+        packDef?.invoiceUnit ||
+        pastTxPref?.invoiceUnit ||
+        'แพ็ค';
+
+      const resolvedPackSize =
+        productToEdit.defaultPackSize ||
+        productToEdit.packSize ||
+        descPack?.packSize ||
+        descPack?.size ||
+        packDef?.packSize ||
+        pastTxPref?.packSize ||
+        '10';
+
+      setDefaultPurchaseUnit(resolvedUnit);
+      setDefaultPackSize(String(resolvedPackSize));
 
       setSupplierId(productToEdit.supplierId || '');
-      setDescription(productToEdit.description || '');
+      const cleanDesc = (productToEdit.description || '').replace(/<!--pack:{.*?}-->/g, '').trim();
+      setDescription(cleanDesc);
       setImage(productToEdit.image || '');
     } else {
       setName('');
@@ -160,10 +222,23 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    const cleanDesc = description.replace(/<!--pack:{.*?}-->/g, '').trim();
+    const metaTag = `<!--pack:${JSON.stringify({ invoiceUnit: defaultPurchaseUnit || 'แพ็ค', packSize: Number(defaultPackSize) || 10 })}-->`;
+    const fullDesc = cleanDesc ? `${cleanDesc}\n${metaTag}` : metaTag;
+
+    const targetSku = sku.trim() || productToEdit?.sku || `AST-${Math.floor(100000 + Math.random() * 900000)}`;
+    const targetBarcode = barcode.trim() || productToEdit?.barcode || `QR885${Math.floor(100000000 + Math.random() * 900000000)}`;
+
+    const packConfig = {
+      isPack: true,
+      invoiceUnit: defaultPurchaseUnit || 'แพ็ค',
+      packSize: Number(defaultPackSize) || 10,
+    };
+
     const productData = {
-      name,
-      sku: sku || `AST-${Math.floor(100000 + Math.random() * 900000)}`,
-      barcode: barcode || `QR885${Math.floor(100000000 + Math.random() * 900000000)}`,
+      name: name.trim(),
+      sku: targetSku,
+      barcode: targetBarcode,
       category,
       costPrice: Number(costPrice) || 0,
       sellingPrice: Number(sellingPrice) || Number(costPrice) || 0,
@@ -171,24 +246,21 @@ export const ProductModal = ({ isOpen, onClose, productToEdit = null }) => {
       minThreshold: Number(minThreshold) || 5,
       unit: unit || 'ชิ้น',
       supplierId: supplierId || null,
-      description,
+      description: fullDesc,
       image: image || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80',
+      defaultPurchaseUnit: defaultPurchaseUnit || 'แพ็ค',
+      defaultPackSize: Number(defaultPackSize) || 10,
+      invoiceUnit: defaultPurchaseUnit || 'แพ็ค',
+      packSize: Number(defaultPackSize) || 10,
     };
 
     if (productToEdit) {
       updateProduct(productToEdit.id, productData);
-      savePackDefault(productToEdit.id, {
-        invoiceUnit: defaultPurchaseUnit || 'แพ็ค',
-        packSize: Number(defaultPackSize) || 10,
-      });
+      savePackDefault(productToEdit.id, targetSku, packConfig);
     } else {
       const created = addProduct(productData);
-      if (created?.id) {
-        savePackDefault(created.id, {
-          invoiceUnit: defaultPurchaseUnit || 'แพ็ค',
-          packSize: Number(defaultPackSize) || 10,
-        });
-      }
+      const targetId = created?.id || `prod-${Date.now()}`;
+      savePackDefault(targetId, targetSku, packConfig);
     }
 
     onClose();

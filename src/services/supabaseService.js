@@ -10,40 +10,74 @@ import {
 } from '../data/initialData';
 
 // Map database column names (snake_case) to JS object properties (camelCase)
-export const mapProductFromDb = (row) => ({
-  id: row.id,
-  name: row.name,
-  sku: row.sku,
-  barcode: row.barcode,
-  category: row.category,
-  costPrice: Number(row.cost_price ?? row.costPrice ?? 0),
-  sellingPrice: Number(row.selling_price ?? row.sellingPrice ?? 0),
-  quantity: Number(row.quantity ?? 0),
-  minThreshold: Number(row.min_threshold ?? row.minThreshold ?? 0),
-  unit: row.unit || 'ชิ้น',
-  supplierId: row.supplier_id || row.supplierId,
-  image: row.image,
-  description: row.description,
-  createdAt: row.created_at || row.createdAt,
-  updatedAt: row.updated_at || row.updatedAt,
-});
+export const mapProductFromDb = (row) => {
+  let cleanDesc = row.description || '';
+  let defaultPurchaseUnit = null;
+  let defaultPackSize = null;
 
-export const mapProductToDb = (p) => ({
-  id: p.id,
-  name: p.name,
-  sku: p.sku || '',
-  barcode: p.barcode || '',
-  category: p.category || '',
-  cost_price: p.costPrice ?? p.cost_price ?? 0,
-  selling_price: p.sellingPrice ?? p.selling_price ?? 0,
-  quantity: p.quantity ?? 0,
-  min_threshold: p.minThreshold ?? p.min_threshold ?? 0,
-  unit: p.unit || 'ชิ้น',
-  supplier_id: p.supplierId || p.supplier_id || null,
-  image: p.image || '',
-  description: p.description || '',
-  updated_at: new Date().toISOString(),
-});
+  if (cleanDesc) {
+    const match = cleanDesc.match(/<!--pack:({.*?})-->/);
+    if (match) {
+      try {
+        const meta = JSON.parse(match[1]);
+        defaultPurchaseUnit = meta.invoiceUnit || meta.unit || null;
+        defaultPackSize = meta.packSize || meta.size ? Number(meta.packSize || meta.size) : null;
+        cleanDesc = cleanDesc.replace(/<!--pack:{.*?}-->/g, '').trim();
+      } catch (e) {}
+    }
+  }
+
+  return {
+    id: row.id,
+    name: row.name,
+    sku: row.sku,
+    barcode: row.barcode,
+    category: row.category,
+    costPrice: Number(row.cost_price ?? row.costPrice ?? 0),
+    sellingPrice: Number(row.selling_price ?? row.sellingPrice ?? 0),
+    quantity: Number(row.quantity ?? 0),
+    minThreshold: Number(row.min_threshold ?? row.minThreshold ?? 0),
+    unit: row.unit || 'ชิ้น',
+    supplierId: row.supplier_id || row.supplierId,
+    image: row.image,
+    description: cleanDesc,
+    defaultPurchaseUnit,
+    defaultPackSize,
+    invoiceUnit: defaultPurchaseUnit,
+    packSize: defaultPackSize,
+    createdAt: row.created_at || row.createdAt,
+    updatedAt: row.updated_at || row.updatedAt,
+  };
+};
+
+export const mapProductToDb = (p) => {
+  let dbDescription = p.description || '';
+  const purchaseUnit = p.defaultPurchaseUnit || p.invoiceUnit;
+  const pSize = p.defaultPackSize || p.packSize;
+
+  if (purchaseUnit || pSize) {
+    const clean = dbDescription.replace(/<!--pack:{.*?}-->/g, '').trim();
+    const metaTag = `<!--pack:${JSON.stringify({ invoiceUnit: purchaseUnit || 'แพ็ค', packSize: Number(pSize) || 10 })}-->`;
+    dbDescription = clean ? `${clean}\n${metaTag}` : metaTag;
+  }
+
+  return {
+    id: p.id,
+    name: p.name,
+    sku: p.sku || '',
+    barcode: p.barcode || '',
+    category: p.category || '',
+    cost_price: p.costPrice ?? p.cost_price ?? 0,
+    selling_price: p.sellingPrice ?? p.selling_price ?? 0,
+    quantity: p.quantity ?? 0,
+    min_threshold: p.minThreshold ?? p.min_threshold ?? 0,
+    unit: p.unit || 'ชิ้น',
+    supplier_id: p.supplierId || p.supplier_id || null,
+    image: p.image || '',
+    description: dbDescription,
+    updated_at: new Date().toISOString(),
+  };
+};
 
 export const mapSupplierFromDb = (row) => ({
   id: row.id,

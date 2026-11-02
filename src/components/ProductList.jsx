@@ -36,7 +36,7 @@ export const ProductList = ({
   onOpenImportModal,
   setSelectedProductId,
 }) => {
-  const { products, categories, deleteProduct, lang, user } = useStock();
+  const { products, categories, deleteProduct, packDefaults = {}, lang, user } = useStock();
 
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [stockStatusFilter, setStockStatusFilter] = useState('ALL');
@@ -256,7 +256,7 @@ export const ProductList = ({
                             </div>
                             <div>
                               <div className="product-name font-bold">{prod.name}</div>
-                              {prod.description && <div className="product-desc">{prod.description}</div>}
+                              {prod.description && <div className="product-desc">{(prod.description || '').replace(/<!--pack:{.*?}-->/g, '').trim()}</div>}
                             </div>
                           </div>
                         </td>
@@ -271,6 +271,19 @@ export const ProductList = ({
                             <span className="status-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: isOut ? '#e11d48' : isLow ? '#f59e0b' : '#10b981' }} />
                             {prod.quantity} {prod.unit}
                           </span>
+                          {(() => {
+                            const pPref = (packDefaults && (packDefaults[prod.id] || (prod.sku && packDefaults[prod.sku]))) || {};
+                            const pUnit = prod.defaultPurchaseUnit || prod.invoiceUnit || pPref.invoiceUnit;
+                            const pSize = prod.defaultPackSize || prod.packSize || pPref.packSize;
+                            if (pUnit && Number(pSize) > 1) {
+                              return (
+                                <div className="text-xxs text-muted mt-0.5" style={{ fontSize: '0.72rem', color: '#64748b' }} title="หน่วยซื้อ/รับเข้าเริ่มต้น">
+                                  📦 1 {pUnit} = {pSize} {prod.unit}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                         </td>
                         <td style={{ whiteSpace: 'nowrap' }}>
                           <div className="stock-btn-group">
@@ -380,6 +393,19 @@ export const ProductList = ({
                             <span className="status-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: isOut ? '#e11d48' : isLow ? '#f59e0b' : '#10b981' }} />
                             {lang === 'th' ? `คงเหลือ: ${prod.quantity} ${prod.unit}` : `Stock: ${prod.quantity} ${prod.unit}`}
                           </span>
+                          {(() => {
+                            const pPref = (packDefaults && (packDefaults[prod.id] || (prod.sku && packDefaults[prod.sku]))) || {};
+                            const pUnit = prod.defaultPurchaseUnit || prod.invoiceUnit || pPref.invoiceUnit;
+                            const pSize = prod.defaultPackSize || prod.packSize || pPref.packSize;
+                            if (pUnit && Number(pSize) > 1) {
+                              return (
+                                <div className="text-xxs text-muted mt-1" style={{ fontSize: '0.72rem', color: '#64748b' }} title="หน่วยซื้อ/รับเข้าเริ่มต้น">
+                                  📦 1 {pUnit} = {pSize} {prod.unit}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       </div>
                     </div>

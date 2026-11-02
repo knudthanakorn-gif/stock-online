@@ -65,29 +65,58 @@ export const StockMovementModal = ({ isOpen, onClose, initialType = 'IN', presel
   };
   const savePackDefault = (prodId, config) => {
     if (!prodId) return;
+    const prodObj = products.find(p => p.id === prodId || p.sku === prodId);
+    const skuId = prodObj?.sku;
     try {
       const cur = getPackDefaults();
       cur[prodId] = { ...(cur[prodId] || {}), ...config };
+      if (skuId) {
+        cur[skuId] = { ...(cur[skuId] || {}), ...config };
+      }
       localStorage.setItem(PACK_DEFAULTS_KEY, JSON.stringify(cur));
     } catch {}
     if (typeof savePackDefaultToStock === 'function') {
       savePackDefaultToStock(prodId, config);
+      if (skuId) {
+        savePackDefaultToStock(skuId, config);
+      }
     }
   };
 
-  // Helper to discover remembered pack preference (checks Cloud sync, localStorage, or past transactions)
+  // Helper to discover remembered pack preference (checks Product object, Cloud sync, localStorage, or past transactions)
   const getProductPackPref = (prodId) => {
     if (!prodId) return null;
+    const prodObj = products.find(p => p.id === prodId || p.sku === prodId);
+
+    // 1. Direct packaging preference from product record
+    if (prodObj && (prodObj.defaultPurchaseUnit || prodObj.invoiceUnit) && (prodObj.defaultPackSize || prodObj.packSize)) {
+      return {
+        isPack: true,
+        invoiceUnit: prodObj.defaultPurchaseUnit || prodObj.invoiceUnit || 'แพ็ค',
+        packSize: Number(prodObj.defaultPackSize || prodObj.packSize) || 10,
+      };
+    }
+
+    // 2. Cloud-synced packaging preference (packDefaults)
     if (packDefaults && packDefaults[prodId] !== undefined) {
       return packDefaults[prodId];
     }
+    if (prodObj?.sku && packDefaults && packDefaults[prodObj.sku] !== undefined) {
+      return packDefaults[prodObj.sku];
+    }
+
+    // 3. LocalStorage packaging preference
     const localDefaults = getPackDefaults();
     if (localDefaults[prodId] !== undefined) {
       return localDefaults[prodId];
     }
-    // Check if there is any past stock-in transaction with dual-unit for this product
+    if (prodObj?.sku && localDefaults[prodObj.sku] !== undefined) {
+      return localDefaults[prodObj.sku];
+    }
+
+    // 4. Past stock-in transactions with dual-unit for this product
     if (Array.isArray(transactions)) {
-      const pastTx = transactions.find(t => (t.productId === prodId || t.productSku === prodId) && t.type === 'IN' && (t.invoiceQty || t.packSize));
+      const pastTx = transactions.find(t => (t.productId === prodId || t.productSku === prodId || (prodObj?.sku && t.productSku === prodObj.sku)) && t.type === 'IN' && (t.invoiceQty || t.packSize));
       if (pastTx) {
         const pref = {
           isPack: true,
