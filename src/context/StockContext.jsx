@@ -2060,6 +2060,107 @@ export const StockProvider = ({ children }) => {
     return true;
   };
 
+  // Direct Handover (Approve and Complete immediately, with optional Silent Mode to bypass user notifications)
+  const directCompleteHandover = async (requestId, handoverNote = '', options = { silent: true }) => {
+    if (user?.role === 'viewer' || user?.role === 'user') {
+      throw new Error(lang === 'th' ? 'สิทธิ์เฉพาะเจ้าหน้าที่คลังหรือผู้ดูแลระบบเท่านั้น' : 'Admin or Staff required');
+    }
+
+    const targetReq = requests.find(r => r.id === requestId);
+    if (!targetReq) return false;
+    if (targetReq.status === 'COMPLETED') {
+      throw new Error(lang === 'th' ? 'คำขอนี้ส่งมอบเสร็จสิ้นไปแล้ว' : 'Request already completed');
+    }
+
+    const isAlreadyApproved = targetReq.status === 'APPROVED' || targetReq.status === 'READY_FOR_PICKUP';
+
+    // If still PENDING, we must check stock and deduct inventory
+    if (!isAlreadyApproved) {
+      // 1. Double-check concurrency from DB
+      try {
+        const { data: latestDbReq } = await supabase
+          .from('requests')
+          .select('status')
+          .eq('id', requestId)
+          .maybeSingle();
+
+        if (latestDbReq && latestDbReq.status === 'COMPLETED') {
+          throw new Error(lang === 'th' ? 'คำขอนี้ได้รับการส่งมอบไปแล้วโดยเจ้าหน้าที่ท่านอื่น' : 'Request already completed');
+        }
+      } catch (e) {
+        if (e.message && e.message.includes('ส่งมอบไปแล้ว')) throw e;
+      }
+
+      // 2. Check stock availability
+      for (const item of targetReq.items) {
+        const prod = products.find(p => p.id === item.productId);
+        if (!prod || prod.quantity < item.quantity) {
+          throw new Error(
+            lang === 'th'
+              ? `อุปกรณ์ "${item.name}" มีไม่เพียงพอในคลัง (คงเหลือ ${prod ? prod.quantity : 0} ชิ้น, คำขอเบิก ${item.quantity} ชิ้น)`
+              : `Insufficient stock for ${item.name}`
+          );
+        }
+      }
+
+      // 3. Deduct stock via recordStockMovement
+      const customerFormatted = `${targetReq.requesterName} (${targetReq.requesterCompany}${targetReq.requesterDept ? ` - ${targetReq.requesterDept}` : ''}${targetReq.requesterPosition ? ` - ${targetReq.requesterPosition}` : ''})`;
+
+      targetReq.items.forEach(item => {
+        const prod = products.find(p => p.id === item.productId);
+        recordStockMovement({
+          productId: item.productId,
+          type: 'OUT',
+          quantity: item.quantity,
+          unitPrice: item.costPrice || item.sellingPrice || prod?.costPrice || 0,
+          customer: customerFormatted,
+          requesterName: targetReq.requesterName,
+          requesterCompany: targetReq.requesterCompany,
+          requesterDept: targetReq.requesterDept,
+          requesterPosition: targetReq.requesterPosition,
+          purpose: targetReq.purpose,
+          refNo: targetReq.refNo,
+          note: `[ส่งมอบโดยตรง ${targetReq.refNo}] ${handoverNote || targetReq.note || (lang === 'th' ? 'ส่งมอบพัสดุเรียบร้อย' : 'Direct handover')}`,
+        });
+      });
+    }
+
+    const nowIso = new Date().toISOString();
+    const updatedReq = {
+      ...targetReq,
+      status: 'COMPLETED',
+      statusNote: handoverNote || (options.silent
+        ? (lang === 'th' ? 'อนุมัติและส่งมอบพัสดุเรียบร้อย (ไม่ส่งแจ้งเตือน)' : 'Handover completed (Silent)')
+        : (lang === 'th' ? 'พนักงานรับมอบพัสดุเรียบร้อยสมบูรณ์' : 'Handover completed')
+      ),
+      approvedBy: targetReq.approvedBy || (user ? `${user.name} (${user.role ? user.role.toUpperCase() : 'STAFF'})` : 'Admin'),
+      approvedAt: targetReq.approvedAt || nowIso,
+      readyAt: targetReq.readyAt || nowIso,
+      completedAt: nowIso,
+    };
+
+    setRequests(prev => prev.map(r => (r.id === requestId ? updatedReq : r)));
+
+    // Persist to Supabase
+    supabase.from('requests').upsert(mapRequestToDb(updatedReq)).then(({ error }) => {
+      if (error) console.error('Supabase direct handover error:', error);
+    });
+
+    // ONLY send notification if NOT silent
+    if (!options.silent) {
+      addNotification({
+        type: 'APPROVED',
+        title: '🎉 ส่งมอบพัสดุสำเร็จ',
+        message: `คำขอ [${targetReq.refNo}] ส่งมอบพัสดุให้คุณ ${targetReq.requesterName} เรียบร้อยแล้ว`,
+        linkTab: 'request-qr',
+        targetUser: targetReq.requesterName,
+        targetRole: 'user',
+      });
+    }
+
+    return true;
+  };
+
   const rejectRequisitionRequest = (requestId, rejectionReason = '') => {
     if (user?.role === 'viewer' || user?.role === 'user') {
       throw new Error(lang === 'th' ? 'สิทธิ์เฉพาะเจ้าหน้าที่คลังหรือผู้ดูแลระบบเท่านั้น' : 'Admin or Staff required');
@@ -2491,6 +2592,7 @@ export const StockProvider = ({ children }) => {
         approveRequisitionRequest,
         markRequestReadyForPickup,
         completeRequisitionHandover,
+        directCompleteHandover,
         rejectRequisitionRequest,
         cancelRequisitionRequest,
         deleteRequisitionRequest,

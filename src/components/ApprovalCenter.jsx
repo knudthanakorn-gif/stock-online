@@ -25,6 +25,7 @@ import {
   ChevronDown,
   RotateCcw,
   CalendarDays,
+  BellOff,
 } from 'lucide-react';
 import { renderQRCodeSVG } from '../utils/qrGenerator';
 import { RequisitionSlipModal } from './RequisitionSlipModal';
@@ -43,6 +44,7 @@ export const ApprovalCenter = () => {
     approveRequisitionRequest,
     markRequestReadyForPickup,
     completeRequisitionHandover,
+    directCompleteHandover,
     rejectRequisitionRequest,
     deleteRequisitionRequest,
     lang,
@@ -86,6 +88,11 @@ export const ApprovalCenter = () => {
   // Approval Note Modal State
   const [approveModalReq, setApproveModalReq] = useState(null);
   const [approveNote, setApproveNote] = useState('');
+
+  // Silent Direct Handover Modal State (Bypass Notification)
+  const [silentModalReq, setSilentModalReq] = useState(null);
+  const [silentNote, setSilentNote] = useState('');
+  const [isSubmittingSilent, setIsSubmittingSilent] = useState(false);
 
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
@@ -240,6 +247,28 @@ export const ApprovalCenter = () => {
       setTimeout(() => setActionSuccess(''), 4000);
     } catch (err) {
       setActionError(err.message);
+    }
+  };
+
+  const handleConfirmSilentHandover = async () => {
+    if (!silentModalReq) return;
+    setActionError('');
+    setActionSuccess('');
+    setIsSubmittingSilent(true);
+    try {
+      await directCompleteHandover(silentModalReq.id, silentNote, { silent: true });
+      setActionSuccess(
+        lang === 'th'
+          ? `⚡ ตัดสต็อกและส่งมอบคำขอ [${silentModalReq.refNo}] เรียบร้อยแล้ว (โหมดเงียบ ไม่ส่งแจ้งเตือน)`
+          : `Handover [${silentModalReq.refNo}] completed silently without notification`
+      );
+      setSilentModalReq(null);
+      setSilentNote('');
+      setTimeout(() => setActionSuccess(''), 5000);
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setIsSubmittingSilent(false);
     }
   };
 
@@ -892,29 +921,70 @@ export const ApprovalCenter = () => {
                             <CheckCircle2 size={15} />
                             <span>{lang === 'th' ? 'อนุมัติ & เริ่มจัดของ' : 'Approve & Prepare'}</span>
                           </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm font-extrabold flex-center gap-1.5 shadow-sm"
+                            style={{ background: '#059669', borderColor: '#047857', color: '#ffffff' }}
+                            onClick={() => {
+                              setSilentModalReq(req);
+                              setSilentNote('');
+                            }}
+                            title={lang === 'th' ? 'ตัดสต็อกและส่งมอบทันที โดยไม่ส่งแจ้งเตือนหรืออีเมลไปยังผู้ขอเบิก' : 'Direct handover without notifications'}
+                          >
+                            <Zap size={14} fill="#fbbf24" color="#fbbf24" />
+                            <span>{lang === 'th' ? '⚡ ส่งมอบทันที (ไม่ส่งแจ้งเตือน)' : '⚡ Deliver (Silent)'}</span>
+                          </button>
                         </>
                       )}
 
                       {isApproved && (
-                        <button
-                          className="btn btn-success btn-sm font-extrabold flex-center gap-1.5 shadow-sm"
-                          style={{ background: '#059669', borderColor: '#047857' }}
-                          onClick={() => handleMarkReady(req)}
-                        >
-                          <Package size={16} />
-                          <span>{lang === 'th' ? '📦 จัดเตรียมเสร็จแล้ว (ส่งเมลแจ้งรับของ)' : 'Ready for Pickup'}</span>
-                        </button>
+                        <>
+                          <button
+                            className="btn btn-success btn-sm font-extrabold flex-center gap-1.5 shadow-sm"
+                            style={{ background: '#059669', borderColor: '#047857' }}
+                            onClick={() => handleMarkReady(req)}
+                          >
+                            <Package size={16} />
+                            <span>{lang === 'th' ? '📦 จัดเตรียมเสร็จแล้ว (ส่งเมลแจ้งรับของ)' : 'Ready for Pickup'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm font-bold flex-center gap-1"
+                            onClick={() => {
+                              setSilentModalReq(req);
+                              setSilentNote('');
+                            }}
+                            title={lang === 'th' ? 'ส่งมอบทันทีโดยไม่ส่งอีเมล/แจ้งเตือน' : 'Deliver without notification'}
+                          >
+                            <Zap size={14} color="#059669" />
+                            <span>{lang === 'th' ? 'ส่งมอบทันที (ไม่แจ้งเตือน)' : 'Silent Deliver'}</span>
+                          </button>
+                        </>
                       )}
 
                       {isReady && (
-                        <button
-                          className="btn btn-primary btn-sm font-extrabold flex-center gap-1.5 shadow-sm"
-                          style={{ background: '#4f46e5', borderColor: '#4338ca' }}
-                          onClick={() => handleCompleteHandover(req)}
-                        >
-                          <CheckCircle2 size={16} />
-                          <span>{lang === 'th' ? '✅ ส่งมอบของสำเร็จ (รับของแล้ว)' : 'Complete Handover'}</span>
-                        </button>
+                        <>
+                          <button
+                            className="btn btn-primary btn-sm font-extrabold flex-center gap-1.5 shadow-sm"
+                            style={{ background: '#4f46e5', borderColor: '#4338ca' }}
+                            onClick={() => handleCompleteHandover(req)}
+                          >
+                            <CheckCircle2 size={16} />
+                            <span>{lang === 'th' ? '✅ ส่งมอบของสำเร็จ (รับของแล้ว)' : 'Complete Handover'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm font-bold flex-center gap-1"
+                            onClick={() => {
+                              setSilentModalReq(req);
+                              setSilentNote('');
+                            }}
+                            title={lang === 'th' ? 'ส่งมอบทันทีโดยไม่ส่งอีเมล/แจ้งเตือน' : 'Deliver without notification'}
+                          >
+                            <Zap size={14} color="#059669" />
+                            <span>{lang === 'th' ? 'ส่งมอบทันที (ไม่แจ้งเตือน)' : 'Silent Deliver'}</span>
+                          </button>
+                        </>
                       )}
 
                       {isCompleted && (
@@ -1019,6 +1089,163 @@ export const ApprovalCenter = () => {
               <button className="btn btn-danger font-extrabold" onClick={handleConfirmReject}>
                 <XCircle size={18} />
                 {lang === 'th' ? 'ยืนยันปฏิเสธคำขอ' : 'Confirm Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2.5: SILENT DIRECT HANDOVER (NO NOTIFICATION) */}
+      {silentModalReq && (
+        <div className="modal-overlay" onClick={() => !isSubmittingSilent && setSilentModalReq(null)}>
+          <div className="modal-content modal-md" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header" style={{ borderBottom: '2px solid #10b981' }}>
+              <div className="modal-header-title">
+                <Zap size={24} color="#059669" fill="#10b981" />
+                <h2 className="font-extrabold" style={{ color: '#065f46' }}>
+                  {lang === 'th' ? '⚡ ยืนยันส่งมอบทันที (ไม่ส่งแจ้งเตือน)' : '⚡ Direct Silent Handover'}
+                </h2>
+              </div>
+              <button
+                className="close-btn"
+                disabled={isSubmittingSilent}
+                onClick={() => setSilentModalReq(null)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* Highlight badge info */}
+              <div
+                style={{
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '8px',
+                  padding: '0.85rem',
+                  marginBottom: '1rem',
+                  fontSize: '0.82rem',
+                  color: '#166534',
+                  lineHeight: '1.5',
+                }}
+              >
+                <div className="font-extrabold mb-1 flex-center gap-1.5" style={{ justifyContent: 'flex-start' }}>
+                  <BellOff size={16} color="#15803d" />
+                  <span>{lang === 'th' ? 'โหมดเงียบ (Silent Mode - ไม่ส่งแจ้งเตือน/อีเมล)' : 'Silent Mode'}</span>
+                </div>
+                <div>
+                  {lang === 'th'
+                    ? 'ระบบจะทำการตัดสต็อกอุปกรณ์ทันที และเปลี่ยนสถานะเป็น "ส่งมอบสำเร็จ" โดยไม่มีการส่งอีเมล หรือส่งแจ้งเตือนไปยังผู้ขอเบิก เหมาะสำหรับเคลียร์รายการย้อนหลังหรือรายการที่ผู้เบิกรับของไปเรียบร้อยแล้ว'
+                    : 'Stock will be deducted and status changed to COMPLETED immediately without sending in-app notifications or emails.'}
+                </div>
+              </div>
+
+              {/* Request info summary */}
+              <div
+                style={{
+                  background: 'var(--bg-main)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  padding: '0.75rem',
+                  marginBottom: '1rem',
+                }}
+              >
+                <div className="flex-between mb-1 text-xs">
+                  <span className="text-muted">{lang === 'th' ? 'เลขที่คำขอ:' : 'Ref No:'}</span>
+                  <span className="font-mono font-extrabold text-primary">{silentModalReq.refNo}</span>
+                </div>
+                <div className="flex-between mb-1 text-xs">
+                  <span className="text-muted">{lang === 'th' ? 'ผู้ขอเบิก:' : 'Requester:'}</span>
+                  <span className="font-bold">{silentModalReq.requesterName}</span>
+                </div>
+                <div className="flex-between text-xs">
+                  <span className="text-muted">{lang === 'th' ? 'แผนก / บริษัท:' : 'Dept / Company:'}</span>
+                  <span>{silentModalReq.requesterDept || silentModalReq.department || '-'} ({silentModalReq.requesterCompany || 'EXION'})</span>
+                </div>
+              </div>
+
+              {/* Items preview table */}
+              <div className="font-extrabold text-xs mb-2">
+                📦 {lang === 'th' ? 'รายการอุปกรณ์ที่จะทำการตัดสต็อก (-):' : 'Items to deduct:'}
+              </div>
+              <div
+                style={{
+                  maxHeight: '160px',
+                  overflowY: 'auto',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: '6px',
+                  marginBottom: '1rem',
+                }}
+              >
+                <table className="data-table" style={{ fontSize: '0.78rem', margin: 0 }}>
+                  <thead>
+                    <tr>
+                      <th>{lang === 'th' ? 'ชื่ออุปกรณ์' : 'Item'}</th>
+                      <th className="text-center" style={{ width: '90px' }}>{lang === 'th' ? 'จำนวนตัด' : 'Qty'}</th>
+                      <th className="text-center" style={{ width: '100px' }}>{lang === 'th' ? 'คงเหลือคลัง' : 'Available'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(silentModalReq.items || []).map((item, idx) => {
+                      const prod = products.find((p) => p.id === item.productId);
+                      const currentQty = prod ? prod.quantity : 0;
+                      const isEnough = currentQty >= item.quantity;
+                      return (
+                        <tr key={idx}>
+                          <td className="font-bold">{item.name}</td>
+                          <td className="text-center font-extrabold text-red">
+                            -{item.quantity} {item.unit || 'ชิ้น'}
+                          </td>
+                          <td className="text-center">
+                            <span className={`badge ${isEnough ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.7rem' }}>
+                              {currentQty} {item.unit || 'ชิ้น'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Note input */}
+              <div className="form-group">
+                <label className="form-label text-xs font-bold">
+                  {lang === 'th' ? 'บันทึกเพิ่มเติมในประวัติ (ถ้ามี)' : 'Handover Note (Optional)'}
+                </label>
+                <input
+                  type="text"
+                  className="form-control text-xs"
+                  placeholder={lang === 'th' ? 'เช่น ส่งมอบหน้าเคาน์เตอร์เรียบร้อย / เคลียร์รายการคงค้าง' : 'e.g. Handed over at counter / Backlog clearance'}
+                  value={silentNote}
+                  onChange={(e) => setSilentNote(e.target.value)}
+                  disabled={isSubmittingSilent}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                disabled={isSubmittingSilent}
+                onClick={() => setSilentModalReq(null)}
+              >
+                {lang === 'th' ? 'ยกเลิก' : 'Cancel'}
+              </button>
+              <button
+                className="btn btn-success font-extrabold flex-center gap-1.5"
+                style={{ background: '#059669', borderColor: '#047857' }}
+                disabled={isSubmittingSilent}
+                onClick={handleConfirmSilentHandover}
+              >
+                {isSubmittingSilent ? (
+                  <span>{lang === 'th' ? 'กำลังดำเนินการ...' : 'Processing...'}</span>
+                ) : (
+                  <>
+                    <Zap size={16} fill="#fbbf24" color="#fbbf24" />
+                    <span>{lang === 'th' ? '⚡ ยืนยันตัดสต็อก & ส่งมอบทันที' : 'Confirm Silent Handover'}</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
